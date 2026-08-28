@@ -5,6 +5,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 
@@ -13,7 +14,7 @@ MODEL = os.getenv("OPENAI_MODEL", os.getenv("OPENCODE_MODEL", "mimo-v2.5"))
 PROJECT_SCOPE = os.getenv("AGENT_MEMORY_SCOPE", Path.cwd().name)
 SESSION_ID = os.getenv("AGENT_SESSION_ID", "demo")
 
-# ponytail: UTF-8 字节是保守上界；预算利用率重要时换成模型 tokenizer。
+# ponytail: UTF-8 字节只作粗略代理；预算精度重要时换成对应 tokenizer。
 CONTEXT_BUDGET = int(os.getenv("AGENT_CONTEXT_BUDGET_BYTES", "32000"))
 COMPACT_AT = int(CONTEXT_BUDGET * 0.7)
 MAX_TOOL_CHARS = 4000
@@ -320,24 +321,33 @@ def run_agent(client: Any, state: dict, user_text: str) -> str:
         if usage:
             print(f"[usage] {usage}", file=sys.stderr)
 
-        model_message = response.choices[0].message
+        choice = response.choices[0]
+        model_message = choice.message
         active_turn.append(assistant_message(model_message))
 
-        if not model_message.tool_calls:
+        if model_message.tool_calls:
+            if choice.finish_reason != "tool_calls":
+                raise RuntimeError(
+                    "响应同时包含 Tool Call 和不一致的 finish_reason"
+                )
+            for tool_call in model_message.tool_calls:
+                active_turn.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": execute_tool(tool_call),
+                    }
+                )
+            continue
+
+        if choice.finish_reason == "stop":
             state.setdefault("turns", []).append(active_turn)
             save_state(state)
             if should_compact(state):
                 compact_state(client, state)
             return model_message.content or ""
 
-        for tool_call in model_message.tool_calls:
-            active_turn.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": execute_tool(tool_call),
-                }
-            )
+        raise RuntimeError(f"模型没有正常结束：{choice.finish_reason}")
 
     raise RuntimeError("工具调用轮次过多，已停止以避免死循环")
 
@@ -385,6 +395,24 @@ def self_check() -> None:
     assert PROJECT_MEMORY_FILE.parent == PROJECT_STATE_DIR
     assert USER_MEMORY_FILE.parent == USER_STATE_DIR
     assert USER_MEMORY_FILE.parent != PROJECT_STATE_DIR
+
+    class IncompleteCompletions:
+        def create(self, **_):
+            message = SimpleNamespace(content="未完成", tool_calls=[])
+            choice = SimpleNamespace(finish_reason="length", message=message)
+            return SimpleNamespace(choices=[choice], usage=None)
+
+    incomplete_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=IncompleteCompletions())
+    )
+    incomplete_state = {"summary": "", "turns": []}
+    try:
+        run_agent(incomplete_client, incomplete_state, "测试截断")
+    except RuntimeError as error:
+        assert "没有正常结束" in str(error)
+    else:
+        raise AssertionError("length 不应被归档为完整轮次")
+    assert incomplete_state["turns"] == []
     print("self-check passed")
 
 
