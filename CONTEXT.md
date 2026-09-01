@@ -41,8 +41,12 @@ The GitBook reading interface connected only after the first Canonical Chapter p
 _Avoid_: Authoring source, canonical repository
 
 **Core Reference Set**:
-The nine open-source repositories studied repeatedly across the book: Pi, OpenClaw, Hermes, Codex, OpenAI Agents SDK, Claude Agent SDK Python, LangGraph, Phoenix, and Inspect AI.
+The eleven open-source repositories studied repeatedly across the book, grouped by purpose: Coding Agent Runtime (Pi, OpenClaw, Hermes, Codex, OpenCode, and DeepSeek Harness), Agent frameworks and interfaces (OpenAI Agents SDK, Claude Agent SDK Python, and LangGraph), and observability and evaluation (Phoenix and Inspect AI).
 _Avoid_: List of every popular Agent framework
+
+**Experimental Core Reference**:
+A project important enough to compare repeatedly but not stable enough to treat its current interfaces as durable guidance; study a pinned version and separate architectural lessons from version-specific APIs. DeepSeek Harness is the current example because its official repository labels it a Developer Preview.
+_Avoid_: Stable standard, unversioned best practice, topic-only reference
 
 **Product Behavior Reference**:
 A significant product whose core Runtime source is unavailable, studied through official behavior, documentation, configuration, plugins, and observable interfaces without presenting those materials as core source code. Claude Code is the primary example.

@@ -81,3 +81,26 @@ python -B exercises/phase-1-capstone/starter.py --checkpoint-2
 ```text
 checkpoint 2A passed
 ```
+
+### 第二关 B：分段读取文件
+
+路径检查通过后，实现 `read_file()`：
+
+- 只读取普通文件；
+- `offset` 是非负的 Byte 位置；
+- 一次最多返回 `MAX_READ_BYTES`；
+- 后面还有数据时，`truncated` 为 `true`，`next_offset` 指向下一段；
+- 已读到结尾时，`truncated` 为 `false`，`next_offset` 为 `null`；
+- 返回的 `path` 使用用户提供的相对路径，不暴露本机绝对目录。
+
+继续运行同一个命令：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-2
+```
+
+新的通过标志：
+
+```text
+checkpoint 2B passed
+```

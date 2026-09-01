@@ -10,6 +10,7 @@ from typing import Callable
 
 
 MAX_MODEL_REQUESTS = 4
+MAX_READ_BYTES = 50 * 1024
 
 
 def assistant_message_from_api(message: object) -> dict:
@@ -84,6 +85,11 @@ def resolve_workspace_file(workspace: Path, path: str) -> Path:
     except ValueError as error:
         raise ValueError("路径必须位于 Workspace 内") from error
     return target
+
+
+def read_file(workspace: Path, path: str, offset: int = 0) -> dict:
+    """TODO: 第二关 B 由你亲手实现。"""
+    raise NotImplementedError("请实现分段 read_file")
 
 
 class FakeCompletions:
@@ -290,7 +296,43 @@ def checkpoint_2_check() -> None:
         link.symlink_to(outside, target_is_directory=True)
         assert_rejected("outside-link/secret.txt")
 
-    print("checkpoint 2A passed")
+        source = workspace / "notes.txt"
+        source.write_bytes(b"a" * MAX_READ_BYTES + b"tail")
+        first = read_file(workspace, "notes.txt")
+        assert first == {
+            "path": "notes.txt",
+            "content": "a" * MAX_READ_BYTES,
+            "truncated": True,
+            "next_offset": MAX_READ_BYTES,
+        }
+        second = read_file(
+            workspace,
+            "notes.txt",
+            offset=first["next_offset"],
+        )
+        assert second == {
+            "path": "notes.txt",
+            "content": "tail",
+            "truncated": False,
+            "next_offset": None,
+        }
+
+        for bad_path, bad_offset in [
+            ("missing.txt", 0),
+            (".", 0),
+            ("notes.txt", -1),
+            ("../escape.txt", 0),
+        ]:
+            try:
+                read_file(workspace, bad_path, offset=bad_offset)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(
+                    f"read_file 必须拒绝：{bad_path}, offset={bad_offset}"
+                )
+
+    print("checkpoint 2B passed")
 
 
 def main() -> None:

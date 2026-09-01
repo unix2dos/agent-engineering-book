@@ -35,14 +35,11 @@
 
 ## 核心源码参考
 
-本书不会把所有热门框架都讲一遍。以下九个开源项目组成长期源码参考集：
+本书不会把所有热门框架都讲一遍。以下十一个开源项目组成长期源码参考集，并按它们最适合回答的问题分为三组：
 
-- [Pi](https://github.com/earendil-works/pi)、[OpenClaw](https://github.com/openclaw/openclaw)、[Hermes](https://github.com/NousResearch/hermes-agent) 与 [Codex](https://github.com/openai/codex)：观察 Coding Agent 的 Runtime、Context、Tool 与安全边界；
-- [OpenAI Agents SDK](https://github.com/openai/openai-agents-python)：观察通用 Agent Loop、Session、Handoff、Guardrail 与 Trace；
-- [Claude Agent SDK Python](https://github.com/anthropics/claude-agent-sdk-python)：观察开源的消息解析、CLI Transport、MCP Bridge 与 Session Store；它通过子进程调用捆绑的 Claude Code CLI，不包含 Claude Code 核心 Runtime；
-- [LangGraph](https://github.com/langchain-ai/langgraph)：观察状态图、Checkpoint、长任务恢复与 Human-in-the-loop；
-- [Phoenix](https://github.com/Arize-ai/phoenix)：观察 Trace、Span、Evaluation 与运行诊断；
-- [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai)：观察 Dataset、Solver、Scorer 与评估日志。
+- **Coding Agent Runtime**：[Pi](https://github.com/earendil-works/pi)、[OpenClaw](https://github.com/openclaw/openclaw)、[Hermes](https://github.com/NousResearch/hermes-agent)、[Codex](https://github.com/openai/codex)、[OpenCode](https://github.com/anomalyco/opencode) 与 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)。它们用于观察 Agent Loop、Session、Context、Tool、权限和安全边界。OpenCode 还适合研究多模型适配、工具注册与输出截断；DeepSeek Harness 适合研究插件化 Runtime、Session Controller 与上下文来源追踪，但它仍处于 Developer Preview，书中只针对固定版本学习，不把当前接口写成稳定规范；
+- **Agent 框架与接口**：[OpenAI Agents SDK](https://github.com/openai/openai-agents-python)、[Claude Agent SDK Python](https://github.com/anthropics/claude-agent-sdk-python) 与 [LangGraph](https://github.com/langchain-ai/langgraph)。它们用于观察通用 Agent Loop、Session、Handoff、Guardrail、状态图与长任务恢复。Claude Agent SDK Python 通过子进程调用捆绑的 Claude Code CLI，开放了消息解析、CLI Transport、MCP Bridge 与 Session Store，但不包含 Claude Code 核心 Runtime；
+- **可观测性与评估**：[Phoenix](https://github.com/Arize-ai/phoenix) 与 [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai)。它们用于观察 Trace、Span、Dataset、Solver、Scorer、Evaluation 与评估日志。
 
 其他项目只在它们能回答某个章节的独特问题时选读。
 
