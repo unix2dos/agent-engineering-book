@@ -3,6 +3,8 @@
 import copy
 import json
 import sys
+import tempfile
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Callable
 
@@ -67,6 +69,21 @@ def run_agent_loop(
         raise RuntimeError("模型没有正常结束")
 
     raise RuntimeError("模型请求次数超过最大次数")
+
+
+def resolve_workspace_file(workspace: Path, path: str) -> Path:
+    """Resolve a relative path and require it to stay inside Workspace."""
+    workspace_root = workspace.resolve()
+    requested = Path(path)
+    if requested.is_absolute():
+        raise ValueError("路径必须是相对路径")
+
+    target = (workspace_root / requested).resolve()
+    try:
+        target.relative_to(workspace_root)
+    except ValueError as error:
+        raise ValueError("路径必须位于 Workspace 内") from error
+    return target
 
 
 class FakeCompletions:
@@ -245,7 +262,41 @@ def self_check() -> None:
     print("checkpoint 1 passed")
 
 
+def checkpoint_2_check() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        workspace = root / "workspace"
+        outside = root / "outside"
+        workspace.mkdir()
+        outside.mkdir()
+
+        expected = (workspace / "notes" / "result.txt").resolve()
+        assert resolve_workspace_file(
+            workspace,
+            "notes/result.txt",
+        ) == expected
+
+        def assert_rejected(path: str) -> None:
+            try:
+                resolve_workspace_file(workspace, path)
+            except ValueError:
+                return
+            raise AssertionError(f"路径必须被拒绝：{path}")
+
+        assert_rejected("../escape.txt")
+        assert_rejected((outside / "absolute.txt").as_posix())
+
+        link = workspace / "outside-link"
+        link.symlink_to(outside, target_is_directory=True)
+        assert_rejected("outside-link/secret.txt")
+
+    print("checkpoint 2A passed")
+
+
 def main() -> None:
+    if "--checkpoint-2" in sys.argv:
+        checkpoint_2_check()
+        return
     if "--self-check" not in sys.argv:
         print("运行方式：python starter.py --self-check")
         return

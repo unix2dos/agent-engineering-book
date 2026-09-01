@@ -57,3 +57,27 @@ checkpoint 1 passed
 ```
 
 建议先独立写 20～30 分钟。卡住时只索要一个提示，不要直接索要完整答案。
+
+## 第二关：受控本地工具
+
+第二关先只解决路径问题。打开 [`starter.py`](starter.py)，实现 `resolve_workspace_file()`：
+
+- 相对路径可以解析到 Workspace 内；
+- 拒绝绝对路径；
+- 拒绝 `..` 逃出 Workspace；
+- 即使路径经过软链接，最终目标也不能落到 Workspace 外；
+- 目标文件暂时不存在时也能返回规范化路径。
+
+不要自己实现文件系统，也不要靠字符串前缀判断路径。使用 Python `pathlib.Path` 提供的路径解析能力，策略判断由你完成。
+
+运行第二关的第一组检查：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-2
+```
+
+通过标志：
+
+```text
+checkpoint 2A passed
+```
