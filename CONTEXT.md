@@ -41,8 +41,12 @@ The GitBook reading interface connected only after the first Canonical Chapter p
 _Avoid_: Authoring source, canonical repository
 
 **Core Reference Set**:
-The eight repositories studied repeatedly across the book: Pi, OpenClaw, Hermes, Codex, OpenAI Agents SDK, LangGraph, Phoenix, and Inspect AI.
+The nine open-source repositories studied repeatedly across the book: Pi, OpenClaw, Hermes, Codex, OpenAI Agents SDK, Claude Agent SDK Python, LangGraph, Phoenix, and Inspect AI.
 _Avoid_: List of every popular Agent framework
+
+**Product Behavior Reference**:
+A significant product whose core Runtime source is unavailable, studied through official behavior, documentation, configuration, plugins, and observable interfaces without presenting those materials as core source code. Claude Code is the primary example.
+_Avoid_: Open-source Runtime, source implementation
 
 **Topic Reference**:
 An additional repository consulted only when a chapter needs its distinct implementation, rather than becoming another project studied end to end.

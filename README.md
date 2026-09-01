@@ -35,15 +35,20 @@
 
 ## 核心源码参考
 
-本书不会把所有热门框架都讲一遍。以下八个项目组成长期参考集：
+本书不会把所有热门框架都讲一遍。以下九个开源项目组成长期源码参考集：
 
 - [Pi](https://github.com/earendil-works/pi)、[OpenClaw](https://github.com/openclaw/openclaw)、[Hermes](https://github.com/NousResearch/hermes-agent) 与 [Codex](https://github.com/openai/codex)：观察 Coding Agent 的 Runtime、Context、Tool 与安全边界；
 - [OpenAI Agents SDK](https://github.com/openai/openai-agents-python)：观察通用 Agent Loop、Session、Handoff、Guardrail 与 Trace；
+- [Claude Agent SDK Python](https://github.com/anthropics/claude-agent-sdk-python)：观察开源的消息解析、CLI Transport、MCP Bridge 与 Session Store；它通过子进程调用捆绑的 Claude Code CLI，不包含 Claude Code 核心 Runtime；
 - [LangGraph](https://github.com/langchain-ai/langgraph)：观察状态图、Checkpoint、长任务恢复与 Human-in-the-loop；
 - [Phoenix](https://github.com/Arize-ai/phoenix)：观察 Trace、Span、Evaluation 与运行诊断；
 - [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai)：观察 Dataset、Solver、Scorer 与评估日志。
 
 其他项目只在它们能回答某个章节的独特问题时选读。
+
+## 产品行为参考
+
+[Claude Code](https://github.com/anthropics/claude-code) 是重要的 Coding Agent 参考，但其核心 Runtime 没有开源；官方仓库使用 [商业条款许可证](https://github.com/anthropics/claude-code/blob/main/LICENSE.md)。本书通过官方文档、设置、插件与示例研究它的权限、Hooks、Sandbox、Memory、Subagent 和 Workflow，不把这些外部行为描述成已经读过的核心源码。
 
 ## 运行配置
 
