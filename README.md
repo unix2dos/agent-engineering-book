@@ -47,12 +47,12 @@
 
 ## 配套代码
 
-现有教学代码暂时保留原路径，避免已经发布的文章链接失效：
+教学代码按对应课程放在 `examples/`：
 
-- [`01-agent.py`](01-agent.py)：最小 Tool Calling Loop；
-- [`02_rember.py`](02_rember.py)：Session、Checkpoint 与长期记忆；
-- [`03_context.py`](03_context.py)：JSONL Transcript、Compaction 与 Prompt View；
-- [`04_tool_reliability.py`](04_tool_reliability.py)：Execution Ledger、幂等与故障恢复。
+- [`lesson_03_tool_calling_loop.py`](examples/lesson_03_tool_calling_loop.py)：最小 Tool Calling Loop；
+- [`lesson_04_session_memory.py`](examples/lesson_04_session_memory.py)：Session、Checkpoint 与长期记忆；
+- [`lesson_05_context_compaction.py`](examples/lesson_05_context_compaction.py)：JSONL Transcript、Compaction 与 Prompt View；
+- [`lesson_07_tool_reliability.py`](examples/lesson_07_tool_reliability.py)：Execution Ledger、幂等与故障恢复。
 
 这些文件是教学实现，不宣称覆盖生产系统的并发、分布式事务、租户隔离和高可用要求。
 

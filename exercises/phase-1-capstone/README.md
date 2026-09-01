@@ -1,8 +1,8 @@
 # 第一阶段综合实践：可靠的 Workspace Agent
 
-这次不再新增一份完整 Agent 实现。`04_tool_reliability.py` 已经包含 Tool、Context、Compaction、Ledger 与恢复，继续复制只会产生两套答案。
+这次不再新增一份完整 Agent 实现。[`lesson_07_tool_reliability.py`](../../examples/lesson_07_tool_reliability.py) 已经包含 Tool、Context、Compaction、Ledger 与恢复，继续复制只会产生两套答案。
 
-综合实践采用另一种方式：从一个很小的 starter 开始，你亲手补上核心控制逻辑；每通过一关，再接入现有代码中的一层能力。`04_tool_reliability.py` 只在完成当前尝试后用于对照。
+综合实践采用另一种方式：从一个很小的 starter 开始，你亲手补上核心控制逻辑；每通过一关，再接入现有代码中的一层能力。`lesson_07_tool_reliability.py` 只在完成当前尝试后用于对照。
 
 ## 最终目标
 
@@ -32,7 +32,7 @@
 
 ## 第一关：你现在要写什么
 
-打开 [`starter.py`](starter.py)，只实现 `run_agent_loop()`。不要先翻看 `01-agent.py` 的答案。
+打开 [`starter.py`](starter.py)，只实现 `run_agent_loop()`。不要先翻看 [`lesson_03_tool_calling_loop.py`](../../examples/lesson_03_tool_calling_loop.py) 的答案。
 
 你的实现必须满足这些可观察结果：
 
@@ -57,4 +57,3 @@ checkpoint 1 passed
 ```
 
 建议先独立写 20～30 分钟。卡住时只索要一个提示，不要直接索要完整答案。
-
