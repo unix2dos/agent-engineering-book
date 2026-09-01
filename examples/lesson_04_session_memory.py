@@ -9,8 +9,7 @@ from types import SimpleNamespace
 from typing import Any
 
 
-BASE_URL = os.getenv("OPENAI_BASE_URL", "https://opencode.ai/zen/go/v1")
-MODEL = os.getenv("OPENAI_MODEL", os.getenv("OPENCODE_MODEL", "mimo-v2.5"))
+MODEL = os.getenv("OPENAI_MODEL", "")
 PROJECT_SCOPE = os.getenv("AGENT_MEMORY_SCOPE", Path.cwd().name)
 SESSION_ID = os.getenv("AGENT_SESSION_ID", "demo")
 
@@ -352,23 +351,16 @@ def run_agent(client: Any, state: dict, user_text: str) -> str:
     raise RuntimeError("工具调用轮次过多，已停止以避免死循环")
 
 
-def load_api_key() -> str:
-    key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENCODE_API_KEY")
-    if key:
-        return key
-    auth_file = Path.home() / ".local/share/opencode/auth.json"
-    if auth_file.exists():
-        data = read_json(auth_file, {})
-        for provider in ("opencode-go", "opencode"):
-            if (data.get(provider) or {}).get("key"):
-                return data[provider]["key"]
-    raise RuntimeError("请设置 OPENAI_API_KEY 或 OPENCODE_API_KEY")
-
-
 def make_client() -> Any:
     from openai import OpenAI
 
-    return OpenAI(base_url=BASE_URL, api_key=load_api_key())
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key or not MODEL:
+        raise RuntimeError("请设置 OPENAI_API_KEY 和 OPENAI_MODEL")
+    return OpenAI(
+        api_key=api_key,
+        base_url=os.getenv("OPENAI_BASE_URL") or None,
+    )
 
 
 def self_check() -> None:

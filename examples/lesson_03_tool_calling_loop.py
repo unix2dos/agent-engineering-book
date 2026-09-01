@@ -3,12 +3,9 @@
 import json
 import os
 import sys
-from pathlib import Path
 from types import SimpleNamespace
 
 
-BASE_URL = os.getenv("OPENAI_BASE_URL", "https://opencode.ai/zen/go/v1")
-MODEL = os.getenv("OPENAI_MODEL", os.getenv("OPENCODE_MODEL", "mimo-v2.5"))
 MAX_STEPS = 8
 MAX_ABS_VALUE = 1_000_000
 
@@ -121,31 +118,20 @@ def run_agent(client: object, model: str, user_text: str) -> str:
     raise RuntimeError(f"超过最大步骤数：{MAX_STEPS}")
 
 
-def load_api_key() -> str:
-    key = os.getenv("OPENCODE_GO_API_KEY") or os.getenv("OPENCODE_API_KEY")
-    if key:
-        return key
-
-    auth_path = Path.home() / ".local/share/opencode/auth.json"
-    if auth_path.exists():
-        data = json.loads(auth_path.read_text(encoding="utf-8"))
-        for provider in ("opencode-go", "opencode"):
-            stored = data.get(provider) or {}
-            if stored.get("key"):
-                return stored["key"]
-
-    raise RuntimeError(
-        "没有找到 OpenCode API Key；请设置 OPENCODE_GO_API_KEY，"
-        "或运行 opencode auth login"
-    )
-
-
 def make_client() -> tuple[object, str]:
     try:
         from openai import OpenAI
     except ImportError as error:
         raise RuntimeError("缺少 openai 包，请运行：python -m pip install openai") from error
-    return OpenAI(base_url=BASE_URL, api_key=load_api_key()), MODEL
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    model = os.getenv("OPENAI_MODEL")
+    if not api_key or not model:
+        raise RuntimeError("请设置 OPENAI_API_KEY 和 OPENAI_MODEL")
+    return OpenAI(
+        api_key=api_key,
+        base_url=os.getenv("OPENAI_BASE_URL") or None,
+    ), model
 
 
 def fake_response(*, finish_reason: str, content: str = "", tool_calls=None):

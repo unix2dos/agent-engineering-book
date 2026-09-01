@@ -45,6 +45,20 @@
 
 其他项目只在它们能回答某个章节的独特问题时选读。
 
+## 运行配置
+
+在线示例只读取通用的 OpenAI-compatible 环境变量：
+
+```bash
+export OPENAI_API_KEY="your-api-key"
+export OPENAI_MODEL="your-model"
+
+# 使用第三方兼容端点时再设置；OpenAI 官方端点可以省略。
+export OPENAI_BASE_URL="https://provider.example/v1"
+```
+
+仓库不会读取 OpenCode、Claude Code 或其他 Provider 的本地登录文件。你可以在 Shell、密码管理器、CI 或部署平台中把自己的凭据映射到这三个变量。
+
 ## 配套代码
 
 教学代码按对应课程放在 `examples/`：

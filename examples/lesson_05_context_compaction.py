@@ -15,8 +15,6 @@ MAX_READ_BYTES = 50 * 1024
 MAX_BASH_TAIL_BYTES = 50 * 1024
 MAX_WRITE_PREVIEW_CHARS = 500
 BASH_TIMEOUT_SECONDS = 60
-BASE_URL = os.getenv("OPENAI_BASE_URL", "https://opencode.ai/zen/go/v1")
-MODEL = os.getenv("OPENAI_MODEL", os.getenv("OPENCODE_MODEL", "mimo-v2.5"))
 CONTEXT_BUDGET_BYTES = int(
     os.getenv("AGENT_CONTEXT_BUDGET_BYTES", "120000")
 )
@@ -538,27 +536,7 @@ def estimated_context_bytes(messages: list[dict]) -> int:
     return len(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
 
 
-def load_api_key() -> str:
-    key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENCODE_API_KEY")
-    if key:
-        return key
-
-    auth_file = Path.home() / ".local/share/opencode/auth.json"
-    if auth_file.exists():
-        data = json.loads(auth_file.read_text(encoding="utf-8"))
-        for provider in ("opencode-go", "opencode"):
-            provider_key = (data.get(provider) or {}).get("key")
-            if provider_key:
-                return provider_key
-
-    raise RuntimeError(
-        "没有找到 API Key；请先登录 OpenCode，"
-        "或设置 OPENAI_API_KEY / OPENCODE_API_KEY"
-    )
-
-
 def make_client() -> tuple[object, str]:
-
     try:
         from openai import OpenAI
     except ImportError as error:
@@ -566,7 +544,14 @@ def make_client() -> tuple[object, str]:
             "缺少 openai 包，请运行：python -m pip install openai"
         ) from error
 
-    return OpenAI(base_url=BASE_URL, api_key=load_api_key()), MODEL
+    api_key = os.getenv("OPENAI_API_KEY")
+    model = os.getenv("OPENAI_MODEL")
+    if not api_key or not model:
+        raise RuntimeError("请设置 OPENAI_API_KEY 和 OPENAI_MODEL")
+    return OpenAI(
+        api_key=api_key,
+        base_url=os.getenv("OPENAI_BASE_URL") or None,
+    ), model
 
 
 def interactive_main() -> None:
