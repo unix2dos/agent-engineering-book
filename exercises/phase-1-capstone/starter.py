@@ -102,7 +102,35 @@ def find_compaction_cut(
     keep_recent_turns: int = 1,
 ) -> int | None:
     """TODO: 第三关 E 由你亲手实现。"""
-    raise NotImplementedError("请寻找完整轮次之间的压缩切点")
+
+    if keep_recent_turns < 0:
+        raise ValueError("keep_recent_turns 不能为负数")
+
+    if not messages:
+        return None
+
+    completed_turn_ends = []
+    inside_turn = False
+
+    for position, message in enumerate(messages, start=1):
+        role = message.get("role")
+
+        if role == "user":
+            inside_turn = True
+
+        elif (
+            inside_turn
+            and role == "assistant"
+            and not message.get("tool_calls")
+        ):
+            completed_turn_ends.append(position)
+            inside_turn = False
+
+    compact_turn_count = len(completed_turn_ends) - keep_recent_turns
+    if compact_turn_count <= 0:
+        return None
+    return completed_turn_ends[compact_turn_count - 1]
+
 
 
 
