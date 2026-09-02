@@ -195,3 +195,35 @@ python -B exercises/phase-1-capstone/starter.py --checkpoint-2
 ```text
 checkpoint 2E passed
 ```
+
+## 第三关：Transcript 与 Prompt View
+
+第二关完成后，Agent 已经能调用本地工具，但所有消息仍只存在内存里。程序一退出，用户说过什么、模型调用过什么工具、工具返回了什么都会消失。
+
+第三关先把“磁盘上的完整记录”和“真正发给模型的内容”分开实现。
+
+### 第三关 A：追加写入 JSONL Transcript
+
+先实现 `append_entry()` 和 `load_entries()`：
+
+- Session 文件使用 JSONL，每一行保存一条完整记录；
+- `append_entry()` 只在文件末尾追加，不覆盖旧内容；
+- 父目录不存在时自动创建；
+- 使用 `ensure_ascii=False`，让中文在磁盘上仍然可读；
+- 每次写完调用 `flush()` 和 `os.fsync()`，尽量把本轮记录交给操作系统落盘；
+- `load_entries()` 在文件不存在时返回空列表；
+- 逐行解析 JSON，发现坏行时抛出带行号的 `ValueError`，不能悄悄跳过。
+
+这一小关只建立 Transcript，也就是磁盘上的完整收据。下一小关才会从这些收据里组装 Prompt View。
+
+运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-3
+```
+
+当前会停在 `NotImplementedError`。通过标志是：
+
+```text
+checkpoint 3A passed
+```

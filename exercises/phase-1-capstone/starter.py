@@ -2,6 +2,7 @@
 
 import copy
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -12,6 +13,16 @@ from typing import Callable
 
 MAX_MODEL_REQUESTS = 4
 MAX_READ_BYTES = 50 * 1024
+
+
+def append_entry(path: Path, entry: dict) -> None:
+    """TODO: 第三关 A 由你亲手实现。"""
+    raise NotImplementedError("请实现 JSONL 追加写入")
+
+
+def load_entries(path: Path) -> list[dict]:
+    """TODO: 第三关 A 由你亲手实现。"""
+    raise NotImplementedError("请实现 JSONL 读取")
 
 
 def assistant_message_from_api(message: object) -> dict:
@@ -578,7 +589,49 @@ def checkpoint_2_check() -> None:
     print("checkpoint 2E passed")
 
 
+def checkpoint_3_check() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        session_file = Path(temp) / "state" / "session.jsonl"
+        assert load_entries(session_file) == []
+
+        expected = [
+            {
+                "type": "message",
+                "message": {"role": "user", "content": "你好"},
+            },
+            {
+                "type": "message",
+                "message": {"role": "assistant", "content": "你好！"},
+            },
+        ]
+        for entry in expected:
+            append_entry(session_file, entry)
+
+        assert load_entries(session_file) == expected
+        raw = session_file.read_text(encoding="utf-8")
+        assert len(raw.splitlines()) == 2
+        assert "你好" in raw
+        assert "\\u4f60" not in raw
+
+        broken_file = Path(temp) / "broken.jsonl"
+        broken_file.write_text(
+            '{"type":"message"}\n{"type":',
+            encoding="utf-8",
+        )
+        try:
+            load_entries(broken_file)
+        except ValueError as error:
+            assert "第 2 行" in str(error)
+        else:
+            raise AssertionError("损坏的 JSONL 必须被发现")
+
+    print("checkpoint 3A passed")
+
+
 def main() -> None:
+    if "--checkpoint-3" in sys.argv:
+        checkpoint_3_check()
+        return
     if "--checkpoint-2" in sys.argv:
         checkpoint_2_check()
         return
