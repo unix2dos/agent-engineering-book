@@ -104,3 +104,28 @@ python -B exercises/phase-1-capstone/starter.py --checkpoint-2
 ```text
 checkpoint 2B passed
 ```
+
+### 第二关 C：原子覆盖写入
+
+接下来实现 `write_file()`。这一关先练写入本身，审批和 `run_bash` 留到后面：
+
+- `path` 必须落在 Workspace 内，软链接也不能逃逸；
+- 父目录必须已经存在，工具不能偷偷创建目录；
+- 目标已经存在时，只允许覆盖普通文件；
+- `content` 按 UTF-8 编码，`bytes_written` 返回实际 Byte 数；
+- 先在目标文件旁边写临时文件，完成后再用 `Path.replace()` 替换目标；
+- 返回 `status`、原始相对路径、写入 Byte 数和是否覆盖旧文件。
+
+为什么不直接对目标执行 `write_text()`？如果进程写到一半崩溃，旧文件可能已经被破坏。临时文件没有完整写好时，目标文件仍保持原样。
+
+继续运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-2
+```
+
+通过标志将变成：
+
+```text
+checkpoint 2C passed
+```

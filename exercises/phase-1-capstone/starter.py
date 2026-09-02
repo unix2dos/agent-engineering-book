@@ -109,6 +109,37 @@ def read_file(workspace: Path, path: str, offset: int = 0) -> dict:
         }
 
 
+def write_file(workspace: Path, path: str, content: str) -> dict:
+    """TODO: 第二关 C 由你亲手实现。"""
+    file_path = resolve_workspace_file(workspace, path)
+    if not file_path.parent.is_dir():
+        raise ValueError("父目录不存在")
+    if file_path.exists() and not file_path.is_file():
+        raise ValueError("路径必须指向普通文件")
+
+    encoded = content.encode("utf-8")
+    overwritten = file_path.exists()
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=file_path.parent,
+            delete=False,
+        ) as temp_file:
+            temp_file.write(encoded)
+            temp_path = Path(temp_file.name)
+        temp_path.replace(file_path)
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+
+    return {
+        "status": "succeeded",
+        "path": path,
+        "bytes_written": len(encoded),
+        "overwritten": overwritten,
+    }
+
+
 class FakeCompletions:
     def __init__(self, responses: list[object]):
         self.responses = list(responses)
@@ -349,7 +380,38 @@ def checkpoint_2_check() -> None:
                     f"read_file 必须拒绝：{bad_path}, offset={bad_offset}"
                 )
 
-    print("checkpoint 2B passed")
+        output_dir = workspace / "output"
+        output_dir.mkdir()
+        created = write_file(workspace, "output/result.txt", "hello 写入")
+        assert created == {
+            "status": "succeeded",
+            "path": "output/result.txt",
+            "bytes_written": len("hello 写入".encode("utf-8")),
+            "overwritten": False,
+        }
+        assert (output_dir / "result.txt").read_text() == "hello 写入"
+
+        overwritten = write_file(workspace, "output/result.txt", "short")
+        assert overwritten["overwritten"] is True
+        assert overwritten["bytes_written"] == 5
+        assert (output_dir / "result.txt").read_text() == "short"
+
+        for bad_path in ["../escape.txt", "outside-link/secret.txt", "."]:
+            try:
+                write_file(workspace, bad_path, "不应写入")
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(f"write_file 必须拒绝：{bad_path}")
+
+        try:
+            write_file(workspace, "missing/result.txt", "不应写入")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("write_file 不应偷偷创建父目录")
+
+    print("checkpoint 2C passed")
 
 
 def main() -> None:
