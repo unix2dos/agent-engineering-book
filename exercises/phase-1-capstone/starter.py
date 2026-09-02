@@ -139,7 +139,33 @@ def maybe_compact(
     summarize: Callable[[list[dict]], str],
 ) -> bool:
     """TODO: 第三关 F 由你亲手实现。"""
-    raise NotImplementedError("请按预算生成 Compaction Entry")
+    if keep_recent_turns < 0:
+        raise ValueError("keep_recent_turns 不能为负数")
+
+    if max_prompt_chars <= 0:
+        raise ValueError("max_prompt_chars 不能为零或负数")
+
+    if not session_file.exists():
+        return False
+
+    entries = load_entries(session_file)
+    if not entries:
+        return False
+
+    prompt_view = build_prompt_view(entries)
+    prompt_chars = len(json.dumps(prompt_view, ensure_ascii=False))
+    if prompt_chars <= max_prompt_chars:
+        return False
+
+    cut_position = find_compaction_cut(prompt_view, keep_recent_turns)
+    if cut_position is None:
+        return False
+
+    prefix = prompt_view[:cut_position]
+    retained_tail = prompt_view[cut_position:]
+    summary = summarize(prefix)
+    append_compaction(session_file, summary, retained_tail)
+    return True
 
 
 
