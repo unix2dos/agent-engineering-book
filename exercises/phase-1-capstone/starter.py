@@ -146,7 +146,31 @@ def execute_workspace_tool(
     approve: Callable[[str, dict], bool],
 ) -> str:
     """TODO: 第二关 D 由你亲手实现。"""
-    raise NotImplementedError("请实现 Tool Router 与写入审批")
+    tool_name = tool_call.function.name
+    tool_arguments = json.loads(tool_call.function.arguments)
+    if tool_name == "read_file":
+        return json.dumps(
+            read_file(
+                workspace,
+                tool_arguments["path"],
+                tool_arguments.get("offset", 0),
+            ),
+            ensure_ascii=False,
+        )
+    elif tool_name == "write_file":
+        if not approve(tool_name, tool_arguments):
+            return json.dumps({"status": "rejected"}, ensure_ascii=False)
+        result = write_file(workspace, tool_arguments["path"], tool_arguments["content"])
+        return json.dumps(result, ensure_ascii=False)
+    else:
+        return json.dumps(
+            {
+                "status": "failed",
+                "error": "unknown_tool",
+                "tool_name": tool_name,
+            },
+            ensure_ascii=False,
+        )
 
 
 class FakeCompletions:
