@@ -154,3 +154,44 @@ python -B exercises/phase-1-capstone/starter.py --checkpoint-2
 ```text
 checkpoint 2D passed
 ```
+
+### 第二关 E：接入需要审批的 Bash
+
+最后实现 `run_bash()`，并把它接入 `execute_workspace_tool()`：
+
+- 使用 `subprocess.run()` 调用固定的 `/bin/zsh -lc`；
+- 使用 `cwd=workspace`，让命令从 Workspace 开始运行；
+- 设置固定超时，不能让命令无限运行；
+- 捕获 `stdout`、`stderr` 和 `returncode`；
+- `returncode == 0` 返回 `succeeded`，其他值返回 `failed`；
+- 与 `write_file` 一样，Router 必须在执行前调用 `approve()`；
+- 用户拒绝时不调用 `run_bash()`，返回 `rejected`。
+
+`subprocess.run()` 的调用形式可以直接参考：
+
+```python
+completed = subprocess.run(
+    ["/bin/zsh", "-lc", command],
+    cwd=workspace,
+    capture_output=True,
+    text=True,
+    timeout=5,
+    check=False,
+)
+```
+
+你需要亲手完成的是：根据 `completed.returncode` 组装结果，并在 Router 中加入 `run_bash` 的审批分支。
+
+`cwd=workspace` 不是 Sandbox。Shell 仍可能通过绝对路径或 `..` 访问 Workspace 外部；这一关只证明 Harness 会先审批，真正的强制隔离仍要交给操作系统 Sandbox、容器或 microVM。
+
+运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-2
+```
+
+通过标志将变成：
+
+```text
+checkpoint 2E passed
+```

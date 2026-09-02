@@ -2,6 +2,7 @@
 
 import copy
 import json
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -138,6 +139,11 @@ def write_file(workspace: Path, path: str, content: str) -> dict:
         "bytes_written": len(encoded),
         "overwritten": overwritten,
     }
+
+
+def run_bash(workspace: Path, command: str) -> dict:
+    """TODO: 第二关 E 由你亲手实现。"""
+    raise NotImplementedError("请实现有超时限制的 run_bash")
 
 
 def execute_workspace_tool(
@@ -504,7 +510,45 @@ def checkpoint_2_check() -> None:
             "tool_name": "unknown_tool",
         }
 
-    print("checkpoint 2D passed")
+        bash_success = run_bash(workspace, "printf hello")
+        assert bash_success == {
+            "status": "succeeded",
+            "returncode": 0,
+            "stdout": "hello",
+            "stderr": "",
+        }
+
+        bash_failure = run_bash(workspace, "printf boom >&2; exit 7")
+        assert bash_failure == {
+            "status": "failed",
+            "returncode": 7,
+            "stdout": "",
+            "stderr": "boom",
+        }
+
+        denied_bash_call = fake_tool_call(
+            "call_bash_denied",
+            "run_bash",
+            {"command": "printf denied > output/bash-denied.txt"},
+        )
+        denied_bash = json.loads(
+            execute_workspace_tool(workspace, denied_bash_call, lambda *_: False)
+        )
+        assert denied_bash["status"] == "rejected"
+        assert not (output_dir / "bash-denied.txt").exists()
+
+        approved_bash_call = fake_tool_call(
+            "call_bash_approved",
+            "run_bash",
+            {"command": "printf approved > output/bash-approved.txt"},
+        )
+        approved_bash = json.loads(
+            execute_workspace_tool(workspace, approved_bash_call, lambda *_: True)
+        )
+        assert approved_bash["status"] == "succeeded"
+        assert (output_dir / "bash-approved.txt").read_text() == "approved"
+
+    print("checkpoint 2E passed")
 
 
 def main() -> None:
