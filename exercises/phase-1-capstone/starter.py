@@ -48,7 +48,12 @@ def persist_message(path: Path, message: dict) -> None:
 
 def build_prompt_view(entries: list[dict]) -> list[dict]:
     """TODO: 第三关 B 由你亲手实现。"""
-    raise NotImplementedError("请从 Transcript 组装 Prompt View")
+    messages = []
+    for entry in entries:
+        if entry.get("type") == "message":
+            messages.append(entry["message"])
+    return messages
+
 
 
 def assistant_message_from_api(message: object) -> dict:
