@@ -54,13 +54,44 @@ def append_compaction(
     is_split_turn: bool = False,
 ) -> None:
     """TODO: 第三关 D 由你亲手实现。"""
-    raise NotImplementedError("请实现 Compaction Entry")
+    if not summary.strip():
+        raise ValueError("Compaction Summary 不能为空")
+    append_entry(
+        path,
+        {
+            "type": "compaction",
+            "summary": summary,
+            "retained_tail": retained_tail,
+            "is_split_turn": is_split_turn,
+        },
+    )
 
 
 def build_prompt_view(entries: list[dict]) -> list[dict]:
     """TODO: 第三关 D 增加 Compaction 支持。"""
-    messages = []
-    for entry in entries:
+    latest_compaction = None
+    for index in range(len(entries) - 1, -1, -1):
+        if entries[index].get("type") == "compaction":
+            latest_compaction = index
+            break
+
+    if latest_compaction is None:
+        messages = []
+        for entry in entries:
+            if entry.get("type") == "message":
+                messages.append(entry["message"])
+        return messages
+
+    checkpoint = entries[latest_compaction]
+    messages = [
+        {
+            "role": "assistant",
+            "content": "Conversation summary:\n" + checkpoint["summary"],
+        }
+    ]
+    messages.extend(checkpoint["retained_tail"])
+
+    for entry in entries[latest_compaction + 1 :]:
         if entry.get("type") == "message":
             messages.append(entry["message"])
     return messages
