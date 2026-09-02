@@ -143,7 +143,29 @@ def write_file(workspace: Path, path: str, content: str) -> dict:
 
 def run_bash(workspace: Path, command: str) -> dict:
     """TODO: 第二关 E 由你亲手实现。"""
-    raise NotImplementedError("请实现有超时限制的 run_bash")
+    try:
+        completed = subprocess.run(
+            ["/bin/zsh", "-lc", command],
+            cwd=workspace,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            "status": "failed",
+            "returncode": None,
+            "stdout": "",
+            "stderr": "命令执行超时",
+        }
+
+    return {
+        "status": "succeeded" if completed.returncode == 0 else "failed",
+        "returncode": completed.returncode,
+        "stdout": completed.stdout,
+        "stderr": completed.stderr,
+    }
 
 
 def execute_workspace_tool(
@@ -167,6 +189,11 @@ def execute_workspace_tool(
         if not approve(tool_name, tool_arguments):
             return json.dumps({"status": "rejected"}, ensure_ascii=False)
         result = write_file(workspace, tool_arguments["path"], tool_arguments["content"])
+        return json.dumps(result, ensure_ascii=False)
+    elif tool_name == "run_bash":
+        if not approve(tool_name, tool_arguments):
+            return json.dumps({"status": "rejected"}, ensure_ascii=False)
+        result = run_bash(workspace, tool_arguments["command"])
         return json.dumps(result, ensure_ascii=False)
     else:
         return json.dumps(
