@@ -79,8 +79,9 @@ def run_agent_loop(
     tools: list[dict],
     user_text: str,
     execute_tool: Callable[[object], str],
+    session_file: Path | None = None,
 ) -> str:
-    """TODO: 这一关由你亲手实现。"""
+    """TODO: 第三关 C 把消息持久化接入现有循环。"""
 
     messages = [
         {"role": "user", "content": user_text},
@@ -706,7 +707,72 @@ def checkpoint_3_check() -> None:
         assert prompt_view[1]["tool_calls"][0]["id"] == "call_read"
         assert prompt_view[2]["tool_call_id"] == "call_read"
 
-    print("checkpoint 3B passed")
+        workspace = Path(temp) / "workspace"
+        workspace.mkdir()
+        (workspace / "note.txt").write_text("persistent hello")
+        agent_session = Path(temp) / "agent-session.jsonl"
+        tool_call = fake_tool_call(
+            "call_persistent_read",
+            "read_file",
+            {"path": "note.txt"},
+        )
+        first_client = FakeClient(
+            [
+                fake_response("tool_calls", tool_calls=[tool_call]),
+                fake_response("stop", content="文件内容是 persistent hello"),
+            ]
+        )
+        answer = run_agent_loop(
+            client=first_client,
+            model="test-model",
+            tools=[],
+            user_text="读取 note.txt",
+            execute_tool=lambda call: execute_workspace_tool(
+                workspace,
+                call,
+                lambda *_: False,
+            ),
+            session_file=agent_session,
+        )
+        assert answer == "文件内容是 persistent hello"
+        first_entries = load_entries(agent_session)
+        assert [entry["type"] for entry in first_entries] == [
+            "message",
+            "message",
+            "message",
+            "message",
+        ]
+        assert [message["role"] for message in build_prompt_view(first_entries)] == [
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+        ]
+
+        restarted_client = FakeClient(
+            [fake_response("stop", content="我还记得上一轮")]
+        )
+        restarted_answer = run_agent_loop(
+            client=restarted_client,
+            model="test-model",
+            tools=[],
+            user_text="你还记得吗？",
+            execute_tool=lambda _: "不应执行",
+            session_file=agent_session,
+        )
+        assert restarted_answer == "我还记得上一轮"
+        restarted_messages = restarted_client.completions.requests[0]["messages"]
+        assert [message["role"] for message in restarted_messages] == [
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+            "user",
+        ]
+        assert restarted_messages[-1]["content"] == "你还记得吗？"
+        assert len(load_entries(agent_session)) == 6
+
+    print("checkpoint 3C passed")
 
 
 def main() -> None:

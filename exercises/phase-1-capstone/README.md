@@ -267,3 +267,37 @@ python -B exercises/phase-1-capstone/starter.py --checkpoint-3
 ```text
 checkpoint 3B passed
 ```
+
+### 第三关 C：把 Transcript 接入 Agent Loop
+
+现在 `append_entry()`、`persist_message()` 和 `build_prompt_view()` 都能单独工作，但 Agent Loop 仍然只使用内存列表。程序重启后，它不会主动加载旧 Session。
+
+这一步直接修改现有 `run_agent_loop()`，不要再复制一个新循环：
+
+- 使用新增的可选参数 `session_file`；
+- 传入 Session 文件时，先用 `load_entries()` 和 `build_prompt_view()` 恢复旧消息；
+- 把本轮 User Message 追加到 Prompt View，并立即写入 Transcript；
+- 每次收到 Assistant Message，先同时加入 Prompt View 和 Transcript，再判断是否调用工具；
+- 每个 Tool Result 都同时加入 Prompt View 和 Transcript；
+- 重启后只加载旧消息，不能把旧消息重新写一遍；
+- `session_file is None` 时保持第一关的纯内存行为。
+
+完成后，第一次运行应在磁盘留下一个完整工具轮次：
+
+```text
+User -> Assistant Tool Call -> Tool Result -> Assistant Final
+```
+
+第二次运行使用同一个 Session 文件。模型第一次请求就应该看到上一轮四条 Message，再加本轮新的 User Message。
+
+继续运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-3
+```
+
+通过标志将变成：
+
+```text
+checkpoint 3C passed
+```
