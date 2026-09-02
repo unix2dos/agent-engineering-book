@@ -227,3 +227,43 @@ python -B exercises/phase-1-capstone/starter.py --checkpoint-3
 ```text
 checkpoint 3A passed
 ```
+
+### 第三关 B：从 Transcript 组装 Prompt View
+
+Transcript 不只保存发给模型的 Message。以后它还会保存 `tool_execution`、Compaction 和恢复记录。Provider 不认识这些内部记录，所以不能把整个 JSONL 原样塞进 `messages`。
+
+现在实现 `build_prompt_view()`：
+
+- 按原顺序遍历全部 Transcript Entry；
+- 只取 `type == "message"` 的 `message`；
+- `tool_execution` 等内部记录仍留在磁盘，但不进入 Prompt；
+- Assistant Tool Call 和对应 Tool Result 都必须完整保留，不能只留下其中一边；
+- 不修改传入的 `entries`。
+
+测试中的磁盘记录是：
+
+```text
+User Message
+Assistant Tool Call
+Tool Execution       <- 留在 Transcript，不发给模型
+Tool Result
+Assistant Final
+```
+
+模型实际看到四条 Message：
+
+```text
+User -> Assistant Tool Call -> Tool Result -> Assistant Final
+```
+
+继续运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-3
+```
+
+通过标志将变成：
+
+```text
+checkpoint 3B passed
+```

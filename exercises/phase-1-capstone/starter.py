@@ -42,6 +42,15 @@ def load_entries(path: Path) -> list[dict]:
     return entries
 
 
+def persist_message(path: Path, message: dict) -> None:
+    append_entry(path, {"type": "message", "message": message})
+
+
+def build_prompt_view(entries: list[dict]) -> list[dict]:
+    """TODO: 第三关 B 由你亲手实现。"""
+    raise NotImplementedError("请从 Transcript 组装 Prompt View")
+
+
 def assistant_message_from_api(message: object) -> dict:
     result = {"role": "assistant", "content": message.content or ""}
     if message.tool_calls:
@@ -642,7 +651,57 @@ def checkpoint_3_check() -> None:
         else:
             raise AssertionError("损坏的 JSONL 必须被发现")
 
-    print("checkpoint 3A passed")
+        prompt_file = Path(temp) / "prompt-view.jsonl"
+        messages = [
+            {"role": "user", "content": "读取 note.txt"},
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "call_read",
+                        "type": "function",
+                        "function": {
+                            "name": "read_file",
+                            "arguments": '{"path":"note.txt"}',
+                        },
+                    }
+                ],
+            },
+            {
+                "role": "tool",
+                "tool_call_id": "call_read",
+                "content": '{"content":"hello"}',
+            },
+            {"role": "assistant", "content": "文件内容是 hello"},
+        ]
+        persist_message(prompt_file, messages[0])
+        persist_message(prompt_file, messages[1])
+        append_entry(
+            prompt_file,
+            {
+                "type": "tool_execution",
+                "tool_call_id": "call_read",
+                "status": "succeeded",
+            },
+        )
+        persist_message(prompt_file, messages[2])
+        persist_message(prompt_file, messages[3])
+
+        prompt_entries = load_entries(prompt_file)
+        assert len(prompt_entries) == 5
+        prompt_view = build_prompt_view(prompt_entries)
+        assert prompt_view == messages
+        assert [message["role"] for message in prompt_view] == [
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+        ]
+        assert prompt_view[1]["tool_calls"][0]["id"] == "call_read"
+        assert prompt_view[2]["tool_call_id"] == "call_read"
+
+    print("checkpoint 3B passed")
 
 
 def main() -> None:
