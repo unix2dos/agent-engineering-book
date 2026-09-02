@@ -17,12 +17,29 @@ MAX_READ_BYTES = 50 * 1024
 
 def append_entry(path: Path, entry: dict) -> None:
     """TODO: 第三关 A 由你亲手实现。"""
-    raise NotImplementedError("请实现 JSONL 追加写入")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    line = json.dumps(entry, ensure_ascii=False, separators=(",", ":")) + "\n"
+    with path.open("a", encoding="utf-8") as file:
+        file.write(line)
+        file.flush()
+        os.fsync(file.fileno())
 
 
 def load_entries(path: Path) -> list[dict]:
     """TODO: 第三关 A 由你亲手实现。"""
-    raise NotImplementedError("请实现 JSONL 读取")
+    if not path.exists():
+        return []
+
+    entries = []
+    with path.open("r", encoding="utf-8") as file:
+        for line_number, line in enumerate(file, start=1):
+            if not line.strip():
+                continue
+            try:
+                entries.append(json.loads(line))
+            except json.JSONDecodeError as error:
+                raise ValueError(f"第 {line_number} 行损坏") from error
+    return entries
 
 
 def assistant_message_from_api(message: object) -> dict:
