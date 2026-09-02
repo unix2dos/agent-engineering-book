@@ -97,6 +97,14 @@ def build_prompt_view(entries: list[dict]) -> list[dict]:
     return messages
 
 
+def find_compaction_cut(
+    messages: list[dict],
+    keep_recent_turns: int = 1,
+) -> int | None:
+    """TODO: 第三关 E 由你亲手实现。"""
+    raise NotImplementedError("请寻找完整轮次之间的压缩切点")
+
+
 
 def assistant_message_from_api(message: object) -> dict:
     result = {"role": "assistant", "content": message.content or ""}
@@ -868,7 +876,60 @@ def checkpoint_3_check() -> None:
         else:
             raise AssertionError("Compaction Summary 不能为空")
 
-    print("checkpoint 3D passed")
+        turn_messages = [
+            {"role": "user", "content": "T1 用户"},
+            {"role": "assistant", "content": "T1 Final"},
+            {"role": "user", "content": "T2 用户"},
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [{"id": "call_t2"}],
+            },
+            {
+                "role": "tool",
+                "tool_call_id": "call_t2",
+                "content": "T2 Tool Result",
+            },
+            {"role": "assistant", "content": "T2 Final"},
+            {"role": "user", "content": "T3 当前用户"},
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [{"id": "call_t3"}],
+            },
+        ]
+        cut = find_compaction_cut(turn_messages, keep_recent_turns=1)
+        assert cut == 2
+        assert turn_messages[:cut] == turn_messages[:2]
+        assert turn_messages[cut:] == turn_messages[2:]
+
+        cut_all_completed = find_compaction_cut(
+            turn_messages,
+            keep_recent_turns=0,
+        )
+        assert cut_all_completed == 6
+        assert turn_messages[cut_all_completed]["role"] == "user"
+
+        only_recent = turn_messages[2:]
+        assert find_compaction_cut(only_recent, keep_recent_turns=1) is None
+
+        summary_view = [
+            {
+                "role": "assistant",
+                "content": "Conversation summary:\n更早的历史",
+            },
+            *only_recent,
+        ]
+        assert find_compaction_cut(summary_view, keep_recent_turns=0) == 5
+
+        try:
+            find_compaction_cut(turn_messages, keep_recent_turns=-1)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("keep_recent_turns 不能为负数")
+
+    print("checkpoint 3E passed")
 
 
 def main() -> None:

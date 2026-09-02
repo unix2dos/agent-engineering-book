@@ -347,3 +347,50 @@ python -B exercises/phase-1-capstone/starter.py --checkpoint-3
 ```text
 checkpoint 3D passed
 ```
+
+### 第三关 E：只在完整轮次之间切分
+
+Compaction Entry 已经可以保存和恢复，但还缺少一个安全问题：哪些旧消息进入摘要，哪些原文留在 `retained_tail`？
+
+这一小关只实现 `find_compaction_cut()`。返回值是一个列表位置：这个位置之前的消息进入摘要，从这个位置开始的消息保留原文。
+
+在本练习中，一个完整轮次这样识别：
+
+```text
+从 User Message 开始
+经过零个或多个 Assistant Tool Call 与 Tool Result
+到不再包含 tool_calls 的 Assistant Final 结束
+```
+
+例如：
+
+```text
+T1 = User -> Assistant Final
+T2 = User -> Assistant Tool Call -> Tool Result -> Assistant Final
+T3 = User -> Assistant Tool Call                         当前未完成
+```
+
+当 `keep_recent_turns=1` 时，只摘要 T1，保留完整 T2 和当前 T3。切点应落在 T1 与 T2 之间，不能落在 T2 的 Tool Call 与 Tool Result 之间。
+
+实现要求：
+
+- `keep_recent_turns` 不能为负数；
+- 先扫描 Message，记录每个完整轮次结束后的列表位置；
+- 没有足够旧的完整轮次可以摘要时返回 `None`；
+- 保留最近指定数量的完整轮次；
+- 当前未完成轮次始终留在切点之后；
+- Prompt View 开头已有的 Summary Message 不算一个用户轮次。
+
+推荐使用普通循环。可以用一个布尔值记录“是否已经看到本轮 User Message”。
+
+这一步不修改消息，也不生成摘要，只返回切点数字。运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-3
+```
+
+通过标志将变成：
+
+```text
+checkpoint 3E passed
+```
