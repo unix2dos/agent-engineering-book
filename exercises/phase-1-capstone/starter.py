@@ -73,6 +73,8 @@ def assistant_message_from_api(message: object) -> dict:
     return result
 
 
+
+
 def run_agent_loop(
     client: object,
     model: str,
@@ -83,9 +85,17 @@ def run_agent_loop(
 ) -> str:
     """TODO: 第三关 C 把消息持久化接入现有循环。"""
 
-    messages = [
-        {"role": "user", "content": user_text},
-    ]
+    def add_message(messages: list[dict], message: dict) -> None:
+        messages.append(message)
+        if session_file is not None:
+            persist_message(session_file, message)
+
+    messages = (
+        build_prompt_view(load_entries(session_file))
+        if session_file is not None
+        else []
+    )
+    add_message(messages, {"role": "user", "content": user_text})
     for i in range(MAX_MODEL_REQUESTS):
         response = client.chat.completions.create(
             model=model,
@@ -95,7 +105,7 @@ def run_agent_loop(
         choice = response.choices[0]
         api_message = choice.message
         history_message = assistant_message_from_api(api_message)
-        messages.append(history_message)
+        add_message(messages, history_message)
         if api_message.tool_calls:
             if choice.finish_reason != "tool_calls":
                 raise RuntimeError(
@@ -103,7 +113,8 @@ def run_agent_loop(
                 )
             for tool_call in api_message.tool_calls:
                 result = execute_tool(tool_call)
-                messages.append(
+                add_message(
+                    messages,
                     {"role": "tool", "content": result, "tool_call_id": tool_call.id}
                 )
             continue
