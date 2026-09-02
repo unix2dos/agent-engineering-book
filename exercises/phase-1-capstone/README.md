@@ -301,3 +301,49 @@ python -B exercises/phase-1-capstone/starter.py --checkpoint-3
 ```text
 checkpoint 3C passed
 ```
+
+### 第三关 D：用 Compaction 缩短 Prompt View
+
+Session 可以重启恢复了，但消息会一直增长。Transcript 仍然保存所有原始记录；真正需要缩短的是每次发给模型的 Prompt View。
+
+先实现 `append_compaction()`，写入下面这种 Entry：
+
+```json
+{
+  "type": "compaction",
+  "summary": "较早内容的摘要",
+  "retained_tail": [],
+  "is_split_turn": false
+}
+```
+
+然后扩展 `build_prompt_view()`：
+
+- 没有 Compaction 时，仍然返回全部 `type: message`；
+- 有 Compaction 时，从最后一条 Compaction 开始恢复；
+- Prompt View 的第一条是 `role: assistant` 的摘要消息，内容以 `Conversation summary:\n` 开头；
+- 摘要后依次加入 `retained_tail`；
+- 最后加入 Compaction Entry 之后新产生的 Message；
+- Compaction 之前的原始 Message 仍留在 Transcript，但不再重复进入 Prompt；
+- 空白 `summary` 必须拒绝。
+
+可以把它记成：
+
+```text
+模型看到 = summary + retained_tail + compaction 后的新消息
+磁盘保存 = 全部旧消息 + compaction + 全部新消息
+```
+
+这一关不要求调用模型生成摘要。先把数据结构和恢复规则写正确，下一步再决定什么时候触发压缩、在哪里切分完整轮次。
+
+运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-3
+```
+
+通过标志将变成：
+
+```text
+checkpoint 3D passed
+```

@@ -46,8 +46,19 @@ def persist_message(path: Path, message: dict) -> None:
     append_entry(path, {"type": "message", "message": message})
 
 
+def append_compaction(
+    path: Path,
+    summary: str,
+    retained_tail: list[dict],
+    *,
+    is_split_turn: bool = False,
+) -> None:
+    """TODO: 第三关 D 由你亲手实现。"""
+    raise NotImplementedError("请实现 Compaction Entry")
+
+
 def build_prompt_view(entries: list[dict]) -> list[dict]:
-    """TODO: 第三关 B 由你亲手实现。"""
+    """TODO: 第三关 D 增加 Compaction 支持。"""
     messages = []
     for entry in entries:
         if entry.get("type") == "message":
@@ -783,7 +794,50 @@ def checkpoint_3_check() -> None:
         assert restarted_messages[-1]["content"] == "你还记得吗？"
         assert len(load_entries(agent_session)) == 6
 
-    print("checkpoint 3C passed")
+        compacted_file = Path(temp) / "compacted-session.jsonl"
+        old_messages = [
+            {"role": "user", "content": "我叫小明"},
+            {"role": "assistant", "content": "记住了"},
+            {"role": "user", "content": "请读取项目配置"},
+            {"role": "assistant", "content": "配置已经读取"},
+        ]
+        for message in old_messages:
+            persist_message(compacted_file, message)
+
+        append_compaction(
+            compacted_file,
+            summary="用户叫小明；此前已经读取项目配置。",
+            retained_tail=old_messages[2:],
+        )
+        newest_message = {"role": "user", "content": "继续处理"}
+        persist_message(compacted_file, newest_message)
+
+        compacted_entries = load_entries(compacted_file)
+        assert len(compacted_entries) == 6
+        assert compacted_entries[:4] == [
+            {"type": "message", "message": message}
+            for message in old_messages
+        ]
+        assert build_prompt_view(compacted_entries) == [
+            {
+                "role": "assistant",
+                "content": (
+                    "Conversation summary:\n"
+                    "用户叫小明；此前已经读取项目配置。"
+                ),
+            },
+            *old_messages[2:],
+            newest_message,
+        ]
+
+        try:
+            append_compaction(compacted_file, "   ", [])
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("Compaction Summary 不能为空")
+
+    print("checkpoint 3D passed")
 
 
 def main() -> None:
