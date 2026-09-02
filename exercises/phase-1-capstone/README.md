@@ -394,3 +394,44 @@ python -B exercises/phase-1-capstone/starter.py --checkpoint-3
 ```text
 checkpoint 3E passed
 ```
+
+### 第三关 F：超过预算才执行 Compaction
+
+现在已经能找到安全切点，但不能因为“存在旧轮次”就每次都压缩。`maybe_compact()` 负责把预算判断、切分、摘要和写入 Compaction Entry 串起来。
+
+函数按下面顺序工作：
+
+```text
+加载 Transcript
+-> 组装当前 Prompt View
+-> 没超过预算：返回 False
+-> 寻找完整轮次切点
+-> 没有安全切点：返回 False
+-> prefix 交给 summarize()
+-> tail 保存为 retained_tail
+-> 追加 Compaction Entry
+-> 返回 True
+```
+
+实现要求：
+
+- 使用 `json.dumps(prompt_view, ensure_ascii=False)` 后的字符数和 `max_prompt_chars` 比较；
+- `messages[:cut]` 是需要摘要的 `prefix`；
+- `messages[cut:]` 是继续保留原文的 `retained_tail`；
+- 只有真正需要压缩并且存在安全切点时，才能调用 `summarize(prefix)`；
+- 使用已有的 `append_compaction()` 保存结果；
+- 不删除、覆盖或改写原始 Message Entry。
+
+这里使用字符数只是为了让自检简单稳定。生产 Agent 通常使用 Provider Token 计数或更保守的估算，并且会为下一次模型输出预留空间。
+
+运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-3
+```
+
+通过标志将变成：
+
+```text
+checkpoint 3F passed
+```

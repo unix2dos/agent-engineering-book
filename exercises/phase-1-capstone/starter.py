@@ -132,6 +132,16 @@ def find_compaction_cut(
     return completed_turn_ends[compact_turn_count - 1]
 
 
+def maybe_compact(
+    session_file: Path,
+    max_prompt_chars: int,
+    keep_recent_turns: int,
+    summarize: Callable[[list[dict]], str],
+) -> bool:
+    """TODO: 第三关 F 由你亲手实现。"""
+    raise NotImplementedError("请按预算生成 Compaction Entry")
+
+
 
 
 def assistant_message_from_api(message: object) -> dict:
@@ -957,7 +967,66 @@ def checkpoint_3_check() -> None:
         else:
             raise AssertionError("keep_recent_turns 不能为负数")
 
-    print("checkpoint 3E passed")
+        small_file = Path(temp) / "small-session.jsonl"
+        persist_message(small_file, {"role": "user", "content": "短问题"})
+        persist_message(
+            small_file,
+            {"role": "assistant", "content": "短回答"},
+        )
+
+        def unexpected_summary(_: list[dict]) -> str:
+            raise AssertionError("此时不应生成摘要")
+
+        assert maybe_compact(
+            small_file,
+            max_prompt_chars=10_000,
+            keep_recent_turns=0,
+            summarize=unexpected_summary,
+        ) is False
+        assert len(load_entries(small_file)) == 2
+
+        large_file = Path(temp) / "large-session.jsonl"
+        for message in turn_messages:
+            persist_message(large_file, message)
+
+        summarized_prefix: list[dict] = []
+
+        def summarize_prefix(prefix: list[dict]) -> str:
+            summarized_prefix.extend(prefix)
+            return "T1 已完成。"
+
+        assert maybe_compact(
+            large_file,
+            max_prompt_chars=1,
+            keep_recent_turns=1,
+            summarize=summarize_prefix,
+        ) is True
+        assert summarized_prefix == turn_messages[:2]
+
+        large_entries = load_entries(large_file)
+        assert len(large_entries) == len(turn_messages) + 1
+        assert large_entries[-1]["type"] == "compaction"
+        assert large_entries[-1]["retained_tail"] == turn_messages[2:]
+        assert build_prompt_view(large_entries) == [
+            {
+                "role": "assistant",
+                "content": "Conversation summary:\nT1 已完成。",
+            },
+            *turn_messages[2:],
+        ]
+
+        recent_file = Path(temp) / "recent-session.jsonl"
+        for message in only_recent:
+            persist_message(recent_file, message)
+        assert maybe_compact(
+            recent_file,
+            max_prompt_chars=1,
+            keep_recent_turns=1,
+            summarize=unexpected_summary,
+        ) is False
+        assert len(load_entries(recent_file)) == len(only_recent)
+
+    print("checkpoint 3F passed")
 
 
 def main() -> None:
