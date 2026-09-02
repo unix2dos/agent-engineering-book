@@ -196,8 +196,9 @@ def run_agent_loop(
     user_text: str,
     execute_tool: Callable[[object], str],
     session_file: Path | None = None,
+    compact_before_request: Callable[[], bool] | None = None,
 ) -> str:
-    """TODO: 第三关 C 把消息持久化接入现有循环。"""
+    """TODO: 第三关 G 在模型请求前接入 Compaction。"""
 
     def add_message(messages: list[dict], message: dict) -> None:
         messages.append(message)
@@ -211,6 +212,7 @@ def run_agent_loop(
     )
     add_message(messages, {"role": "user", "content": user_text})
     for i in range(MAX_MODEL_REQUESTS):
+        # TODO: 第三关 G 在这里执行压缩，并在成功后刷新 messages。
         response = client.chat.completions.create(
             model=model,
             messages=messages,
@@ -1052,7 +1054,59 @@ def checkpoint_3_check() -> None:
         ) is False
         assert len(load_entries(recent_file)) == len(only_recent)
 
-    print("checkpoint 3F passed")
+        loop_session = Path(temp) / "compacting-loop.jsonl"
+        previous_turns = [
+            {"role": "user", "content": "较早问题"},
+            {"role": "assistant", "content": "较早回答"},
+            {"role": "user", "content": "最近问题"},
+            {"role": "assistant", "content": "最近回答"},
+        ]
+        for message in previous_turns:
+            persist_message(loop_session, message)
+
+        compaction_calls: list[bool] = []
+
+        def compact_before_request() -> bool:
+            compaction_calls.append(True)
+            return maybe_compact(
+                loop_session,
+                max_prompt_chars=1,
+                keep_recent_turns=1,
+                summarize=lambda _: "较早问题已经回答。",
+            )
+
+        compacting_client = FakeClient(
+            [fake_response("stop", content="继续完成")]
+        )
+        compacting_answer = run_agent_loop(
+            client=compacting_client,
+            model="test-model",
+            tools=[],
+            user_text="当前问题",
+            execute_tool=lambda _: "不应执行",
+            session_file=loop_session,
+            compact_before_request=compact_before_request,
+        )
+        assert compacting_answer == "继续完成"
+        assert compaction_calls == [True]
+        request_messages = compacting_client.completions.requests[0]["messages"]
+        assert request_messages == [
+            {
+                "role": "assistant",
+                "content": "Conversation summary:\n较早问题已经回答。",
+            },
+            *previous_turns[2:],
+            {"role": "user", "content": "当前问题"},
+        ]
+        loop_entries = load_entries(loop_session)
+        assert len(loop_entries) == 7
+        assert loop_entries[-2]["type"] == "compaction"
+        assert loop_entries[-1]["message"] == {
+            "role": "assistant",
+            "content": "继续完成",
+        }
+
+    print("checkpoint 3G passed")
 
 
 def main() -> None:

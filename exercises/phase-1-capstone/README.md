@@ -435,3 +435,30 @@ python -B exercises/phase-1-capstone/starter.py --checkpoint-3
 ```text
 checkpoint 3F passed
 ```
+
+### 第三关 G：在请求模型前刷新压缩视图
+
+`maybe_compact()` 现在可以追加 Compaction Entry，但 Agent Loop 内存中的 `messages` 仍然是压缩前的完整列表。如果马上请求模型，刚才的压缩不会产生任何效果。
+
+使用新增的 `compact_before_request` 参数完成最后连接：
+
+- 每次调用模型之前执行 `compact_before_request()`；
+- 使用这个参数时必须同时提供 `session_file`；
+- 返回 `False` 表示没有产生 Compaction，继续使用当前 `messages`；
+- 返回 `True` 表示磁盘出现了新 Compaction；
+- 此时重新执行 `load_entries(session_file)` 和 `build_prompt_view()`，替换内存中的 `messages`；
+- 当前 User Message 已经提前写进 Transcript，安全切点会让这个未完成轮次留在 `retained_tail`。
+
+这里使用回调，而不是把具体摘要模型硬编码进 Agent Loop。循环只关心“是否发生压缩”，至于怎样计算预算、调用哪个模型生成摘要，由外面的 `maybe_compact()` 负责。
+
+运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-3
+```
+
+通过标志将变成：
+
+```text
+checkpoint 3G passed
+```
