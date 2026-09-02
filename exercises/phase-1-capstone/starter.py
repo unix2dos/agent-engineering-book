@@ -213,6 +213,12 @@ def run_agent_loop(
     add_message(messages, {"role": "user", "content": user_text})
     for i in range(MAX_MODEL_REQUESTS):
         # TODO: 第三关 G 在这里执行压缩，并在成功后刷新 messages。
+        if compact_before_request is not None:
+            if session_file is None:
+                raise ValueError("session_file 不能为 None")
+            if compact_before_request():
+                messages = build_prompt_view(load_entries(session_file))
+
         response = client.chat.completions.create(
             model=model,
             messages=messages,
