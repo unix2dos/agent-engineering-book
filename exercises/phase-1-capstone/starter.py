@@ -89,7 +89,24 @@ def resolve_workspace_file(workspace: Path, path: str) -> Path:
 
 def read_file(workspace: Path, path: str, offset: int = 0) -> dict:
     """TODO: 第二关 B 由你亲手实现。"""
-    raise NotImplementedError("请实现分段 read_file")
+    if offset < 0:
+        raise ValueError("offset 不能为负数")
+
+    file_path = resolve_workspace_file(workspace, path)
+    if not file_path.is_file():
+        raise ValueError("路径必须指向普通文件")
+
+    with open(file_path, "rb") as file:
+        file.seek(offset)
+        raw = file.read(MAX_READ_BYTES + 1)
+        content = raw[:MAX_READ_BYTES]
+        truncated = len(raw) > MAX_READ_BYTES
+        return {
+            "path": path,
+            "content": content.decode("utf-8"),
+            "truncated": truncated,
+            "next_offset": offset + len(content) if truncated else None,
+        }
 
 
 class FakeCompletions:
