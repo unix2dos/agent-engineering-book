@@ -129,3 +129,28 @@ python -B exercises/phase-1-capstone/starter.py --checkpoint-2
 ```text
 checkpoint 2C passed
 ```
+
+### 第二关 D：Tool Router 与审批闸门
+
+`read_file()` 和 `write_file()` 现在只是两个孤立函数。下一步实现 `execute_workspace_tool()`，让它成为模型 Tool Call 和本地函数之间的路由器：
+
+- 从 `tool_call.function` 读取工具名和 JSON 参数；
+- `read_file` 可以直接执行，不询问用户；
+- `write_file` 必须先调用传入的 `approve(name, arguments)`；
+- 用户拒绝时不写文件，返回 `status: rejected`；
+- 未知工具不执行，返回包含 `unknown_tool` 的受控失败结果；
+- 所有结果使用 `json.dumps(..., ensure_ascii=False)` 转成 Tool Result 字符串。
+
+审批放在 Router，而不是写进 `write_file()`。这样同一个文件函数可以被测试和复用，而“本次是否允许执行”仍由 Harness 决定。`tool_call_id` 也不需要放进结果内容；外层 Agent Loop 会把它写在对应的 `role: tool` Message 上。
+
+继续运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-2
+```
+
+通过标志将变成：
+
+```text
+checkpoint 2D passed
+```

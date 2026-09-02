@@ -140,6 +140,15 @@ def write_file(workspace: Path, path: str, content: str) -> dict:
     }
 
 
+def execute_workspace_tool(
+    workspace: Path,
+    tool_call: object,
+    approve: Callable[[str, dict], bool],
+) -> str:
+    """TODO: 第二关 D 由你亲手实现。"""
+    raise NotImplementedError("请实现 Tool Router 与写入审批")
+
+
 class FakeCompletions:
     def __init__(self, responses: list[object]):
         self.responses = list(responses)
@@ -411,7 +420,67 @@ def checkpoint_2_check() -> None:
         else:
             raise AssertionError("write_file 不应偷偷创建父目录")
 
-    print("checkpoint 2C passed")
+        approval_requests: list[tuple[str, dict]] = []
+
+        def reject(name: str, arguments: dict) -> bool:
+            approval_requests.append((name, arguments))
+            return False
+
+        denied_call = fake_tool_call(
+            "call_denied",
+            "write_file",
+            {"path": "output/denied.txt", "content": "不应落盘"},
+        )
+        denied = json.loads(
+            execute_workspace_tool(workspace, denied_call, reject)
+        )
+        assert denied["status"] == "rejected"
+        assert not (output_dir / "denied.txt").exists()
+        assert approval_requests == [
+            (
+                "write_file",
+                {"path": "output/denied.txt", "content": "不应落盘"},
+            )
+        ]
+
+        approved_call = fake_tool_call(
+            "call_approved",
+            "write_file",
+            {"path": "output/approved.txt", "content": "approved"},
+        )
+        approved = json.loads(
+            execute_workspace_tool(workspace, approved_call, lambda *_: True)
+        )
+        assert approved["status"] == "succeeded"
+        assert (output_dir / "approved.txt").read_text() == "approved"
+
+        read_approvals: list[str] = []
+        read_call = fake_tool_call(
+            "call_read",
+            "read_file",
+            {"path": "output/approved.txt"},
+        )
+        read_result = json.loads(
+            execute_workspace_tool(
+                workspace,
+                read_call,
+                lambda name, _: read_approvals.append(name) or False,
+            )
+        )
+        assert read_result["content"] == "approved"
+        assert read_approvals == []
+
+        unknown_call = fake_tool_call("call_unknown", "unknown_tool", {})
+        unknown = json.loads(
+            execute_workspace_tool(workspace, unknown_call, lambda *_: True)
+        )
+        assert unknown == {
+            "status": "failed",
+            "error": "unknown_tool",
+            "tool_name": "unknown_tool",
+        }
+
+    print("checkpoint 2D passed")
 
 
 def main() -> None:
