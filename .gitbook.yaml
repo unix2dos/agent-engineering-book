@@ -11,3 +11,4 @@ redirects:
   03-first-tool-calling-loop: chapters/03-第一个Tool-Calling-Loop.md
   04-session-checkpoint-memory: chapters/04-Session-Transcript-Checkpoint与长期记忆.md
   05-context-engineering: chapters/05-上下文工程.md
+  06-agent-storage-jsonl-sqlite-database: chapters/06-什么时候从JSONL换成SQLite.md

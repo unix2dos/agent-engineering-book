@@ -34,7 +34,7 @@
 | 地图 | [第 0 课：Agent 工程史](chapters/00-Agent工程史.md) | 已完成 |
 | 最小运行时 | 第 1～3 课：Agent、Harness 与 Tool Calling Loop | 已完成 |
 | 上下文与状态 | 第 4～5 课：Context、Memory 与 Compaction | 已完成 |
-| 存储选择 | 第 6 课：JSONL、SQLite 与数据库 | 实践已完成，待整理 |
+| 存储选择 | [第 6 课：什么时候该从 JSONL 换成 SQLite](chapters/06-什么时候从JSONL换成SQLite.md) | 已完成 |
 | 可靠与安全 | 第 7～8 课：故障恢复、审批、权限与 Sandbox | 待逐章整理 |
 | 改进闭环 | 第 9～11 课：Trace、Evaluation 与回归门禁 | 计划学习 |
 
@@ -74,6 +74,8 @@ export OPENAI_BASE_URL="https://provider.example/v1"
 - [`lesson_07_tool_reliability.py`](examples/lesson_07_tool_reliability.py)：Execution Ledger、幂等与故障恢复。
 
 [第一阶段综合实践](exercises/phase-1-capstone/README.md)会把有停止条件的 Agent Loop、受限工作区工具、Transcript、Prompt View、Ledger 和故障恢复串成一个可以运行的小系统。
+
+[第 6 课 SQLite 练习](exercises/lesson-06-sqlite/README.md)从状态查询开始，验证索引、事务和唯一约束什么时候比继续扩写 JSONL 代码更省事。
 
 这些代码是教学实现，不宣称覆盖生产系统的并发、分布式事务、租户隔离和高可用要求。
 
