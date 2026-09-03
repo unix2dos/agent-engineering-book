@@ -12,3 +12,4 @@ redirects:
   04-session-checkpoint-memory: chapters/04-Session-Transcript-Checkpoint与长期记忆.md
   05-context-engineering: chapters/05-上下文工程.md
   06-agent-storage-jsonl-sqlite-database: chapters/06-什么时候从JSONL换成SQLite.md
+  07-agent-tool-reliability: chapters/07-工具执行幂等与故障恢复.md

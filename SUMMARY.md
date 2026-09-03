@@ -8,3 +8,4 @@
 * [第 4 课：一段会话如何保存——Session、Transcript、Checkpoint 与长期记忆](chapters/04-Session-Transcript-Checkpoint与长期记忆.md)
 * [第 5 课：从完整 Transcript 到有限 Prompt View](chapters/05-上下文工程.md)
 * [第 6 课：什么时候该从 JSONL 换成 SQLite](chapters/06-什么时候从JSONL换成SQLite.md)
+* [第 7 课：工具已经执行，回执却丢了怎么办？](chapters/07-工具执行幂等与故障恢复.md)

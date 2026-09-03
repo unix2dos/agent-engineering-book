@@ -133,6 +133,12 @@ def arguments_sha256(arguments: dict) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def make_idempotency_key(tool_name: str, tool_call_id: str) -> str:
+    if not tool_name or not tool_call_id:
+        raise ValueError("工具名和 tool_call_id 不能为空")
+    return f"{tool_name}:{tool_call_id}"
+
+
 def append_execution_state(
     session_file: Path,
     execution_id: str,
@@ -489,11 +495,7 @@ def execute_tool(
         elif name in {"run_bash", "write_file"}:
             digest = arguments_sha256(arguments)
             execution_id = f"exec_{uuid.uuid4().hex}"
-            idempotency_key = (
-                f"write_file:{digest}"
-                if name == "write_file"
-                else f"run_bash:{tool_call.id}"
-            )
+            idempotency_key = make_idempotency_key(name, tool_call.id)
             details = {
                 "tool_name": name,
                 "idempotency_key": idempotency_key,
@@ -600,6 +602,48 @@ def execute_tool(
     return json.dumps(result, ensure_ascii=False)
 
 
+def reconcile_unknown_write_file(
+    workspace: Path,
+    session_file: Path,
+    call_id: str,
+    state: dict,
+    arguments: dict,
+) -> dict | None:
+    if state.get("tool_name") != "write_file":
+        return None
+    if set(arguments) != {"path", "content"}:
+        raise RuntimeError(f"write_file 参数不完整：{call_id}")
+    if not isinstance(arguments["path"], str) or not isinstance(
+        arguments["content"], str
+    ):
+        raise RuntimeError(f"write_file 参数类型错误：{call_id}")
+
+    requested, target = resolve_workspace_file(workspace, arguments["path"])
+    expected = arguments["content"].encode("utf-8")
+    if not target.is_file() or target.read_bytes() != expected:
+        return None
+
+    result = {
+        "status": "succeeded",
+        "execution_id": state["execution_id"],
+        "path": requested.as_posix(),
+        "bytes_written": len(expected),
+        "reconciled": True,
+    }
+    append_execution_state(
+        session_file,
+        state["execution_id"],
+        call_id,
+        "succeeded",
+        result=result,
+        **{
+            key: state[key]
+            for key in ("tool_name", "idempotency_key", "arguments_sha256")
+        },
+    )
+    return result
+
+
 def recover_missing_tool_results(
     workspace: Path,
     session_file: Path,
@@ -628,17 +672,12 @@ def recover_missing_tool_results(
             raise RuntimeError(f"Tool Call 参数与 Ledger 不一致：{call_id}")
 
         if state and state["status"] == "running":
-            result = {
-                "status": "unknown",
-                "execution_id": state["execution_id"],
-                "message": "进程在 running 状态中断，副作用无法确认",
-            }
-            append_execution_state(
+            state = append_execution_state(
                 session_file,
                 state["execution_id"],
                 call_id,
                 "unknown",
-                result=result,
+                message="进程在 running 状态中断，副作用无法确认",
                 **{
                     key: state[key]
                     for key in (
@@ -649,15 +688,31 @@ def recover_missing_tool_results(
                     if key in state
                 },
             )
-            if tool_call.function.name == "write_file":
-                content = execute_tool(
-                    workspace,
-                    session_file,
-                    tool_call,
-                    ask=lambda _: "y",
-                )
+        if state and state["status"] == "unknown":
+            reconciled = reconcile_unknown_write_file(
+                workspace,
+                session_file,
+                call_id,
+                state,
+                arguments,
+            )
+            if reconciled is not None:
+                content = json.dumps(reconciled, ensure_ascii=False)
             else:
-                content = json.dumps(result, ensure_ascii=False)
+                old_result = state.get("result")
+                message = state.get("message") or (
+                    old_result.get("message")
+                    if isinstance(old_result, dict)
+                    else None
+                )
+                content = json.dumps(
+                    {
+                        "status": "unknown",
+                        "execution_id": state["execution_id"],
+                        "message": message or "副作用无法确认",
+                    },
+                    ensure_ascii=False,
+                )
         elif state and state["status"] == "rejected":
             content = json.dumps(
                 {
@@ -669,13 +724,17 @@ def recover_missing_tool_results(
         elif state and state["status"] in {
             "succeeded",
             "failed",
-            "unknown",
         }:
             if "result" not in state:
                 raise RuntimeError(f"Ledger 缺少可重放 Result：{call_id}")
             content = json.dumps(state["result"], ensure_ascii=False)
         else:
-            content = execute_tool(workspace, session_file, tool_call, ask)
+            content = execute_tool(
+                workspace,
+                session_file,
+                tool_call,
+                ask,
+            )
 
         persist_message(
             session_file,
@@ -1037,6 +1096,12 @@ def self_check() -> None:
         assert by_call_id["call_rejected"]["status"] == "rejected"
         assert by_call_id["call_write"]["status"] == "succeeded"
         assert by_call_id["call_write"]["result"]["path"] == "config.txt"
+        assert by_call_id["call_write"]["idempotency_key"] == (
+            "write_file:call_write"
+        )
+        assert make_idempotency_key("write_file", "call_a") != (
+            make_idempotency_key("write_file", "call_b")
+        )
 
         recovery_session = workspace / ".agent_state" / "recovery.jsonl"
         persist_message(
@@ -1075,8 +1140,8 @@ def self_check() -> None:
             "call_recovery",
             "succeeded",
             tool_name="write_file",
-            idempotency_key=(
-                "write_file:" + arguments_sha256(recovery_arguments)
+            idempotency_key=make_idempotency_key(
+                "write_file", "call_recovery"
             ),
             arguments_sha256=arguments_sha256(recovery_arguments),
             result=recovery_result,
@@ -1146,29 +1211,77 @@ def self_check() -> None:
             "call_retry",
             "running",
             tool_name="write_file",
-            idempotency_key=(
-                "write_file:" + arguments_sha256(retry_arguments)
-            ),
+            idempotency_key=make_idempotency_key("write_file", "call_retry"),
             arguments_sha256=arguments_sha256(retry_arguments),
         )
+        (workspace / "retry.txt").write_text("x", encoding="utf-8")
         assert recover_missing_tool_results(
             workspace,
             retry_session,
             ask=lambda _: (_ for _ in ()).throw(
-                AssertionError("自然幂等恢复不应重复询问")
+                AssertionError("对账恢复不应询问或重新执行")
             ),
         ) == ["call_retry"]
         retry_entries = load_entries(retry_session)
         assert (workspace / "retry.txt").read_text() == "x"
         assert latest_execution_states(retry_entries)["exec_interrupted"][
             "status"
-        ] == "unknown"
+        ] == "succeeded"
+        assert any(
+            entry.get("type") == "tool_execution"
+            and entry.get("execution_id") == "exec_interrupted"
+            and entry.get("status") == "unknown"
+            for entry in retry_entries
+        )
         retry_result = json.loads(retry_entries[-1]["message"]["content"])
         assert retry_result["status"] == "succeeded"
-        assert retry_result["execution_id"] != "exec_interrupted"
-        assert latest_execution_states(retry_entries)[
-            retry_result["execution_id"]
-        ]["status"] == "succeeded"
+        assert retry_result["execution_id"] == "exec_interrupted"
+        assert retry_result["reconciled"] is True
+
+        changed_session = workspace / ".agent_state" / "changed.jsonl"
+        changed_arguments = {"path": "changed.txt", "content": "expected"}
+        persist_message(
+            changed_session,
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "call_changed",
+                        "type": "function",
+                        "function": {
+                            "name": "write_file",
+                            "arguments": json.dumps(changed_arguments),
+                        },
+                    }
+                ],
+            },
+        )
+        append_execution_state(
+            changed_session,
+            "exec_changed",
+            "call_changed",
+            "running",
+            tool_name="write_file",
+            idempotency_key=make_idempotency_key(
+                "write_file", "call_changed"
+            ),
+            arguments_sha256=arguments_sha256(changed_arguments),
+        )
+        (workspace / "changed.txt").write_text("user edit", encoding="utf-8")
+        assert recover_missing_tool_results(workspace, changed_session) == [
+            "call_changed"
+        ]
+        assert (workspace / "changed.txt").read_text(encoding="utf-8") == (
+            "user edit"
+        )
+        changed_entries = load_entries(changed_session)
+        assert latest_execution_states(changed_entries)["exec_changed"][
+            "status"
+        ] == "unknown"
+        assert json.loads(changed_entries[-1]["message"]["content"])[
+            "status"
+        ] == "unknown"
 
         unknown_session = workspace / ".agent_state" / "unknown.jsonl"
         persist_message(
