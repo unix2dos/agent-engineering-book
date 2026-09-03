@@ -1,0 +1,117 @@
+"""Lesson 06 exercise: choose SQLite when query and constraints start to matter."""
+
+import sqlite3
+import sys
+
+
+VALID_STATUSES = (
+    "approved",
+    "rejected",
+    "running",
+    "succeeded",
+    "failed",
+    "unknown",
+)
+
+
+def create_schema(database: sqlite3.Connection) -> None:
+    """TODO: 第一关 A。建立三张表和一个状态索引。"""
+    raise NotImplementedError("请实现 create_schema()")
+
+
+def record_execution_state(
+    database: sqlite3.Connection,
+    execution_id: str,
+    status: str,
+) -> None:
+    """TODO: 第一关 B。同时追加历史并更新最新状态。"""
+    raise NotImplementedError("请实现 record_execution_state()")
+
+
+def list_unknown_executions(database: sqlite3.Connection) -> list[str]:
+    """TODO: 第一关 C。查询最终状态为 unknown 的 execution_id。"""
+    raise NotImplementedError("请实现 list_unknown_executions()")
+
+
+def claim_operation(
+    database: sqlite3.Connection,
+    idempotency_key: str,
+    arguments_sha256: str,
+) -> bool:
+    """TODO: 第一关 D。首次占位返回 True，同一请求重试返回 False。"""
+    raise NotImplementedError("请实现 claim_operation()")
+
+
+def table_names(database: sqlite3.Connection) -> set[str]:
+    rows = database.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table'"
+    ).fetchall()
+    return {row[0] for row in rows}
+
+
+def checkpoint_a() -> None:
+    database = sqlite3.connect(":memory:")
+    create_schema(database)
+
+    assert {
+        "execution_events",
+        "execution_state",
+        "tool_operations",
+    } <= table_names(database)
+
+    database.execute(
+        "INSERT INTO execution_events(execution_id, status) VALUES (?, ?)",
+        ("exec_1", "running"),
+    )
+    database.execute(
+        "INSERT INTO execution_events(execution_id, status) VALUES (?, ?)",
+        ("exec_1", "unknown"),
+    )
+    assert database.execute(
+        "SELECT status FROM execution_events ORDER BY sequence"
+    ).fetchall() == [("running",), ("unknown",)]
+    database.execute(
+        "INSERT INTO execution_state(execution_id, status) VALUES (?, ?)",
+        ("exec_1", "running"),
+    )
+    database.execute(
+        "INSERT INTO tool_operations(idempotency_key, arguments_sha256) "
+        "VALUES (?, ?)",
+        ("write:file-a", "hash_a"),
+    )
+
+    try:
+        database.execute(
+            "INSERT INTO execution_state(execution_id, status) VALUES (?, ?)",
+            ("exec_1", "succeeded"),
+        )
+    except sqlite3.IntegrityError:
+        pass
+    else:
+        raise AssertionError("execution_id 必须由 PRIMARY KEY 保证唯一")
+
+    indexes = {
+        row[1]
+        for row in database.execute(
+            "PRAGMA index_list('execution_state')"
+        ).fetchall()
+    }
+    assert "execution_state_by_status" in indexes
+    assert database.execute(
+        "PRAGMA index_info('execution_state_by_status')"
+    ).fetchall()[0][2] == "status"
+    print("checkpoint A passed")
+
+
+def main() -> None:
+    if "--checkpoint-a" in sys.argv:
+        checkpoint_a()
+        return
+    print(
+        "从第一关开始：python -B "
+        "exercises/lesson-06-sqlite/starter.py --checkpoint-a"
+    )
+
+
+if __name__ == "__main__":
+    main()

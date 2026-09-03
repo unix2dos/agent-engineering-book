@@ -1,7 +1,5 @@
 # Agent 工程实践：从工具循环到可靠系统
 
-📖 **在线阅读**：[https://levon.gitbook.io/agent-engineering/](https://levon.gitbook.io/agent-engineering/)
-
 你让 Model “读取 `report.txt`，再告诉我里面写了什么”。它可以回复“好的”，但它自己并不能打开文件。真正找到文件、检查路径、读取内容并把结果送回 Model 的，是外面的 Agent 程序。
 
 事情一旦变长，更多问题就会冒出来：该把哪些历史消息发给 Model？程序重启后从哪里继续？工具执行到一半崩溃了，能不能直接重试？用户点了允许，命令就一定安全吗？
@@ -16,6 +14,8 @@
 - 想先知道整个领域是怎么走到今天的：阅读[第 0 课：Agent 工程史](chapters/00-Agent工程史.md)。
 
 完整目录见 [SUMMARY.md](SUMMARY.md)。
+
+📖 **在线阅读**：[https://levon.gitbook.io/agent-engineering/](https://levon.gitbook.io/agent-engineering/)
 
 ## 适合谁
 
@@ -42,16 +42,13 @@
 
 书中的关键结论会与官方文档、开源源码和可运行代码互相核对。长期参考对象包括 Pi、OpenClaw、Hermes、Codex、OpenCode、DeepSeek Harness、OpenAI Agents SDK、Claude Agent SDK、LangGraph、Phoenix 和 Inspect AI；不是为了逐个介绍框架，而是让每个项目回答它最擅长的问题。
 
-<details>
-<summary>展开查看长期源码参考</summary>
-
 - **Coding Agent Runtime**：[Pi](https://github.com/earendil-works/pi)、[OpenClaw](https://github.com/openclaw/openclaw)、[Hermes](https://github.com/NousResearch/hermes-agent)、[Codex](https://github.com/openai/codex)、[OpenCode](https://github.com/anomalyco/opencode) 与 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，主要用于观察 Agent Loop、Session、Context、Tool、权限和安全边界。DeepSeek Harness 仍处于 Developer Preview，本书只针对核验过的固定版本讨论；
 - **Agent 框架与接口**：[OpenAI Agents SDK](https://github.com/openai/openai-agents-python)、[Claude Agent SDK Python](https://github.com/anthropics/claude-agent-sdk-python) 与 [LangGraph](https://github.com/langchain-ai/langgraph)，主要用于观察通用 Agent Loop、Session、Handoff、Guardrail、状态图和长任务恢复；
 - **可观测性与评估**：[Phoenix](https://github.com/Arize-ai/phoenix) 与 [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai)，主要用于观察 Trace、Span、Dataset、Solver、Scorer 和 Evaluation。
 
 [Claude Code](https://github.com/anthropics/claude-code) 也会作为重要的产品行为参考，但其核心 Runtime 没有开源。书中只根据官方文档、设置、插件和示例研究它的权限、Hooks、Sandbox、Memory、Subagent 与 Workflow，不把这些外部行为说成已经核验过的内部实现。
 
-</details>
+
 
 ## 运行配置
 
