@@ -9,5 +9,5 @@ redirects:
   01-agent-from-model-to-action-system: chapters/01-从语言模型到行动系统.md
   02-agent-runtime-model-harness-tools-environment: chapters/02-模型-Harness-工具与环境.md
   03-first-tool-calling-loop: chapters/03-第一个Tool-Calling-Loop.md
-  04-session-checkpoint-memory: chapters/04-Session-Checkpoint与长期记忆.md
+  04-session-checkpoint-memory: chapters/04-Session-Transcript-Checkpoint与长期记忆.md
   05-context-engineering: chapters/05-上下文工程.md
