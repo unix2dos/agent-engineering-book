@@ -80,6 +80,7 @@ TOOLS = [
 
 
 def append_entry(path: Path, entry: dict) -> None:
+    # JSONL 每行保存一个完整事件；新 Transcript Entry 只追加，不覆盖旧行。
     path.parent.mkdir(parents=True, exist_ok=True)
     line = json.dumps(entry, ensure_ascii=False, separators=(",", ":")) + "\n"
     with path.open("a", encoding="utf-8") as file:

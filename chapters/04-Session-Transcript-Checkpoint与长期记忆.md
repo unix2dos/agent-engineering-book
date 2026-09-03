@@ -52,6 +52,14 @@ Session demo
 }
 ```
 
+为什么这里使用 `.json`？因为整个文件只表示一份最新状态。程序先读出一个完整对象，在内存里修改 `summary` 和 `turns`，再用新对象整体替换旧文件：
+
+```text
+读取旧 Checkpoint
+-> 在内存中修改
+-> 把完整新 Checkpoint 写回 session-demo.json
+```
+
 它保存的是“程序现在走到哪里”。这种某一时刻的状态快照叫 **Checkpoint**。
 
 这里的 `turns` 不是随便几条 Message。一个 Turn 从 User 提问开始，到 Assistant Final 结束，中间可以包含 Tool Call 和 Tool Result。代码只有看到 Assistant Final，才把整个 Turn 放进 `state["turns"]`，然后覆盖写回最新 Checkpoint。
@@ -63,6 +71,8 @@ Session demo
 `session-demo.json` 每次保存都会覆盖旧状态。程序能够继续工作，却无法仅靠它回答：前面调用过哪些工具？某条结论为什么出现？一个文件到底在哪一步被修改？
 
 要追查过程，就需要按顺序保留发生过的事件。这组有序记录叫 **Transcript**。
+
+当然也能把所有事件放进一个 JSON 数组，但每增加一条，程序通常都要读取并重写整个数组。Transcript 更适合“旧记录不动，新记录加在末尾”的写法。第 5 课会因此换成 JSONL：一行保存一个完整 JSON 对象。
 
 把 Session 想成一个银行账户：
 
@@ -223,7 +233,7 @@ self-check passed
 4. Checkpoint 为什么既能单独保存，也能成为 Transcript 的一条 Entry？
 5. Summary、项目 Memory 和用户 Memory 的作用范围有什么不同？
 6. 文件已经持久化，为什么 Model 仍可能不知道里面的内容？
-7. 第 4 课的 `session-demo.json` 为什么不是 Transcript？
+7. 第 4 课为什么使用 JSON？`session-demo.json` 为什么不是 Transcript？
 8. Checkpoint 没有当前 Turn，为什么不能断定 Tool 没执行？
 
 <details>
@@ -235,7 +245,7 @@ self-check passed
 4. Checkpoint 描述数据的职责，不规定文件格式。它既可以放在单独文件中，也可以作为一条记录追加到 Transcript。
 5. Summary 服务当前 Session；项目 Memory 跨同一项目的 Session；用户 Memory 跨项目保存用户偏好。
 6. Harness 必须主动读取并把内容放进本次 Context，Model 不会自己访问磁盘。
-7. 它不断覆盖最新的 `summary` 和 `turns`，没有按顺序保留所有事件。
+7. 它只保存一份最新状态，所以适合整体替换 JSON；它没有按顺序保留所有事件，因此不是 Transcript。
 8. Tool 可能已经产生副作用，只是新状态还没来得及写盘。
 
 </details>

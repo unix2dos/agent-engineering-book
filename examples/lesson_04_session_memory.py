@@ -53,6 +53,7 @@ def read_json(path: Path, default: Any) -> Any:
 
 
 def write_json(path: Path, value: Any) -> None:
+    # JSON 保存一份当前 Checkpoint 或 Memory；每次用完整新状态替换旧文件。
     # ponytail: 单进程 JSON；出现并发写入时换成带事务的数据库。
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(path.name + ".tmp")

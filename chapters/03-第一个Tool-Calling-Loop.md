@@ -90,6 +90,8 @@ TOOLS = [
 
 它告诉 Model：工具名是 `multiply`，必须提供整数 `a` 和 `b`，不能增加其他字段。Schema 不会执行 Python，也不是权限证明。它只是帮助 Model 填对申请单。
 
+这里的 Tool Schema、Tool Arguments 和 Tool Result 都使用 JSON。JSON 可以把一份数据写成清楚的“字段名和值”，例如 `{"a":248,"b":15}`。这一课传递的是一个个完整对象，还没有开始保存会话流水。
+
 ## 3. 代码怎样从第一步走到第二步？
 
 Harness 中负责反复请求 Model、执行工具和回传结果的这段循环，叫 Agent Loop。每次请求后，它只做三种选择：执行工具并继续、返回 Final，或者报错停止。
