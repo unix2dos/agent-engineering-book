@@ -1,8 +1,6 @@
 # 第 4 课：Session、Checkpoint 与长期记忆
 
-> 本章只守住一条关系：数据留在磁盘，不等于 Model 这一次看得见。资料最后核验于 2026-09-03；相关实现锚点见[第 1～5 课一手资料复核](../research/01-05-chapter-promotion-sources.md)。
-
-先做一个实验：
+你刚让 Agent 记住一条规则：
 
 ```text
 你：记住，部署博客前必须运行 hexo g。
@@ -13,38 +11,33 @@ Agent：好的。
 你：部署前要做什么？
 ```
 
-如果程序只把对话放在内存里，旧进程退出后，`messages` 就消失了。如果程序已经把这句话写入 JSON，Model 仍不会自动知道；Harness 还要读取文件、选择相关内容，再放进本次请求。
+它回答“好的”，不代表下次真的记得。如果对话只放在内存里，程序关闭后，`messages` 就消失了。
+
+把这句话写进 JSON，也只解决了一半。文件还在，但 Model 不会自己打开它。Harness 必须先读取文件，挑出有用内容，再随本次请求交给 Model。
 
 > 模型不记事，程序递纸条。内存、JSON、SQLite 只是纸条放在哪里。
 
-## 本章怎样学
-
-| 类型 | 本章要求 |
-| --- | --- |
-| 必须亲写 | 把 Message 写入 Session，并在新进程中加载后重新组装 Context |
-| 允许 AI | JSON 序列化、文件路径和 SDK 初始化样板 |
-| 必须验证 | 分别验证“继续旧任务”和“新 Session 仍记得项目规则”，不能把两者当成同一能力 |
-| 只需读懂 | Provider 托管 Conversation、数据库和向量检索的产品接口，本章先学责任边界 |
-
-## 1. 保存了，不等于 Model 看到了
+## 1. 写进文件了，为什么 Model 还不知道？
 
 整个数据流是：
 
 ```text
 磁盘保存的数据
 -> Harness 读取、筛选和排序
--> 本次 Context
+-> 本次递给 Model 的内容（Context）
 -> API Request
 -> Model
 ```
 
-**持久化**回答“程序重启后数据还在不在”；**Context** 回答“本次生成时 Model 实际拿到了什么”。磁盘里可以有 100 条消息，Harness 只发送最后两条，Model 就无法使用前面 98 条。
+程序关闭后数据仍然存在，这叫**持久化**。本次 API 请求真正递给 Model 的内容，才是它这一次能使用的 **Context**。
 
-Provider 也可以用 Response ID 或 Conversation ID 在服务端保存和续接状态。这只是把一部分状态管理交给 Provider，仍不代表模型参数获得了跨请求的私人记忆。应用还要决定业务数据保存多久、怎样检索、哪些信息能进入这次请求。[OpenAI Conversation state](https://developers.openai.com/api/docs/guides/conversation-state)
+磁盘里可以保存 100 条消息。Harness 本次只发送最后两条，Model 就只能使用这两条。前面 98 条没有丢，只是没有被放到它眼前。
 
-## 2. Context 是一张有限的桌子
+状态也可以交给提供模型 API 的服务方（Provider）保存。例如应用用 Response ID 或 Conversation ID 续接会话。保存位置变了，关系没有变：应用仍要决定保存多久，以及哪些内容能进入下一次请求。[OpenAI Conversation state](https://developers.openai.com/api/docs/guides/conversation-state)
 
-假设模型窗口只能放十页：
+## 2. 一次能递给 Model 多少东西？
+
+Context Window 就是 Model 面前那张桌子的大小。假设桌面只能放十页：
 
 ```text
 System / Developer 指令：1 页
@@ -54,7 +47,7 @@ Tool Schema：1 页
 历史与 Tool Result：最多 4 页
 ```
 
-输入预算不能直接等于标称窗口。工具定义、当前问题、输出和推理都需要空间。
+历史记录不能占满十页。工具说明、当前问题和 Model 接下来的回答都需要空间。
 
 如果 `read_file` 返回八页，不能先全部塞进 Prompt，再要求 Model 总结。请求可能在到达模型前就超窗，也可能把真正的问题挤走。Tool 应先过滤、分页或限制长度：
 
@@ -67,9 +60,9 @@ Tool Schema：1 页
 }
 ```
 
-完整文件仍留在 Workspace。Model 得到截断状态和下一段位置，需要时再回查。这不是丢数据，而是控制本轮可见视图。
+完整文件仍留在 Workspace。`truncated: true` 表示“后面还有内容”，`next_offset` 表示“下一次从哪里继续读”。Model 需要时可以回查。这不是删文件，只是没有一次把所有内容堆到桌上。
 
-## 3. Message、模型请求和 User Turn 不是一个计数
+## 3. 四条 Message 为什么仍然只算一轮？
 
 一次乘法任务可能产生：
 
@@ -80,7 +73,7 @@ Tool：返回 3720，call_id=7
 Assistant：最终回答 3720
 ```
 
-这里有四条 Message、两次模型 API 请求，但只有一个 User Turn。一个 User Turn 从用户问题开始，到面向用户的 Assistant Final 结束；中间可以有多次 Tool Call 和 Tool Result。
+这里有四条 Message，也调用了两次 Model，但只处理了一个用户问题。这整个过程叫一个 **User Turn**：从 User 提问开始，到 Assistant Final 结束。中间可以经过多次 Tool Call 和 Tool Result。
 
 因此，历史不能简单保留“最后两条消息”。那会留下 Tool Result，却删掉发起它的 Tool Call。最保守的第一版策略是：
 
@@ -90,11 +83,11 @@ Assistant：最终回答 3720
 当前未完成 Turn 完整保留
 ```
 
-如果当前 Turn 自己已经大到放不下，就需要 Split Turn Compaction。但它也只能在已经闭合的 Tool Call/Result 之后切，不能从请求和回执中间剪开。下一课会结合 Pi 的实现展开。
+如果一个 Turn 自己已经大到放不下，也不能从 Tool Call 和 Tool Result 中间剪开。第 5 课会处理这种更难的情况。
 
-## 4. Summary 和长期 Memory 解决不同问题
+## 4. 摘要和长期 Memory，分别该记什么？
 
-会话很长时，可以把早期历史压成摘要：
+会话很长时，可以把早期内容写成一份交接纪要。这个纪要就是 Summary：
 
 ```text
 Summary：旧目标、决定、完成项和待办
@@ -102,9 +95,9 @@ Summary：旧目标、决定、完成项和待办
 + 当前 Turn 原文
 ```
 
-Summary 是有损的。如果它漏掉“部署前运行 `hexo g`”，后面的 Prompt View 就无法从摘要恢复这句话。
+Summary 会丢掉细节。如果纪要漏掉“部署前运行 `hexo g`”，后面真正发给 Model 的内容（Prompt View）就无法凭空找回这句话。
 
-跨 Session 仍然成立的项目规则，不应只依赖当前 Session Summary。它更适合进入项目长期 Memory：
+这条部署规则换一个 Session 后仍然有效，所以不该只放在当前会话纪要里。它更适合进入项目长期 Memory，也就是项目下次启动还会读取的规则纸条：
 
 ```text
 Summary        帮当前 Session 继续任务
@@ -163,7 +156,7 @@ session-demo.jsonl          完整 Transcript
 session-demo.checkpoint.json 最新 Checkpoint
 ```
 
-另一种实现把 Checkpoint 作为一条 Entry 追加到 Transcript：
+另一种实现把 Checkpoint 作为一条记录（Entry）追加到 Transcript：
 
 ```text
 session-demo.jsonl
@@ -183,13 +176,13 @@ session-demo.jsonl
 | Session | 以 `session_id` 标识的会话容器 | `SESSION_ID="demo"`；没有单独的 Session 对象 |
 | Transcript | 属于 Session 的有序 Entry 集合 | 第 5 课的 `session-demo.jsonl` |
 | Checkpoint | Session 某个时刻的状态快照 | 第 4 课的 `session-demo.json` |
-| Compaction Entry | 用于恢复压缩后 Prompt View 的检查点 | 第 5 课 JSONL 中的 `type="compaction"` |
+| Compaction Entry | 把旧内容改成摘要后留下的恢复点 | 第 5 课 JSONL 中的 `type="compaction"` |
 | 项目 Memory | 跨 Session 生效的项目事实 | 项目状态目录中的 Memory 文件 |
 | 用户 Memory | 跨项目生效的用户偏好 | 用户状态目录中的 Memory 文件 |
 
 第 4 课的 `session-demo.json` 保存 `summary` 和 `turns`。它是一份不断覆盖的最新 Checkpoint；这一版没有独立追加式 Transcript。
 
-第 5 课的 `session-demo.jsonl` 才是 Transcript。里面的 `compaction` 行可以恢复压缩后的 Prompt View，因此它是一种“上下文 Checkpoint”。它没有保存工具审批、执行状态等全部运行信息，所以不能把它当作完整 Workflow Checkpoint。
+第 5 课的 `session-demo.jsonl` 才是 Transcript。里面有一条把旧内容改成摘要的记录，也就是 Compaction Entry。它可以恢复压缩后的 Prompt View，因此属于“上下文 Checkpoint”。它没有保存工具审批、执行状态等全部运行信息，所以不能把它当作整个工作流的完整 Checkpoint。
 
 同一份 SQLite 也可以同时保存 Session、Transcript Entry、Checkpoint 和 Memory。文件扩展名不会替应用决定数据的意义。
 
@@ -201,20 +194,22 @@ session-demo.jsonl
 
 这不是行业唯一顺序，但应用必须选择一套可预测规则，不能把冲突原样丢给 Model 猜。
 
-## 6. 为什么 Checkpoint 不能证明 Tool 没执行
+## 6. 有了存档，为什么仍不知道 Tool 是否执行过？
 
-教学示例只在 Assistant Final 后，把当前完整 Turn 放进已完成轮次并写入 Checkpoint。假设文件已经写入，程序却在 Tool Result 或 Final 落盘前崩溃：
+教学示例只在 Assistant Final 出现后，才把完整 Turn 写入 Checkpoint。假设文件已经写入，但程序还没来得及保存 Tool Result 就崩溃：
 
 ```text
 外部文件：可能已经改变
 Checkpoint：仍停在上一个完整 Turn
 ```
 
-Checkpoint 可以说明本地运行状态保存到哪里，不能凭空证明外部世界发生了几次。邮件、付款和文件写入还需要 Execution Ledger、幂等 Key 或人工核对。这个问题留到第 7 课。
+重新启动后，Checkpoint 仍停在上一轮。可是目标文件可能已经改变。存档只能说明“程序最后保存到哪里”，不能证明“外面的动作到底发生了几次”。
 
-纯读取或整数乘法通常不需要 Ledger，因为重复执行不会产生新的外部副作用。
+这类动作需要单独保存执行收据：何时获准、何时开始、最后确认成功还是状态不明。后面会把这份收据叫作 Execution Ledger，并讨论怎样防止同一个动作被重复执行。
 
-## 7. 运行两组最小实验
+纯读取或整数乘法通常没有这个负担。重复读取不会多发一封邮件，也不会再次扣款。
+
+## 7. 自己动手验证一次
 
 完整教学代码：[`lesson_04_session_memory.py`](../examples/lesson_04_session_memory.py)。
 
@@ -230,9 +225,13 @@ python -B examples/lesson_04_session_memory.py --self-check
 self-check passed
 ```
 
-第一组实验验证 Session：继续同一个 `SESSION_ID`，重启后仍能恢复旧任务。第二组实验验证长期 Memory：开启一个新 Session，仍能加载已经确认的项目规则。
+这次最值得亲手做的，不是抄完整代码，而是观察两次重启后的差别。
+
+第一组实验继续使用同一个 `SESSION_ID`。重启后，Agent 应该恢复旧任务。第二组实验新建 Session，但仍读取同一份项目 Memory。它应该忘记旧任务进度，却记得已经确认的部署规则。
 
 不要用“同一会话继续成功”证明长期 Memory，也不要用“记得部署规则”证明工作流 Checkpoint 已恢复。二者恰好可能读取同一个磁盘，但回答的问题不同。
+
+`summary`、`turns` 和 Context 组装值得自己写一次。JSON 序列化、文件路径和 SDK 初始化可以让 AI 帮忙。数据库与 Provider 托管 Conversation 暂时只需看懂职责，不需要重新实现。
 
 接着运行[第一阶段综合实践第三关](../exercises/phase-1-capstone/README.md#第三关transcript-与-prompt-view)，亲手实现 JSONL Transcript、Prompt View、重启恢复和 Compaction。
 
@@ -264,6 +263,8 @@ self-check passed
 </details>
 
 ## 参考资料
+
+> 资料最后核验于 2026-09-03；会变化的源码锚点收录在下面的复核记录中。
 
 - [本批章节一手资料复核](../research/01-05-chapter-promotion-sources.md)
 - [OpenAI Conversation state](https://developers.openai.com/api/docs/guides/conversation-state)
