@@ -132,32 +132,46 @@ toolu_B -> rejected，明确说明没有执行
 
 如果一次出现 30 个 Tool Call，协议上仍要逐个配对；工程上则应在 Harness 入口限制单轮工具数量、并发数和总预算，而不是执行到一半后随意丢掉结果。
 
-## 5. Loop 不能把所有停止都当成 Final
+## 5. 一次生成停止，不等于一个 Turn 已完成
 
-下面的伪代码只展示控制关系：
+Model 每次调用最终都会停下来，但“这次生成停了”和“用户的任务完成了”不是一回事。
+
+假设 Model 正在生成 `read_file` 的参数，却只生成到这里：
 
 ```text
-history = [user_message]
-
-repeat until request limit:
-    response = call_model(history, tools)
-    history.append(response)
-
-    if response contains client tool calls:
-        validate stop state
-        execute every call with policy
-        append every tool result
-        continue
-
-    if response is an accepted normal ending:
-        return final text
-
-    stop with a controlled error
+tool_name = "read_file"
+arguments = '{"path":"config'
+stop_reason = "输出达到长度上限"
 ```
 
-Tool Call 和停止原因来自同一份 Provider Response。若消息含有工具调用，但停止原因表明输出被截断，参数可能只有半段，Harness 不能执行。
+Provider 已经返回 Response，所以这次生成确实停止了。但 `arguments` 只有半段，既不是可以执行的 Tool Call，也不是面向用户的 Final。Harness 如果只判断“API 已经返回”，就可能把半截参数交给工具，或者把半截文字保存成成功答案。
 
-流式显示也不等于轮次完成。用户可以看到已经生成的文字，但只有 Harness 接受正常结束状态后，才允许把它保存成 Assistant Final。暂停、拒绝、内容截断和达到请求上限都要有自己的处理策略。[Anthropic 当前工具循环](https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works#the-agentic-loop-client-tools)
+Harness 要把停止后的 Response 分成三类：
+
+| Response 状态 | Harness 的动作 |
+| --- | --- |
+| 包含完整客户端 Tool Call，停止状态也与工具调用一致 | 校验并执行工具，回传 Tool Result，继续循环 |
+| 没有 Tool Call，并且是应用接受的正常结束 | 保存并返回 Assistant Final |
+| 参数截断、暂停、拒绝、状态矛盾或达到 Harness 请求上限 | 不执行半截动作，也不冒充成功；按情况恢复或报错 |
+
+下面的伪代码现在就有了明确含义：
+
+```text
+response = call_model(history, tools)
+
+if response contains complete client tool calls:
+    validate stop state
+    execute every call with policy
+    append every tool result
+    continue
+
+if response is an accepted normal ending:
+    return final text
+
+stop with a controlled error
+```
+
+流式输出也遵守同一条边界。已经生成的文字可以先显示给用户，但只有 Harness 接受正常结束状态后，才允许把整条消息保存成 Assistant Final。[Anthropic 当前工具循环](https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works#the-agentic-loop-client-tools)
 
 ## 6. 工具越强，边界越不能省
 
@@ -176,17 +190,7 @@ Tool Result 也不是越完整越好。一个 500 KB 日志会挤占 Context，�
 
 这些限制不会让 Tool 自动安全。路径检查挡不住网络访问，`cwd=workspace` 也不是 Sandbox。这里先明确责任边界，后续章节再分别处理 Context、Approval、Sandbox 与 Ledger。
 
-## 7. MCP、Skills 与 Agent SDK 不在同一层
-
-| 名称 | 解决的问题 |
-| --- | --- |
-| MCP | 应用怎样发现和调用外部 Tool、Resource、Prompt |
-| Agent Skills | 指令、脚本、参考资料和资产怎样组成可加载能力包 |
-| Agent SDK | Loop、Tool、Session、Handoff、Guardrail、Trace 怎样组织 |
-
-MCP Server 可能真的执行工具，但 MCP 不替 Host 决定本次是否应该允许。Skills 可以给 Agent 操作说明，也不会自动运行 Agent Loop。Agent SDK 最接近 Harness，但各 SDK 封装的边界不同。
-
-连接成功只证明“能通信”，不证明“本次动作已经批准”。
+现成框架不会改变上面的责任链。Agent SDK 可以封装部分 Harness，MCP 可以帮助 Harness 连接外部 Tool；但连接成功只证明“能通信”，不证明本次动作已经通过校验、审批和权限检查。更完整的协议与框架地图留在后续专题，本章只追踪一次 Tool Call 怎样从申请走到结果。
 
 下一课会把这些箭头写成可运行代码：[跑通第一个 Tool Calling Loop](03-first-tool-calling-loop.md)。配套练习已经在[第一阶段综合实践](../exercises/phase-1-capstone/README.md)中覆盖多 Tool Call、矛盾停止状态、Workspace 边界和审批。
 
@@ -199,7 +203,7 @@ MCP Server 可能真的执行工具，但 MCP 不替 Host 决定本次是否应�
 5. 为什么已经流式显示的文字仍可能不是成功 Final？
 6. 一批调用中一个成功、一个拒绝，下一次请求应该包含什么？
 7. 为什么字符串前缀检查挡不住符号链接？
-8. MCP 与 Harness 为什么不能互相替代？
+8. Model 生成了半截工具参数时，Harness 为什么既不能执行，也不能返回 Final？
 
 <details>
 <summary>检查简答</summary>
@@ -211,7 +215,7 @@ MCP Server 可能真的执行工具，但 MCP 不替 Host 决定本次是否应�
 5. 输出可能被截断、暂停或拒绝；只有接受的正常结束状态才结束轮次。
 6. 同时返回成功结果与拒绝结果，两者都保留各自 ID。
 7. 符号链接可能把表面上的内部路径指向 Workspace 外部。
-8. MCP 负责能力连接；Harness 负责本地循环、状态、策略和停止。
+8. 参数不完整，执行可能产生错误或危险副作用；任务也尚未正常结束，不能伪装成 Final。
 
 </details>
 
@@ -222,5 +226,3 @@ MCP Server 可能真的执行工具，但 MCP 不替 Host 决定本次是否应�
 - [Anthropic Go SDK v1.69.0 工具示例](https://github.com/anthropics/anthropic-sdk-go/blob/v1.69.0/examples/tools/main.go)
 - [Anthropic Go SDK v1.69.0 Tool Runner](https://github.com/anthropics/anthropic-sdk-go/blob/v1.69.0/examples/tool-runner/main.go)
 - [OpenAI：Function calling](https://developers.openai.com/api/docs/guides/function-calling)
-- [MCP 2026-07-28](https://github.com/modelcontextprotocol/modelcontextprotocol/releases/tag/2026-07-28)
-- [Agent Skills](https://github.com/agentskills/agentskills/tree/69ef37e9424c0a7ea9dd2293b559e43ec8176379)
