@@ -157,9 +157,41 @@ call_2 -> multiply(6, 7)
 
 同一批 Tool Call 可以顺序执行，也可以并行执行，但下一次请求必须包含每一个调用的结果。失败和拒绝也要带原来的 ID 返回，不能静默丢掉。
 
-## 5. Model 填错申请单怎么办？
+## 5. Model 写错工具参数，是返回错误还是停止运行？
 
-Schema 只负责引导 Model，不能保证它永远填对。负责按照工具名找到本地函数的代码通常叫 Router。下面的 Router 还会检查工具名、JSON 外形、字段集合和参数类型：
+先看一份写错但完整的申请：
+
+```json
+{
+  "name": "multiply",
+  "arguments": "{\"a\":2,\"b\":3,\"command\":\"whoami\"}"
+}
+```
+
+`multiply` 只接受 `a` 和 `b`。多出来的 `command` 不能执行，但这份申请仍然完整，Agent 可以把错误原样告诉 Model：
+
+```json
+{
+  "status": "error",
+  "message": "multiply 只接受 a 和 b"
+}
+```
+
+外层 Loop 会把这段 JSON 放进带有原 `tool_call_id` 的 Tool Result。Model 下一次看到错误后，可以删掉多余参数，重新申请。
+
+真正调用本地函数前，需要有一段代码检查申请并找到对应工具。这段代码通常叫 Router，也就是工具路由器。本例按顺序检查：
+
+```text
+工具名是不是 multiply？
+-> arguments 能不能解析成 JSON？
+-> 解析结果是不是对象？
+-> 参数名是否刚好只有 a 和 b？
+-> a 和 b 是否满足 multiply 自己的限制？
+```
+
+Tool Schema 会告诉 Provider 和 Model 期望的参数形状。有些 Provider 还支持严格约束，但这个 OpenAI-compatible 教学程序不能假定所有端点都同样严格。Harness 仍要在调用本地函数前检查工具名、参数和业务边界。
+
+完整 Router 是：
 
 ```python
 def execute_tool(tool_call: object) -> str:
@@ -180,14 +212,27 @@ def execute_tool(tool_call: object) -> str:
     return json.dumps(payload, ensure_ascii=False)
 ```
 
-普通参数错误会变成受控 Tool Result，Model 可以据此修正申请。协议本身不可信时则要停止 Loop。例如：
+`try` 中任何一步失败，`except` 都会把它变成受控错误。`json.dumps()` 再把结果字典转成 Tool Result 所需的 JSON 字符串。
+
+另一种情况不能只返回参数错误：
 
 ```text
 消息包含 Tool Call
 但 finish_reason 表示输出被长度截断
 ```
 
-此时参数可能只有半段，不能执行。`message.tool_calls` 保存 Model 生成的调用；`choice.finish_reason` 是 Provider 返回的停止原因。两边必须一致。
+`message.tool_calls` 是 Model 生成的工具申请；`choice.finish_reason` 是 Provider 给出的停止原因。前者说“请执行工具”，后者却说“输出被截断”。参数可能只生成了一半：
+
+```json
+{"a":248,"b":
+```
+
+这次不是某个字段填错，而是整份响应自相矛盾。Harness 必须丢弃这批 Tool Call 并停止当前 Loop，不能执行后再看结果。以后可以增加“重新请求 Model”的恢复策略，但仍不能执行这份可疑申请。
+
+```text
+完整申请，参数错误 -> 返回 error Tool Result -> Model 可以重试
+响应被截断或自相矛盾 -> 不执行 Tool -> 停止当前 Loop
+```
 
 最大请求次数是最后一道刹车。它能阻止 Agent 无限循环、持续花钱，却不能修复错误 Prompt 或反复失败的 Tool。
 
@@ -258,9 +303,9 @@ User -> Assistant Tool Call -> Tool Result -> Assistant Final
 
 1. `user -> assistant(tool_calls) -> tool(tool_call_id, result) -> assistant(final)`。
 2. `eval()` 会执行不可信 Python 代码；固定函数只接收数据并执行固定动作。
-3. Schema 引导 Model 生成，本地校验才守住真实执行边界。
+3. Schema 描述期望形状，Provider 是否严格执行取决于能力和模式；Harness 仍要校验实际参数与业务边界。
 4. Tool Result 必须用 ID 回答已经存在的 Tool Call，否则请求与回执无法配对。
-5. 前者保存 Model 生成的调用，后者说明 Provider 为什么停止生成。
+5. 前者保存 Model 生成的调用，后者说明 Provider 为什么停止生成；两者矛盾时不能执行 Tool。
 6. 它限制模型请求次数、时间和费用；不能修复循环根因。
 7. Python 把 `bool` 当作 `int` 的子类。
 8. 它验证本地消息组织和控制流；不验证凭据、网络、Provider 或真实 Model。
