@@ -110,25 +110,88 @@ Summary 是有损的。如果它漏掉“部署前运行 `hexo g`”，后面的
 Summary        帮当前 Session 继续任务
 项目 Memory   保存这个项目长期遵守的规则
 用户 Memory   保存跨项目仍成立的用户偏好
-Transcript    保留实际发生过的完整事件
+Transcript    保留系统记录到的会话事件
 ```
 
 Memory 也不能把整份 Transcript 全抄进去。一次构建失败、临时日志、未经确认的推断和凭据都不应自动晋升为长期事实。
 
-## 5. Session、Checkpoint、Transcript 与 Memory
+## 5. Transcript 是过程，Checkpoint 是过程中的状态
 
-这些词描述职责，不描述文件扩展名：
+这几个词描述数据承担什么职责。JSON、JSONL 和 SQLite 描述数据放在哪里、怎样写入。两组问题不能混在一起。
 
-| 概念 | 回答的问题 | 教学实现 |
+把一个 Session 想成银行账户：
+
+```text
+Session    = 账户
+Transcript = 账户流水
+Checkpoint = 某个时刻的余额
+```
+
+假设流水是：
+
+```text
+第 1 笔：存入 10 元
+第 2 笔：花掉 3 元
+第 3 笔：存入 5 元
+```
+
+这三笔按顺序发生的记录就是 Transcript。它告诉我们余额怎样一步步变成 12 元。
+
+Checkpoint 只记录某个位置上的状态：
+
+```text
+处理完第 3 笔后，余额是 12 元
+```
+
+所以它们回答的问题不同：
+
+```text
+Transcript：之前按顺序发生了什么？
+Checkpoint：截至某个位置，程序处于什么状态？
+```
+
+只有 Transcript 时，程序可以从第一条开始重放，重新计算当前状态。历史越长，这个过程越慢。有了 Checkpoint，程序可以先恢复最近快照，再处理它后面的新记录。
+
+反过来，只有“余额 12 元”通常无法还原前面的三笔流水。Checkpoint 适合快速恢复，不负责保留完整过程。
+
+### Checkpoint 可以单独保存，也可以写进 Transcript
+
+一种实现把两者分开：
+
+```text
+session-demo.jsonl          完整 Transcript
+session-demo.checkpoint.json 最新 Checkpoint
+```
+
+另一种实现把 Checkpoint 作为一条 Entry 追加到 Transcript：
+
+```text
+session-demo.jsonl
+|- line 1  Message Entry
+|- line 2  Message Entry
+|- line 3  Checkpoint Entry：记录 line 2 之后的状态
+`- line 4  新的 Message Entry
+```
+
+恢复时，程序从后往前找到最后一个 Checkpoint，再处理它后面的 Entry。此时整个 JSONL 是 Transcript，其中一行是 Checkpoint。两者并不矛盾。
+
+### 第 4、5 课实际实现了什么
+
+| 概念 | 对应的逻辑实体 | 本书教学实现 |
 | --- | --- | --- |
-| Context | 本次 Model 看到了什么？ | 每次组装的 `messages` |
-| Session | 哪些交互属于同一段连续会话？ | `SESSION_ID` 或 Provider Conversation ID |
-| Transcript | 这段会话实际发生过什么？ | 第 5 课的 JSONL Entry |
-| Checkpoint | 程序从哪个已知状态恢复？ | 第 4 课的 Session State JSON |
-| 项目 Memory | 这个项目跨 Session 仍遵守什么？ | 项目状态目录中的 Memory 文件 |
-| 用户 Memory | 这个用户跨项目仍偏好什么？ | 用户状态目录中的 Memory 文件 |
+| Context | 本次 Model 实际收到的输入 | 每次组装的 `messages` |
+| Session | 以 `session_id` 标识的会话容器 | `SESSION_ID="demo"`；没有单独的 Session 对象 |
+| Transcript | 属于 Session 的有序 Entry 集合 | 第 5 课的 `session-demo.jsonl` |
+| Checkpoint | Session 某个时刻的状态快照 | 第 4 课的 `session-demo.json` |
+| Compaction Entry | 用于恢复压缩后 Prompt View 的检查点 | 第 5 课 JSONL 中的 `type="compaction"` |
+| 项目 Memory | 跨 Session 生效的项目事实 | 项目状态目录中的 Memory 文件 |
+| 用户 Memory | 跨项目生效的用户偏好 | 用户状态目录中的 Memory 文件 |
 
-同一份 SQLite 可以同时保存 Session、Checkpoint 和 Memory；也可以分成多个 JSON 文件。存储介质不会替应用决定数据的含义。
+第 4 课的 `session-demo.json` 保存 `summary` 和 `turns`。它是一份不断覆盖的最新 Checkpoint；这一版没有独立追加式 Transcript。
+
+第 5 课的 `session-demo.jsonl` 才是 Transcript。里面的 `compaction` 行可以恢复压缩后的 Prompt View，因此它是一种“上下文 Checkpoint”。它没有保存工具审批、执行状态等全部运行信息，所以不能把它当作完整 Workflow Checkpoint。
+
+同一份 SQLite 也可以同时保存 Session、Transcript Entry、Checkpoint 和 Memory。文件扩展名不会替应用决定数据的意义。
 
 不同 Session 通常不共享当前 Summary，但可以读取同一份项目 Memory。项目 Memory 和用户 Memory 若同时写着不同语言偏好，冲突要在 Harness 组装 Context 时解决，例如：
 
@@ -194,7 +257,7 @@ self-check passed
 3. User Turn 按一个用户请求的完整处理过程划分，其中可以包含多次模型调用。
 4. 可能剪断 Tool Call 与 Tool Result，也可能丢失用户目标。
 5. Summary 保存当前 Session 的旧进度；项目 Memory 保存跨 Session 仍有效的稳定规则。
-6. Session 是会话身份；Transcript 是发生记录；Checkpoint 是可恢复状态。
+6. Session 是会话容器；Transcript 是按顺序发生的过程；Checkpoint 是过程走到某处时的状态快照。Checkpoint 可以单独保存，也可以作为一条 Entry 写进 Transcript。
 7. 大结果可能超窗或挤走当前问题，应分页、截断并提供回查位置。
 8. Tool 可能已经产生副作用，只是新状态还没来得及写盘。
 
