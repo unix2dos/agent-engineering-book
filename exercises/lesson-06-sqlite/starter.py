@@ -124,7 +124,66 @@ def checkpoint_a() -> None:
     print("checkpoint A passed")
 
 
+def checkpoint_b() -> None:
+    database = sqlite3.connect(":memory:")
+    create_schema(database)
+
+    record_execution_state(database, "exec_1", "running")
+    record_execution_state(database, "exec_1", "unknown")
+    record_execution_state(database, "exec_2", "running")
+    record_execution_state(database, "exec_2", "succeeded")
+
+    assert database.execute(
+        "SELECT execution_id, status FROM execution_events ORDER BY sequence"
+    ).fetchall() == [
+        ("exec_1", "running"),
+        ("exec_1", "unknown"),
+        ("exec_2", "running"),
+        ("exec_2", "succeeded"),
+    ]
+    assert database.execute(
+        "SELECT execution_id, status FROM execution_state ORDER BY execution_id"
+    ).fetchall() == [
+        ("exec_1", "unknown"),
+        ("exec_2", "succeeded"),
+    ]
+
+    try:
+        record_execution_state(database, "exec_bad", "finished")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("未知状态必须被拒绝")
+
+    database.execute(
+        """
+        CREATE TRIGGER fail_current_state
+        BEFORE INSERT ON execution_state
+        WHEN NEW.execution_id = 'exec_crash'
+        BEGIN
+            SELECT RAISE(ABORT, '模拟第二次写入失败');
+        END
+        """
+    )
+    try:
+        record_execution_state(database, "exec_crash", "running")
+    except sqlite3.IntegrityError:
+        pass
+    else:
+        raise AssertionError("测试应该触发模拟写入失败")
+
+    assert database.execute(
+        "SELECT COUNT(*) FROM execution_events WHERE execution_id = ?",
+        ("exec_crash",),
+    ).fetchone()[0] == 0
+    print("checkpoint B passed")
+
+
 def main() -> None:
+    if "--checkpoint-b" in sys.argv:
+        checkpoint_a()
+        checkpoint_b()
+        return
     if "--checkpoint-a" in sys.argv:
         checkpoint_a()
         return

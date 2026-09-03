@@ -53,9 +53,62 @@ checkpoint A passed
 
 先完成 A，不要一次写完后面的函数。
 
+## 第一关 B：两张表必须一起成功
+
+现在实现 `record_execution_state()`。
+
+假设 `exec_1` 从 `running` 变成 `unknown`。程序要做两次写入：
+
+```text
+execution_events 追加一行：exec_1 unknown
+execution_state  更新一行：exec_1 unknown
+```
+
+如果只完成第一行，查询最新状态时仍会看到旧值。如果只完成第二行，以后又无法追查状态怎样变化。这里需要一个**事务**：把两次写入装进同一个袋子，要么一起落库，要么一起撤回。
+
+Python 的写法是：
+
+```python
+with database:
+    database.execute(...)  # 追加完整历史
+    database.execute(...)  # 更新最新状态
+```
+
+你需要满足四条规则：
+
+- `status` 必须属于已有的 `VALID_STATUSES`，否则抛出 `ValueError`；
+- 向 `execution_events` 追加一行，旧记录不能覆盖；
+- 向 `execution_state` 写入最新状态；相同 `execution_id` 已存在时更新 `status`；
+- 两条 SQL 必须放在同一个 `with database:` 中。
+
+更新最新状态可以使用 SQLite 自带的 Upsert：
+
+```sql
+INSERT INTO execution_state(...)
+VALUES (...)
+ON CONFLICT(execution_id) DO UPDATE
+SET status = excluded.status
+```
+
+`excluded.status` 指这次本来想写入、但遇到主键冲突的新值。
+
+运行：
+
+```bash
+python -B exercises/lesson-06-sqlite/starter.py --checkpoint-b
+```
+
+通过标志：
+
+```text
+checkpoint A passed
+checkpoint B passed
+```
+
+这一关的测试会故意让第二次写入失败。如果第一条历史也随之消失，就证明事务真的把两次写入绑在了一起。
+
 ## 后续关卡
 
-- B：在一个事务中同时追加历史、更新最新状态；
 - C：直接查询所有 `unknown` 执行；
 - D：用主键保护 `idempotency_key`，区分“同一请求重试”和“同一个 Key 被不同参数误用”。
 
