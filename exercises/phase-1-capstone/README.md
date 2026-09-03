@@ -462,3 +462,455 @@ python -B exercises/phase-1-capstone/starter.py --checkpoint-3
 ```text
 checkpoint 3G passed
 ```
+
+## 第四关：Ledger 与幂等
+
+第三关已经保存了模型对话，但一次 Tool Result 只告诉 Model “最后拿到了什么”。它没有回答：工具获准后尝试执行了几次？程序是否在执行途中崩溃？
+
+第四关开始保存另一类记录：Tool Execution Ledger，也就是工具执行流水。
+
+### 第四关 A：保存状态变化，再恢复最后状态
+
+先只处理一段已经发生的执行过程：
+
+```text
+exec_1：approved -> running -> unknown
+exec_2：approved -> running -> succeeded
+```
+
+JSONL 必须保留上面的全部状态变化。程序重启后，还要能从这些记录算出：
+
+```text
+exec_1 当前是 unknown
+exec_2 当前是 succeeded
+```
+
+在 [`starter.py`](starter.py) 中实现两个函数：
+
+- `append_execution_state()`：校验状态，组装 `type: tool_execution` 的 Entry，然后使用已有的 `append_entry()` 追加到 JSONL；
+- `latest_execution_states()`：按原顺序扫描 Entry，同一个 `execution_id` 后出现的状态覆盖先出现的状态。
+
+每条 Ledger Entry 至少包含：
+
+```json
+{
+  "type": "tool_execution",
+  "execution_id": "exec_1",
+  "tool_call_id": "call_1",
+  "status": "running"
+}
+```
+
+`tool_call_id` 标识 Model 发出的那一次工具申请；`execution_id` 标识 Harness 的一次具体执行尝试。以后重试同一个 Tool Call 时，前者不变，后者必须换新值。
+
+`details` 用来增加工具名、参数 Hash、结果或错误等字段。先用普通的 `entry.update(details)` 合并，不需要学习新的 Python 技巧。
+
+运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-4
+```
+
+当前会停在 `NotImplementedError`。完成这一小关后，输出最后一行应为：
+
+```text
+checkpoint 4A passed
+```
+
+这一关只保存事实，不执行工具，也不判断能否重试。下一小关再给同一次 Tool Call 计算稳定的参数 Hash 和幂等 Key。
+
+### 第四关 B：给同一次调用固定身份
+
+假设同一个 Tool Call 因为崩溃需要再次处理：
+
+```text
+第一次尝试：tool_call_id=call_1  execution_id=exec_1
+第二次尝试：tool_call_id=call_1  execution_id=exec_2
+```
+
+`execution_id` 必须变化，用来区分两次尝试。`tool_call_id` 和 `idempotency_key` 必须保持不变，表示两次尝试都在完成同一个模型请求。
+
+还要保存参数指纹 `arguments_sha256`。同一份 JSON 即使字段顺序不同，也必须得到相同 Hash：
+
+```json
+{"path":"demo.txt","content":"hello"}
+{"content":"hello","path":"demo.txt"}
+```
+
+这要求先把参数转成稳定字符串：
+
+- `json.dumps(..., sort_keys=True)` 固定字段顺序；
+- `separators=(",", ":")` 去掉无意义空格；
+- `ensure_ascii=False` 保留一致的 UTF-8 文本；
+- 最后用 `hashlib.sha256()` 计算十六进制摘要。
+
+在 [`starter.py`](starter.py) 中实现：
+
+- `arguments_sha256(arguments)`：返回 64 个字符的参数 Hash；
+- `make_idempotency_key(tool_name, tool_call_id)`：返回 `工具名:tool_call_id`，并拒绝空值。
+
+这里故意不把参数 Hash 直接当作幂等 Key。用户可能在两个不同请求中执行完全相同的命令；参数相同，不代表它们是同一个逻辑请求。Hash 负责证明参数没变，Key 负责标识调用身份。
+
+继续运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-4
+```
+
+4A 通过后，当前会停在 `arguments_sha256()`。完成后应继续看到：
+
+```text
+checkpoint 4B passed
+```
+
+下一小关再把这三个身份写进一次真实的 Tool 执行：`tool_call_id` 不变，`execution_id` 每次变化，`idempotency_key` 用来识别同一个请求。
+
+### 第四关 C：把 Ledger 接到真实工具前后
+
+现在实现 `execute_workspace_tool_with_ledger()`。它不复制第二关的 Router，而是在副作用工具外面增加执行记录，再调用已有的 `execute_workspace_tool()`。
+
+用户拒绝 `write_file` 时：
+
+```text
+生成 execution_id
+-> 写 rejected
+-> 返回 rejected Tool Result
+-> 不调用 write_file
+```
+
+用户允许时：
+
+```text
+生成 execution_id
+-> 写 approved
+-> 写 running
+-> 调用已有 Router，执行 write_file
+-> 写 succeeded / failed
+-> 返回带 execution_id 的 Tool Result
+```
+
+实现要求：
+
+- `read_file` 和未知工具仍交给原 `execute_workspace_tool()`，这一关只给 `write_file`、`run_bash` 记录 Ledger；
+- 使用 `json.loads()` 解析参数，并要求结果是字典；
+- 每次进入函数都生成新的 `exec_<uuid>`；
+- 使用 4B 的两个函数生成 `arguments_sha256` 和 `idempotency_key`；
+- 每条状态都写入相同的 `tool_name`、`idempotency_key` 和 `arguments_sha256`；
+- 用户拒绝时只写 `rejected`，不能出现 `running`；
+- 用户允许时，必须在调用真实工具之前写完 `running`；
+- 调用旧 Router 时传入 `lambda *_: True`，因为用户已经在外层批准，不能重复询问；
+- 把旧 Router 返回的 JSON 字符串解析为字典，加上 `execution_id`，再保存终态并重新转成 JSON 字符串。
+
+同一个 Tool Call 重试时：
+
+```text
+tool_call_id     相同
+idempotency_key 相同
+arguments_sha256 相同
+execution_id    不同
+```
+
+运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-4
+```
+
+完成后应继续看到：
+
+```text
+checkpoint 4C passed
+```
+
+这一关仍不捕获“工具执行到一半进程消失”。此时 Ledger 最后停在 `running`；第五关会把这种状态恢复成 `unknown`，再决定是否允许重试。
+
+### 第四关 D：把一次完整轮次串起来
+
+4D 不新增生产函数，只验证前四层能否一起工作。测试把带 Ledger 的 Router 作为 `run_agent_loop()` 的 `execute_tool` 参数传入，执行一次真实 `write_file`。
+
+同一个 Session JSONL 应按顺序留下：
+
+```text
+User Message
+Assistant Tool Call
+Tool Execution：approved
+Tool Execution：running
+Tool Execution：succeeded
+Tool Result：带原 tool_call_id 和 execution_id
+Assistant Final
+```
+
+磁盘一共有七条 Entry，但 `build_prompt_view()` 过滤三条内部 Ledger 记录后，Model 仍只看到四条 Message：
+
+```text
+User -> Assistant Tool Call -> Tool Result -> Assistant Final
+```
+
+这说明 Transcript 和 Ledger 可以放在同一份 JSONL，却承担不同职责。Ledger 负责查账；Tool Result 负责把执行结果告诉 Model。
+
+继续运行同一个命令。设计接缝正确时，无须再写代码，最后会出现：
+
+```text
+checkpoint 4D passed
+```
+
+## 第五关：故障注入与恢复
+
+正常运行只证明成功路径能走通。第五关会主动在最危险的位置制造崩溃：Tool 已经产生副作用，但 Harness 还没保存终态和 Tool Result。
+
+### 第五关 A：在副作用之后立即崩溃
+
+给 `execute_workspace_tool_with_ledger()` 增加了可选回调 `after_effect`。它必须在下面两步之间执行：
+
+```text
+write_file 已经替换目标文件
+-> after_effect(result) 在这里运行
+-> Ledger 写 succeeded
+-> Transcript 写 Tool Result
+```
+
+测试传入的回调会直接抛出 `RuntimeError`，模拟进程在这一刻消失。正确结果不是“什么都没发生”，而是：
+
+```text
+answer.txt 已经包含 done
+Ledger 最后状态仍是 running
+Transcript 已保存 Assistant Tool Call
+Transcript 没有 Tool Result
+Transcript 没有 Assistant Final
+```
+
+你只需要在真实工具返回结果后、追加终态前调用一次：
+
+```python
+if after_effect is not None:
+    after_effect(result)
+```
+
+不能把回调放在工具执行前，否则文件不会改变；也不能放在 `succeeded` 之后，否则 Ledger 会错误地声称已经完整收尾。
+
+运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-5
+```
+
+当前会提示“故障注入回调必须被执行”。位置正确后，最后一行会变成：
+
+```text
+checkpoint 5A passed
+```
+
+这一步只制造并观察故障。下一小关才会在重启时把遗留的 `running` 改成 `unknown`。
+
+### 第五关 B：重启后把 running 标成 unknown
+
+进程崩溃后，不会有人替它写最后一条状态。新进程启动时只能看到：
+
+```text
+approved -> running -> 记录中断
+```
+
+`running` 不等于失败。工具可能尚未执行，也可能已经完成，只是 Harness 没来得及保存结果。恢复程序只能追加 `unknown`：
+
+```text
+approved -> running -> unknown
+```
+
+实现 `mark_interrupted_executions_unknown(session_file)`：
+
+- 加载完整 JSONL；
+- 使用 `latest_execution_states()` 找到每次执行的最后状态；
+- 只处理最后状态仍为 `running` 的执行；
+- 继续使用原 `execution_id` 和 `tool_call_id`，因为这不是一次新尝试；
+- 复制已有的 `tool_name`、`idempotency_key` 和 `arguments_sha256`；
+- 追加 `message: "进程在 running 状态中断，副作用无法确认"`；
+- 返回被标记的 `execution_id` 列表；
+- 第二次运行不应重复追加 `unknown`。
+
+不要修改或删除旧的 `running` Entry。Ledger 是流水，恢复动作本身也要留下记录。
+
+运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-5
+```
+
+5A 通过后，当前会停在 `mark_interrupted_executions_unknown()`。完成后应继续看到：
+
+```text
+checkpoint 5B passed
+```
+
+此时 Ledger 已经诚实表达“不确定”，但 Prompt 中仍有一条没有 Tool Result 的 Assistant Tool Call。下一小关再修复这条消息协议。
+
+### 第五关 C：给孤立 Tool Call 补一张回执
+
+5B 处理完后，磁盘可能是：
+
+```text
+User Message
+Assistant Tool Call：call_1
+Tool Execution：approved -> running -> unknown
+```
+
+Ledger 已经能查账，但 Provider 需要的消息仍不完整：Assistant 发出了 `call_1`，后面却没有带 `tool_call_id=call_1` 的 Tool Result。此时直接加入新的 User Message，Provider 可能拒绝整个请求。
+
+代码已经提供两个辅助函数：
+
+- `pending_tool_calls(entries)`：找出有 Tool Call、没有对应 Tool Result 的申请；
+- `latest_execution_by_tool_call(entries)`：按 `tool_call_id` 找到最后一条 Ledger 状态。
+
+现在实现 `repair_missing_tool_results(session_file)`。它先调用 5B，把遗留 `running` 标成 `unknown`，然后为每个孤立 Tool Call 补写一条 `role: tool` Message。
+
+不同 Ledger 状态这样处理：
+
+```text
+unknown
+-> 返回 status=unknown、原 execution_id 和“不确定”说明
+-> 不执行 Tool
+
+rejected
+-> 返回 status=rejected 和原 execution_id
+
+succeeded / failed
+-> 从 Ledger 的 result 字段重放已经保存的结果
+
+没有 Ledger、状态仍是 approved/running、终态缺少 result
+-> 抛出 RuntimeError，不能编造结果
+```
+
+回放前还要重新计算 Tool Call 参数 Hash，与 Ledger 的 `arguments_sha256` 比较。不同就停止恢复，说明调用内容和执行记录已经对不上。
+
+每条补写 Message 的形状是：
+
+```json
+{
+  "role": "tool",
+  "tool_call_id": "call_1",
+  "content": "{\"status\":\"unknown\",...}"
+}
+```
+
+补写成功后返回 `tool_call_id` 列表。第二次运行时，这些调用已经有 Result，不能重复追加。
+
+继续运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-5
+```
+
+完成后应继续看到：
+
+```text
+checkpoint 5C passed
+```
+
+这一步只把 Prompt 修成合法形状。下一小关才把修复后的 Tool Result 重新交给 Model，让它给出 Assistant Final。
+
+### 第五关 D：继续旧 Turn，而不是开启新 Turn
+
+5C 结束后，Prompt 是：
+
+```text
+User
+Assistant Tool Call
+Tool Result：unknown 或已保存结果
+```
+
+这一轮还没有 Assistant Final。此时若直接调用原 `run_agent_loop(..., user_text="新问题")`，代码会先追加新的 User Message：
+
+```text
+User -> Assistant Tool Call -> Tool Result -> 新 User
+```
+
+旧 Turn 被新问题从中间打断了。正确顺序应该先让 Model 阅读修复后的 Tool Result，完成旧 Turn：
+
+```text
+User -> Assistant Tool Call -> Tool Result -> Assistant Final
+```
+
+把 `run_agent_loop()` 的 `user_text` 类型改成 `str | None`：
+
+- `user_text` 是字符串：保持原行为，追加新的 User Message；
+- `user_text is None`：不追加 User Message，直接继续磁盘中的旧 Turn；
+- 恢复模式必须提供 `session_file`；
+- 恢复出的 Prompt 必须非空，并且最后一条是 `role: tool`；否则抛出 `ValueError`。
+
+只修改加载 `messages` 后、进入 `for` 循环前的入口判断。后面的模型请求、Tool Call、停止条件和持久化全部复用。
+
+运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-5
+```
+
+完成后应继续看到：
+
+```text
+checkpoint 5D passed
+```
+
+到这里，崩溃后的原子 Turn 才重新闭合。下一小关会区分哪些 `unknown` 能安全重试，哪些必须先询问用户或查询外部回执。
+
+### 第五关 E：先对账，不要看到 unknown 就重试
+
+`unknown` 只说明“Ledger 没拿到最终回执”，不等于 Tool 没有执行。恢复时首先应该检查外部世界现在是什么样。
+
+对完整覆盖写入 `write_file(path, content)`，可以检查目标文件是否已经等于请求内容：
+
+```text
+目标文件 Byte 与 content 的 UTF-8 Byte 完全相同
+-> 原请求要求的最终状态已经满足
+-> 不重新写文件
+-> 在原 execution_id 后追加 succeeded
+-> result 标记 reconciled=true
+```
+
+这只能证明“目标状态已经满足”，不能证明旧进程到底写了几次。因此旧的 `unknown` 仍保留在 Ledger，新的结果必须带 `reconciled: true`。
+
+以下情况保持 `unknown`：
+
+- 文件不存在；
+- 文件内容不同；
+- Tool 是任意 `run_bash`；
+- Tool Call 参数 Hash 与 Ledger 不一致。
+
+内容不同时不能自动覆盖。文件可能在崩溃后被用户或另一个进程修改；当前 Ledger 又没有保存旧文件版本，无法判断覆盖是否安全。
+
+实现 `reconcile_unknown_write_files(workspace, session_file)`：
+
+- 只检查仍缺 Tool Result 的调用；
+- 只处理最后状态为 `unknown` 的 `write_file`；
+- 校验参数是字典，并核对 `arguments_sha256`；
+- 使用已有的 `resolve_workspace_file()` 检查路径；
+- 使用 `target.read_bytes()` 与 `content.encode("utf-8")` 比较；
+- 匹配时沿用原 `execution_id`、`tool_call_id` 和三项身份字段；
+- 追加带完整 `result` 的 `succeeded`；
+- 返回已经对账成功的 `tool_call_id` 列表；
+- 第二次运行不能重复追加。
+
+结果使用：
+
+```json
+{
+  "status": "succeeded",
+  "execution_id": "exec_1",
+  "path": "answer.txt",
+  "bytes_written": 4,
+  "reconciled": true
+}
+```
+
+运行：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-5
+```
+
+完成后应继续看到：
+
+```text
+checkpoint 5E passed
+```
+
+此时 `repair_missing_tool_results()` 可以重放对账后的 `succeeded`，仍然不会再次执行 `write_file`。任意 Bash 保持 `unknown`，交给 Model 提醒用户核对。

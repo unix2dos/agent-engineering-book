@@ -1,11 +1,13 @@
 """Phase 1 capstone, checkpoint 1: a bounded Tool Calling Loop."""
 
 import copy
+import hashlib
 import json
 import os
 import subprocess
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Callable
@@ -44,6 +46,230 @@ def load_entries(path: Path) -> list[dict]:
 
 def persist_message(path: Path, message: dict) -> None:
     append_entry(path, {"type": "message", "message": message})
+
+
+VALID_EXECUTION_STATUSES = {
+    "approved",
+    "rejected",
+    "running",
+    "succeeded",
+    "failed",
+    "unknown",
+}
+
+
+def arguments_sha256(arguments: dict) -> str:
+    """TODO: 第四关 B。为工具参数生成稳定 Hash。"""
+    canonical = json.dumps(
+        arguments,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def make_idempotency_key(tool_name: str, tool_call_id: str) -> str:
+    """TODO: 第四关 B。为同一个 Tool Call 生成稳定幂等 Key。"""
+    if not tool_name or not tool_call_id:
+        raise ValueError("工具名和 tool_call_id 不能为空")
+    return f"{tool_name}:{tool_call_id}"
+
+
+def append_execution_state(
+    path: Path,
+    execution_id: str,
+    tool_call_id: str,
+    status: str,
+    details: dict | None = None,
+) -> dict:
+    """TODO: 第四关 A。追加一条 Tool Execution Ledger Entry。"""
+    if status not in VALID_EXECUTION_STATUSES:
+        raise ValueError(f"未知执行状态：{status}")
+
+    entry = {
+        "type": "tool_execution",
+        "execution_id": execution_id,
+        "tool_call_id": tool_call_id,
+        "status": status,
+    }
+    if details:
+        entry.update(details)
+    append_entry(path, entry)
+    return entry
+
+
+def latest_execution_states(entries: list[dict]) -> dict[str, dict]:
+    """TODO: 第四关 A。恢复每个 execution_id 的最后状态。"""
+    execution_states = {}
+    for entry in entries:
+        if entry.get("type") == "tool_execution":
+            execution_id = entry["execution_id"]
+            execution_states[execution_id] = entry
+    return execution_states
+
+
+def mark_interrupted_executions_unknown(session_file: Path) -> list[str]:
+    """TODO: 第五关 B。把重启时遗留的 running 追加为 unknown。"""
+    entries = load_entries(session_file)
+    execution_states = latest_execution_states(entries)
+    marked = []
+    for execution_id, execution_state in execution_states.items():
+        if execution_state.get("status") != "running":
+            continue
+
+        details = {}
+        for key in ("tool_name", "idempotency_key", "arguments_sha256"):
+            if key in execution_state:
+                details[key] = execution_state[key]
+        details["message"] = "进程在 running 状态中断，副作用无法确认"
+
+        append_execution_state(
+            session_file,
+            execution_id,
+            execution_state["tool_call_id"],
+            "unknown",
+            details,
+        )
+        marked.append(execution_id)
+    return marked
+
+
+def pending_tool_calls(entries: list[dict]) -> list[dict]:
+    pending = {}
+    for entry in entries:
+        if entry.get("type") != "message":
+            continue
+        message = entry["message"]
+        if message.get("role") == "assistant":
+            for call in message.get("tool_calls", []):
+                pending[call["id"]] = call
+        elif message.get("role") == "tool":
+            pending.pop(message.get("tool_call_id"), None)
+    return list(pending.values())
+
+
+def latest_execution_by_tool_call(entries: list[dict]) -> dict[str, dict]:
+    states = {}
+    for entry in entries:
+        if entry.get("type") == "tool_execution":
+            states[entry["tool_call_id"]] = entry
+    return states
+
+
+def repair_missing_tool_results(session_file: Path) -> list[str]:
+    """TODO: 第五关 C。根据 Ledger 补写缺失的 Tool Result。"""
+    mark_interrupted_executions_unknown(session_file)
+    entries = load_entries(session_file)
+    calls = pending_tool_calls(entries)
+    states = latest_execution_by_tool_call(entries)
+    repaired = []
+
+    for call in calls:
+        call_id = call["id"]
+        state = states.get(call_id)
+        if state is None:
+            raise RuntimeError(f"Tool Call 没有 Ledger：{call_id}")
+
+        arguments = json.loads(call["function"]["arguments"])
+        if not isinstance(arguments, dict):
+            raise RuntimeError(f"Tool Call 参数不是 JSON 对象：{call_id}")
+        if state.get("arguments_sha256") != arguments_sha256(arguments):
+            raise RuntimeError(f"Tool Call 参数与 Ledger 不一致：{call_id}")
+
+        if state["status"] == "unknown":
+            result = {
+                "status": "unknown",
+                "execution_id": state["execution_id"],
+                "message": state["message"],
+            }
+        elif state["status"] == "rejected":
+            result = {
+                "status": "rejected",
+                "execution_id": state["execution_id"],
+            }
+        elif state["status"] in {"succeeded", "failed"}:
+            if "result" not in state:
+                raise RuntimeError(f"Ledger 缺少可重放 Result：{call_id}")
+            result = state["result"]
+        else:
+            raise RuntimeError(
+                f"Ledger 状态尚不能生成 Tool Result：{state['status']}"
+            )
+
+        persist_message(
+            session_file,
+            {
+                "role": "tool",
+                "tool_call_id": call_id,
+                "content": json.dumps(result, ensure_ascii=False),
+            },
+        )
+        repaired.append(call_id)
+    return repaired
+
+
+def reconcile_unknown_write_files(
+    workspace: Path,
+    session_file: Path,
+) -> list[str]:
+    """TODO: 第五关 E。核对 unknown write_file 的目标状态。"""
+    entries = load_entries(session_file)
+    calls = pending_tool_calls(entries)
+    states = latest_execution_by_tool_call(entries)
+    reconciled = []
+
+    for call in calls:
+        call_id = call["id"]
+        tool_name = call["function"]["name"]
+        if tool_name != "write_file":
+            continue
+
+        state = states.get(call_id)
+        if state is None or state.get("status") != "unknown":
+            continue
+        if state.get("tool_name") != tool_name:
+            raise RuntimeError(f"Tool Call 与 Ledger 工具名不一致：{call_id}")
+
+        arguments = json.loads(call["function"]["arguments"])
+        if not isinstance(arguments, dict):
+            raise RuntimeError(f"Tool Call 参数不是 JSON 对象：{call_id}")
+        if set(arguments) != {"path", "content"}:
+            raise RuntimeError(f"write_file 参数不完整：{call_id}")
+        if not isinstance(arguments["path"], str) or not isinstance(
+            arguments["content"], str
+        ):
+            raise RuntimeError(f"write_file 参数类型错误：{call_id}")
+        if state.get("arguments_sha256") != arguments_sha256(arguments):
+            raise RuntimeError(f"Tool Call 参数与 Ledger 不一致：{call_id}")
+
+        target = resolve_workspace_file(workspace, arguments["path"])
+        expected = arguments["content"].encode("utf-8")
+        if not target.is_file() or target.read_bytes() != expected:
+            continue
+
+        result = {
+            "status": "succeeded",
+            "execution_id": state["execution_id"],
+            "path": arguments["path"],
+            "bytes_written": len(expected),
+            "reconciled": True,
+        }
+        details = {
+            key: state[key]
+            for key in ("tool_name", "idempotency_key", "arguments_sha256")
+        }
+        details["result"] = result
+        append_execution_state(
+            session_file,
+            state["execution_id"],
+            call_id,
+            "succeeded",
+            details,
+        )
+        reconciled.append(call_id)
+
+    return reconciled
 
 
 def append_compaction(
@@ -193,7 +419,7 @@ def run_agent_loop(
     client: object,
     model: str,
     tools: list[dict],
-    user_text: str,
+    user_text: str | None,
     execute_tool: Callable[[object], str],
     session_file: Path | None = None,
     compact_before_request: Callable[[], bool] | None = None,
@@ -210,7 +436,16 @@ def run_agent_loop(
         if session_file is not None
         else []
     )
-    add_message(messages, {"role": "user", "content": user_text})
+    # TODO: 第五关 D。user_text=None 时继续以 Tool Result 结尾的旧 Turn。
+    if user_text is None:
+        if session_file is None:
+            raise ValueError("session_file 不能为 None")
+        if not messages:
+            raise ValueError("没有可以继续的旧 Turn")
+        if messages[-1].get("role") != "tool":
+            raise ValueError("恢复旧 Turn 时，最后一条必须是 Tool Result")
+    else:
+        add_message(messages, {"role": "user", "content": user_text})
     for i in range(MAX_MODEL_REQUESTS):
         # TODO: 第三关 G 在这里执行压缩，并在成功后刷新 messages。
         if compact_before_request is not None:
@@ -380,6 +615,82 @@ def execute_workspace_tool(
             },
             ensure_ascii=False,
         )
+
+
+def execute_workspace_tool_with_ledger(
+    workspace: Path,
+    session_file: Path,
+    tool_call: object,
+    approve: Callable[[str, dict], bool],
+    after_effect: Callable[[dict], None] | None = None,
+) -> str:
+    """TODO: 第四关 C。执行副作用工具并记录 Ledger 状态。"""
+    tool_name = tool_call.function.name
+    tool_arguments = json.loads(tool_call.function.arguments)
+    if not isinstance(tool_arguments, dict):
+        raise ValueError("工具参数必须是 JSON 对象")
+
+    if tool_name not in {"write_file", "run_bash"}:
+        return execute_workspace_tool(workspace, tool_call, approve)
+
+    execution_id = f"exec_{uuid.uuid4().hex}"
+    details = {
+        "tool_name": tool_name,
+        "idempotency_key": make_idempotency_key(tool_name, tool_call.id),
+        "arguments_sha256": arguments_sha256(tool_arguments),
+    }
+
+    if not approve(tool_name, tool_arguments):
+        append_execution_state(
+            session_file,
+            execution_id,
+            tool_call.id,
+            "rejected",
+            details,
+        )
+        return json.dumps(
+            {
+                "status": "rejected",
+                "execution_id": execution_id,
+            },
+            ensure_ascii=False,
+        )
+
+    append_execution_state(
+        session_file,
+        execution_id,
+        tool_call.id,
+        "approved",
+        details,
+    )
+    append_execution_state(
+        session_file,
+        execution_id,
+        tool_call.id,
+        "running",
+        details,
+    )
+
+    result = json.loads(
+        execute_workspace_tool(
+            workspace,
+            tool_call,
+            lambda *_: True,
+        )
+    )
+    result["execution_id"] = execution_id
+    # TODO: 第五关 A。在副作用完成、Ledger 终态写入前调用 after_effect。
+    if after_effect is not None:
+        after_effect(result)
+
+    append_execution_state(
+        session_file,
+        execution_id,
+        tool_call.id,
+        result["status"],
+        {**details, "result": result},
+    )
+    return json.dumps(result, ensure_ascii=False)
 
 
 class FakeCompletions:
@@ -1115,7 +1426,759 @@ def checkpoint_3_check() -> None:
     print("checkpoint 3G passed")
 
 
+def checkpoint_4_check() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        ledger_file = Path(temp) / "session.jsonl"
+
+        append_execution_state(
+            ledger_file,
+            "exec_1",
+            "call_1",
+            "approved",
+            {"tool_name": "write_file"},
+        )
+        append_execution_state(
+            ledger_file,
+            "exec_1",
+            "call_1",
+            "running",
+        )
+        append_execution_state(
+            ledger_file,
+            "exec_1",
+            "call_1",
+            "unknown",
+            {"message": "执行结果无法确认"},
+        )
+        append_execution_state(
+            ledger_file,
+            "exec_2",
+            "call_2",
+            "approved",
+        )
+        append_execution_state(
+            ledger_file,
+            "exec_2",
+            "call_2",
+            "running",
+        )
+        append_execution_state(
+            ledger_file,
+            "exec_2",
+            "call_2",
+            "succeeded",
+            {"result": {"bytes_written": 5}},
+        )
+
+        entries = load_entries(ledger_file)
+        assert len(entries) == 6
+        assert all(entry["type"] == "tool_execution" for entry in entries)
+        assert entries[0] == {
+            "type": "tool_execution",
+            "execution_id": "exec_1",
+            "tool_call_id": "call_1",
+            "status": "approved",
+            "tool_name": "write_file",
+        }
+
+        states = latest_execution_states(entries)
+        assert set(states) == {"exec_1", "exec_2"}
+        assert states["exec_1"]["status"] == "unknown"
+        assert states["exec_1"]["message"] == "执行结果无法确认"
+        assert states["exec_2"]["status"] == "succeeded"
+        assert states["exec_2"]["result"] == {"bytes_written": 5}
+
+        before_invalid = ledger_file.read_text(encoding="utf-8")
+        try:
+            append_execution_state(
+                ledger_file,
+                "exec_bad",
+                "call_bad",
+                "finished",
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("未知 Ledger 状态必须被拒绝")
+        assert ledger_file.read_text(encoding="utf-8") == before_invalid
+
+    print("checkpoint 4A passed")
+
+
+def checkpoint_4b_check() -> None:
+    first = {"path": "demo.txt", "content": "你好"}
+    reordered = {"content": "你好", "path": "demo.txt"}
+    changed = {"path": "demo.txt", "content": "再见"}
+
+    first_hash = arguments_sha256(first)
+    assert len(first_hash) == 64
+    assert first_hash == arguments_sha256(reordered)
+    assert first_hash != arguments_sha256(changed)
+
+    key = make_idempotency_key("write_file", "call_1")
+    assert key == "write_file:call_1"
+    assert make_idempotency_key("write_file", "call_1") == key
+    assert make_idempotency_key("write_file", "call_2") != key
+
+    for tool_name, tool_call_id in [("", "call_1"), ("write_file", "")]:
+        try:
+            make_idempotency_key(tool_name, tool_call_id)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("工具名和 tool_call_id 不能为空")
+
+    print("checkpoint 4B passed")
+
+
+def checkpoint_4c_check() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        workspace = Path(temp) / "workspace"
+        workspace.mkdir()
+        ledger_file = Path(temp) / "session.jsonl"
+
+        denied_call = fake_tool_call(
+            "call_denied",
+            "write_file",
+            {"path": "denied.txt", "content": "no"},
+        )
+        denied = json.loads(
+            execute_workspace_tool_with_ledger(
+                workspace,
+                ledger_file,
+                denied_call,
+                lambda *_: False,
+            )
+        )
+        assert denied["status"] == "rejected"
+        assert denied["execution_id"].startswith("exec_")
+        assert not (workspace / "denied.txt").exists()
+
+        denied_entries = load_entries(ledger_file)
+        assert [entry["status"] for entry in denied_entries] == ["rejected"]
+        assert denied_entries[0]["execution_id"] == denied["execution_id"]
+        assert denied_entries[0]["tool_call_id"] == "call_denied"
+        assert denied_entries[0]["idempotency_key"] == (
+            "write_file:call_denied"
+        )
+
+        write_call = fake_tool_call(
+            "call_write",
+            "write_file",
+            {"path": "result.txt", "content": "hello"},
+        )
+        first = json.loads(
+            execute_workspace_tool_with_ledger(
+                workspace,
+                ledger_file,
+                write_call,
+                lambda *_: True,
+            )
+        )
+        assert first["status"] == "succeeded"
+        assert first["execution_id"].startswith("exec_")
+        assert (workspace / "result.txt").read_text(encoding="utf-8") == "hello"
+
+        second = json.loads(
+            execute_workspace_tool_with_ledger(
+                workspace,
+                ledger_file,
+                write_call,
+                lambda *_: True,
+            )
+        )
+        assert second["status"] == "succeeded"
+        assert second["execution_id"] != first["execution_id"]
+
+        entries = load_entries(ledger_file)
+        attempts = {}
+        for entry in entries:
+            attempts.setdefault(entry["execution_id"], []).append(entry)
+
+        assert [entry["status"] for entry in attempts[first["execution_id"]]] == [
+            "approved",
+            "running",
+            "succeeded",
+        ]
+        assert [entry["status"] for entry in attempts[second["execution_id"]]] == [
+            "approved",
+            "running",
+            "succeeded",
+        ]
+
+        completed = [
+            entry
+            for entry in entries
+            if entry["status"] == "succeeded"
+        ]
+        assert {entry["tool_call_id"] for entry in completed} == {"call_write"}
+        assert {entry["idempotency_key"] for entry in completed} == {
+            "write_file:call_write"
+        }
+        assert len({entry["arguments_sha256"] for entry in completed}) == 1
+        assert completed[0]["result"]["execution_id"] == first["execution_id"]
+
+    print("checkpoint 4C passed")
+
+
+def checkpoint_4d_check() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        workspace = Path(temp) / "workspace"
+        workspace.mkdir()
+        session_file = Path(temp) / "session.jsonl"
+        tool_call = fake_tool_call(
+            "call_full_turn",
+            "write_file",
+            {"path": "answer.txt", "content": "done"},
+        )
+        client = FakeClient(
+            [
+                fake_response("tool_calls", tool_calls=[tool_call]),
+                fake_response("stop", content="文件已经写好"),
+            ]
+        )
+
+        answer = run_agent_loop(
+            client=client,
+            model="test-model",
+            tools=[],
+            user_text="写入 answer.txt",
+            execute_tool=lambda call: execute_workspace_tool_with_ledger(
+                workspace,
+                session_file,
+                call,
+                lambda *_: True,
+            ),
+            session_file=session_file,
+        )
+        assert answer == "文件已经写好"
+        assert (workspace / "answer.txt").read_text(encoding="utf-8") == "done"
+
+        entries = load_entries(session_file)
+        assert [entry["type"] for entry in entries] == [
+            "message",
+            "message",
+            "tool_execution",
+            "tool_execution",
+            "tool_execution",
+            "message",
+            "message",
+        ]
+        assert [entries[index]["status"] for index in (2, 3, 4)] == [
+            "approved",
+            "running",
+            "succeeded",
+        ]
+
+        prompt = build_prompt_view(entries)
+        assert [message["role"] for message in prompt] == [
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+        ]
+        assert prompt[1]["tool_calls"][0]["id"] == "call_full_turn"
+        assert prompt[2]["tool_call_id"] == "call_full_turn"
+        tool_result = json.loads(prompt[2]["content"])
+        assert tool_result["status"] == "succeeded"
+        assert tool_result["execution_id"] == entries[4]["execution_id"]
+
+    print("checkpoint 4D passed")
+
+
+def checkpoint_5a_check() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        workspace = Path(temp) / "workspace"
+        workspace.mkdir()
+        session_file = Path(temp) / "interrupted.jsonl"
+        tool_call = fake_tool_call(
+            "call_interrupted",
+            "write_file",
+            {"path": "answer.txt", "content": "done"},
+        )
+        client = FakeClient(
+            [
+                fake_response("tool_calls", tool_calls=[tool_call]),
+                fake_response("stop", content="不应到达这里"),
+            ]
+        )
+
+        def simulate_crash(_: dict) -> None:
+            raise RuntimeError("模拟副作用后的进程崩溃")
+
+        try:
+            run_agent_loop(
+                client=client,
+                model="test-model",
+                tools=[],
+                user_text="写入 answer.txt",
+                execute_tool=lambda call: execute_workspace_tool_with_ledger(
+                    workspace,
+                    session_file,
+                    call,
+                    lambda *_: True,
+                    after_effect=simulate_crash,
+                ),
+                session_file=session_file,
+            )
+        except RuntimeError as error:
+            assert "模拟副作用后的进程崩溃" in str(error)
+        else:
+            raise AssertionError("故障注入回调必须被执行")
+
+        assert (workspace / "answer.txt").read_text(encoding="utf-8") == "done"
+        entries = load_entries(session_file)
+        assert [entry["type"] for entry in entries] == [
+            "message",
+            "message",
+            "tool_execution",
+            "tool_execution",
+        ]
+        assert [entries[index]["status"] for index in (2, 3)] == [
+            "approved",
+            "running",
+        ]
+        assert latest_execution_states(entries)[entries[3]["execution_id"]][
+            "status"
+        ] == "running"
+        assert [message["role"] for message in build_prompt_view(entries)] == [
+            "user",
+            "assistant",
+        ]
+
+    print("checkpoint 5A passed")
+
+
+def checkpoint_5b_check() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        session_file = Path(temp) / "recovery.jsonl"
+        shared = {
+            "tool_name": "write_file",
+            "idempotency_key": "write_file:call_running",
+            "arguments_sha256": "hash_running",
+        }
+        append_execution_state(
+            session_file,
+            "exec_running",
+            "call_running",
+            "approved",
+            shared,
+        )
+        append_execution_state(
+            session_file,
+            "exec_running",
+            "call_running",
+            "running",
+            shared,
+        )
+        append_execution_state(
+            session_file,
+            "exec_done",
+            "call_done",
+            "running",
+        )
+        append_execution_state(
+            session_file,
+            "exec_done",
+            "call_done",
+            "succeeded",
+        )
+        append_execution_state(
+            session_file,
+            "exec_rejected",
+            "call_rejected",
+            "rejected",
+        )
+
+        before = load_entries(session_file)
+        assert mark_interrupted_executions_unknown(session_file) == [
+            "exec_running"
+        ]
+        after = load_entries(session_file)
+        assert len(after) == len(before) + 1
+        assert after[-1] == {
+            "type": "tool_execution",
+            "execution_id": "exec_running",
+            "tool_call_id": "call_running",
+            "status": "unknown",
+            **shared,
+            "message": "进程在 running 状态中断，副作用无法确认",
+        }
+        assert latest_execution_states(after)["exec_running"]["status"] == (
+            "unknown"
+        )
+        assert latest_execution_states(after)["exec_done"]["status"] == (
+            "succeeded"
+        )
+
+        assert mark_interrupted_executions_unknown(session_file) == []
+        assert load_entries(session_file) == after
+
+    print("checkpoint 5B passed")
+
+
+def checkpoint_5c_check() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        session_file = Path(temp) / "orphaned-calls.jsonl"
+        unknown_call = fake_tool_call(
+            "call_unknown",
+            "write_file",
+            {"path": "unknown.txt", "content": "maybe"},
+        )
+        succeeded_call = fake_tool_call(
+            "call_succeeded",
+            "write_file",
+            {"path": "done.txt", "content": "done"},
+        )
+        persisted_calls = assistant_message_from_api(
+            SimpleNamespace(
+                content="",
+                tool_calls=[unknown_call, succeeded_call],
+            )
+        )
+        persist_message(
+            session_file,
+            {"role": "user", "content": "写入两个文件"},
+        )
+        persist_message(session_file, persisted_calls)
+
+        unknown_arguments = {"path": "unknown.txt", "content": "maybe"}
+        unknown_details = {
+            "tool_name": "write_file",
+            "idempotency_key": "write_file:call_unknown",
+            "arguments_sha256": arguments_sha256(unknown_arguments),
+        }
+        append_execution_state(
+            session_file,
+            "exec_unknown",
+            "call_unknown",
+            "approved",
+            unknown_details,
+        )
+        append_execution_state(
+            session_file,
+            "exec_unknown",
+            "call_unknown",
+            "running",
+            unknown_details,
+        )
+
+        succeeded_result = {
+            "status": "succeeded",
+            "execution_id": "exec_succeeded",
+            "path": "done.txt",
+            "bytes_written": 4,
+        }
+        append_execution_state(
+            session_file,
+            "exec_succeeded",
+            "call_succeeded",
+            "succeeded",
+            {
+                "tool_name": "write_file",
+                "idempotency_key": "write_file:call_succeeded",
+                "arguments_sha256": arguments_sha256(
+                    {"path": "done.txt", "content": "done"}
+                ),
+                "result": succeeded_result,
+            },
+        )
+
+        assert [call["id"] for call in pending_tool_calls(load_entries(session_file))] == [
+            "call_unknown",
+            "call_succeeded",
+        ]
+        assert repair_missing_tool_results(session_file) == [
+            "call_unknown",
+            "call_succeeded",
+        ]
+
+        entries = load_entries(session_file)
+        states = latest_execution_by_tool_call(entries)
+        assert states["call_unknown"]["status"] == "unknown"
+        prompt = build_prompt_view(entries)
+        assert [message["role"] for message in prompt] == [
+            "user",
+            "assistant",
+            "tool",
+            "tool",
+        ]
+        assert [message["tool_call_id"] for message in prompt[-2:]] == [
+            "call_unknown",
+            "call_succeeded",
+        ]
+
+        unknown_result = json.loads(prompt[-2]["content"])
+        assert unknown_result == {
+            "status": "unknown",
+            "execution_id": "exec_unknown",
+            "message": "进程在 running 状态中断，副作用无法确认",
+        }
+        assert json.loads(prompt[-1]["content"]) == succeeded_result
+
+        before_second_repair = load_entries(session_file)
+        assert repair_missing_tool_results(session_file) == []
+        assert load_entries(session_file) == before_second_repair
+
+    print("checkpoint 5C passed")
+
+
+def checkpoint_5d_check() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        session_file = Path(temp) / "resume-turn.jsonl"
+        tool_call = fake_tool_call(
+            "call_resume",
+            "write_file",
+            {"path": "answer.txt", "content": "maybe"},
+        )
+        persist_message(
+            session_file,
+            {"role": "user", "content": "写入 answer.txt"},
+        )
+        persist_message(
+            session_file,
+            assistant_message_from_api(
+                SimpleNamespace(content="", tool_calls=[tool_call])
+            ),
+        )
+        append_execution_state(
+            session_file,
+            "exec_resume",
+            "call_resume",
+            "unknown",
+            {
+                "tool_name": "write_file",
+                "idempotency_key": "write_file:call_resume",
+                "arguments_sha256": arguments_sha256(
+                    {"path": "answer.txt", "content": "maybe"}
+                ),
+                "message": "副作用无法确认",
+            },
+        )
+        assert repair_missing_tool_results(session_file) == ["call_resume"]
+
+        client = FakeClient(
+            [fake_response("stop", content="写入状态不确定，请先检查文件")]
+        )
+        answer = run_agent_loop(
+            client=client,
+            model="test-model",
+            tools=[],
+            user_text=None,
+            execute_tool=lambda _: "不应执行",
+            session_file=session_file,
+        )
+        assert answer == "写入状态不确定，请先检查文件"
+        assert [
+            message["role"]
+            for message in client.completions.requests[0]["messages"]
+        ] == ["user", "assistant", "tool"]
+
+        prompt = build_prompt_view(load_entries(session_file))
+        assert [message["role"] for message in prompt] == [
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+        ]
+        assert prompt[-1]["content"] == "写入状态不确定，请先检查文件"
+
+        try:
+            run_agent_loop(
+                client=FakeClient([]),
+                model="test-model",
+                tools=[],
+                user_text=None,
+                execute_tool=lambda _: "不应执行",
+                session_file=None,
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("恢复旧 Turn 时必须提供 session_file")
+
+        empty_session = Path(temp) / "empty.jsonl"
+        try:
+            run_agent_loop(
+                client=FakeClient([]),
+                model="test-model",
+                tools=[],
+                user_text=None,
+                execute_tool=lambda _: "不应执行",
+                session_file=empty_session,
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("空 Session 没有可以继续的旧 Turn")
+
+        completed_session = Path(temp) / "completed.jsonl"
+        persist_message(
+            completed_session,
+            {"role": "user", "content": "已经完成的问题"},
+        )
+        persist_message(
+            completed_session,
+            {"role": "assistant", "content": "已经完成的 Final"},
+        )
+        try:
+            run_agent_loop(
+                client=FakeClient([]),
+                model="test-model",
+                tools=[],
+                user_text=None,
+                execute_tool=lambda _: "不应执行",
+                session_file=completed_session,
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("已完成的 Turn 不能进入恢复模式")
+
+    print("checkpoint 5D passed")
+
+
+def checkpoint_5e_check() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        workspace = Path(temp) / "workspace"
+        workspace.mkdir()
+
+        matched_session = Path(temp) / "matched.jsonl"
+        matched_arguments = {"path": "answer.txt", "content": "done"}
+        matched_call = fake_tool_call(
+            "call_matched",
+            "write_file",
+            matched_arguments,
+        )
+        persist_message(
+            matched_session,
+            {"role": "user", "content": "写入 answer.txt"},
+        )
+        persist_message(
+            matched_session,
+            assistant_message_from_api(
+                SimpleNamespace(content="", tool_calls=[matched_call])
+            ),
+        )
+        matched_details = {
+            "tool_name": "write_file",
+            "idempotency_key": "write_file:call_matched",
+            "arguments_sha256": arguments_sha256(matched_arguments),
+            "message": "副作用无法确认",
+        }
+        append_execution_state(
+            matched_session,
+            "exec_matched",
+            "call_matched",
+            "unknown",
+            matched_details,
+        )
+        (workspace / "answer.txt").write_text("done", encoding="utf-8")
+
+        assert reconcile_unknown_write_files(workspace, matched_session) == [
+            "call_matched"
+        ]
+        matched_entries = load_entries(matched_session)
+        matched_state = latest_execution_by_tool_call(matched_entries)[
+            "call_matched"
+        ]
+        assert matched_state["status"] == "succeeded"
+        assert matched_state["execution_id"] == "exec_matched"
+        assert matched_state["idempotency_key"] == (
+            "write_file:call_matched"
+        )
+        assert matched_state["result"] == {
+            "status": "succeeded",
+            "execution_id": "exec_matched",
+            "path": "answer.txt",
+            "bytes_written": 4,
+            "reconciled": True,
+        }
+        assert reconcile_unknown_write_files(workspace, matched_session) == []
+        assert repair_missing_tool_results(matched_session) == ["call_matched"]
+        matched_result = json.loads(
+            build_prompt_view(load_entries(matched_session))[-1]["content"]
+        )
+        assert matched_result["reconciled"] is True
+
+        changed_session = Path(temp) / "changed.jsonl"
+        changed_arguments = {"path": "changed.txt", "content": "expected"}
+        changed_call = fake_tool_call(
+            "call_changed",
+            "write_file",
+            changed_arguments,
+        )
+        persist_message(
+            changed_session,
+            assistant_message_from_api(
+                SimpleNamespace(content="", tool_calls=[changed_call])
+            ),
+        )
+        append_execution_state(
+            changed_session,
+            "exec_changed",
+            "call_changed",
+            "unknown",
+            {
+                "tool_name": "write_file",
+                "idempotency_key": "write_file:call_changed",
+                "arguments_sha256": arguments_sha256(changed_arguments),
+                "message": "副作用无法确认",
+            },
+        )
+        (workspace / "changed.txt").write_text("someone else", encoding="utf-8")
+        changed_before = load_entries(changed_session)
+        assert reconcile_unknown_write_files(workspace, changed_session) == []
+        assert load_entries(changed_session) == changed_before
+
+        bash_session = Path(temp) / "bash.jsonl"
+        bash_arguments = {"command": "echo charged"}
+        bash_call = fake_tool_call("call_bash_unknown", "run_bash", bash_arguments)
+        persist_message(
+            bash_session,
+            assistant_message_from_api(
+                SimpleNamespace(content="", tool_calls=[bash_call])
+            ),
+        )
+        append_execution_state(
+            bash_session,
+            "exec_bash_unknown",
+            "call_bash_unknown",
+            "unknown",
+            {
+                "tool_name": "run_bash",
+                "idempotency_key": "run_bash:call_bash_unknown",
+                "arguments_sha256": arguments_sha256(bash_arguments),
+                "message": "副作用无法确认",
+            },
+        )
+        bash_before = load_entries(bash_session)
+        assert reconcile_unknown_write_files(workspace, bash_session) == []
+        assert load_entries(bash_session) == bash_before
+
+    print("checkpoint 5E passed")
+
+
 def main() -> None:
+    if "--checkpoint-5" in sys.argv:
+        checkpoint_3_check()
+        checkpoint_4_check()
+        checkpoint_4b_check()
+        checkpoint_4c_check()
+        checkpoint_4d_check()
+        checkpoint_5a_check()
+        checkpoint_5b_check()
+        checkpoint_5c_check()
+        checkpoint_5d_check()
+        checkpoint_5e_check()
+        return
+    if "--checkpoint-4" in sys.argv:
+        checkpoint_3_check()
+        checkpoint_4_check()
+        checkpoint_4b_check()
+        checkpoint_4c_check()
+        checkpoint_4d_check()
+        return
     if "--checkpoint-3" in sys.argv:
         checkpoint_3_check()
         return
