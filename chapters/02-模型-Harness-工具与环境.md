@@ -1,26 +1,18 @@
 # 第 2 课：模型、Harness、工具与环境
 
-> 本章沿一次“读取配置文件”的调用，拆开 Agent Runtime 中四个部分的责任。资料最后核验于 2026-09-03；源码锚点见[第 1～5 课一手资料复核](../research/01-05-chapter-promotion-sources.md)。
-
-第 1 课用一句话描述最小 Agent：模型根据环境反馈，在循环中动态决定下一步。真正写代码时，“循环”不能保持为一个模糊的箭头。
+你让 Agent“读取 `config.json`，再告诉我里面使用什么主题”。Model 很快回答：“我来读取。”
 
 ```text
-Tool-using Agent Runtime
-= Model + Harness + Tools + Environment
+Model 说要读取文件
+!=
+文件已经被打开
 ```
 
-## 本章怎样学
+Model 只能生成一张 `read_file` 申请单。真正打开文件的，是它外面的程序。这个程序还要检查路径、权限和停止条件，再把文件内容送回 Model。
 
-| 类型 | 本章要求 |
-| --- | --- |
-| 必须亲写 | 把一次 Tool Call 展开成请求、校验、审批、执行、结果回传与 Final |
-| 允许 AI | 生成 Provider 的类型定义和 SDK 样板，但必须自己检查真实 Message |
-| 必须验证 | 同一轮返回两个 Tool Call，其中一个成功、一个拒绝；两个结果都要正确回传 |
-| 只需读懂 | Anthropic 与 OpenAI-compatible 的字段差异，不要求背 API 字段表 |
+## 1. Model 说要读文件，谁真的动手？
 
-## 1. 一次工具调用里，谁做了什么
-
-用户要求“读取 `config.json` 并解释”。完整过程不是 Model 直接打开文件：
+一次完整调用这样发生：
 
 ```text
 User Request
@@ -33,20 +25,29 @@ User Request
 -> Model 根据真实结果继续调用工具或给出 Final
 ```
 
-| 部分 | 负责什么 | 不负责什么 |
+夹在 Model 和真实世界之间、负责推动这条流程的程序，通常叫 **Harness**。整套正在运行的组合叫 Agent Runtime，也就是“让 Agent 真正运转起来的那套程序”。
+
+```text
+Agent Runtime
+= Model + Harness + Tools + Environment
+```
+
+现在再看四个部分分别负责什么：
+
+| 部分 | 说人话 | 不负责什么 |
 | --- | --- | --- |
-| Model | 理解目标，选择下一步，生成工具名和参数 | 不直接拥有本地权限 |
-| Harness | 维护消息和循环，校验协议，路由工具，控制权限与停止 | 不替 Model 做开放式决策 |
-| Tool | 执行一个边界清楚的动作 | 不决定何时调用自己 |
-| Environment | 提供文件、Shell、网页或 API 的真实状态 | 不保证返回内容安全或适合直接进入 Prompt |
+| Model | 判断下一步，写出工具名和参数 | 不直接拥有本地文件权限 |
+| Harness | 保存消息、检查申请、找到工具并控制循环 | 不替 Model 决定开放任务该怎么做 |
+| Tool | 完成一个具体动作，例如读取文件 | 不决定自己何时出场 |
+| Environment | 文件、Shell、网页和 API 所处的真实世界 | 不保证返回内容安全可靠 |
 
-Harness 不是只会转发的胶水。最大步骤、超时、参数校验、审批、持久化和恢复都要落在可执行程序里。Model 选择 `read_file`，Harness 判断本次是否允许，Tool 才真正接触 Environment。
+Harness 不是只会转发消息。最大步骤、超时、参数检查、用户审批和崩溃恢复，最终都要由可以执行代码的程序完成。Model 选择 `read_file`，Harness 判断本次能不能执行，Tool 才真正接触文件系统。
 
-[OpenCode 的 Session Processor](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/session/processor.ts)、[Tool Registry](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/tool/registry.ts)和[权限判断](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/permission/evaluate.ts)分别落在不同模块，正说明“生成调用、找到实现、允许执行”不是同一个动作。
+OpenCode 也把这几件事放在不同模块：[Session Processor](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/session/processor.ts)处理会话运行，[Tool Registry](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/tool/registry.ts)寻找工具实现，[Permission Evaluation](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/permission/evaluate.ts)判断是否允许。Model 写出调用、程序找到工具、策略允许执行，本来就是三个动作。
 
-## 2. Tool Schema 是说明书，不是门禁卡
+## 2. Model 怎样知道 `read_file` 要填什么？
 
-应用先把工具描述交给 Model。Anthropic 客户端工具使用 `input_schema`：
+应用要先给 Model 一张工具说明书，写清工具名、用途和参数。这个结构叫 Tool Schema。Anthropic 客户端工具把参数说明放在 `input_schema` 中：
 
 ```json
 {
@@ -62,7 +63,7 @@ Harness 不是只会转发的胶水。最大步骤、超时、参数校验、审
 }
 ```
 
-Schema 只说明工具叫什么、参数长什么样。它不会把 Python 函数上传给 Model，也不会赋予本地文件权限。
+Schema 像一张空白申请表。它只说明工具叫什么、参数应该怎样填写，不会把 Python 函数上传给 Model，也不会赋予本地文件权限。
 
 ```text
 Model     只看见工具说明
@@ -71,11 +72,11 @@ Tool      使用当前进程已有的能力
 OS        规定这个进程最终能访问什么
 ```
 
-即使 Provider 支持严格 Schema，本地执行侧仍要验证未知工具、坏 JSON、额外参数、路径逃逸和业务权限。生成格式正确，不等于动作安全。
+即使提供模型 API 的服务方（Provider）严格检查 Schema，本地程序仍要防住未知工具、坏 JSON、额外参数和路径逃逸。表格填对了，不代表这个动作应该获准。
 
-## 3. Tool Call 只是申请
+## 3. Tool Call 怎样变成真正的执行结果？
 
-Anthropic Messages API 的客户端工具请求使用 `tool_use` Content Block：
+Model 决定读取文件后，会返回一块结构化数据。在 Anthropic Messages API 中，这一块叫 `tool_use`：
 
 ```json
 {
@@ -86,7 +87,7 @@ Anthropic Messages API 的客户端工具请求使用 `tool_use` Content Block�
 }
 ```
 
-应用执行后，在下一条 User Message 中返回 `tool_result`：
+这仍然只是一张申请单。Harness 检查并执行后，下一次请求再用 `tool_result` 把结果送回：
 
 ```json
 {
@@ -110,9 +111,9 @@ Assistant tool_calls[].id
 
 字段名不同，责任相同：每份结果必须回答原来的那张申请单。没有 ID，系统不知道错误属于 `read_file` 还是 `run_bash`；配错 ID，格式看似完整，语义却已经错位。
 
-当前 Anthropic 文档还区分客户端工具和服务端工具。客户端工具由应用执行并返回 `tool_result`；Web Search、Code Execution 等服务端工具可以在 Provider 内部运行。不能把“Model 不执行客户端工具”误写成“所有工具都在本机执行”。[Anthropic：How tool use works](https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works)
+上面的 `read_file` 由我们自己的应用执行，所以叫客户端工具。Web Search、Code Execution 等能力也可以由 Provider 直接执行，那是服务端工具。Model 自己不执行客户端工具，不等于所有工具都在本机运行。[Anthropic：How tool use works](https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works)
 
-## 4. 一批 Tool Call 要收齐一批结果
+## 4. 一次申请两个工具怎么办？
 
 假设 Assistant Message 同时提出：
 
@@ -130,7 +131,7 @@ toolu_B -> rejected，明确说明没有执行
 
 拒绝、超时和失败也属于结果。静默丢掉 `toolu_B`，Model 会一直等待，或者误以为它仍在运行。
 
-如果一次出现 30 个 Tool Call，协议上仍要逐个配对；工程上则应在 Harness 入口限制单轮工具数量、并发数和总预算，而不是执行到一半后随意丢掉结果。
+如果一次出现 30 个 Tool Call，仍要逐个配对。真正不希望一次调用太多工具，应该由 Harness 提前限制数量、并发和总预算，不能执行到一半后随意丢掉结果。
 
 ## 5. 一次生成停止，不等于一个 Turn 已完成
 
@@ -173,11 +174,13 @@ stop with a controlled error
 
 流式输出也遵守同一条边界。已经生成的文字可以先显示给用户，但只有 Harness 接受正常结束状态后，才允许把整条消息保存成 Assistant Final。[Anthropic 当前工具循环](https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works#the-agentic-loop-client-tools)
 
-## 6. 工具越强，边界越不能省
+## 6. `read_file` 能用了，就已经安全吗？
 
 `read_file` 的路径不能只检查字符串前缀。`workspace/link/secret` 看似在 Workspace 内，`link` 却可能指向外部目录。必须解析真实路径，再检查最终目标仍在允许范围内。
 
-Tool Result 也不是越完整越好。一个 500 KB 日志会挤占 Context，还可能带入提示注入。Tool 应返回受限片段、截断标记和回查位置，把完整事实留在文件或 Artifact 中。
+Tool Result 也不是越完整越好。一个 500 KB 日志会挤满 Model 本次能看的内容。日志里还可能夹着恶意文字，诱导 Model 请求危险动作，这叫提示注入。
+
+Tool 应返回受限片段、截断标记和回查位置。完整日志可以另存成文件，需要时再查；这样的完整产物常叫 Artifact。
 
 ```json
 {
@@ -188,11 +191,19 @@ Tool Result 也不是越完整越好。一个 500 KB 日志会挤占 Context，�
 }
 ```
 
-这些限制不会让 Tool 自动安全。路径检查挡不住网络访问，`cwd=workspace` 也不是 Sandbox。这里先明确责任边界，后续章节再分别处理 Context、Approval、Sandbox 与 Ledger。
+这些限制仍不会让 Tool 自动安全。路径检查挡不住网络访问，`cwd=workspace` 也只规定命令从哪里开始。它不是一道由操作系统强制执行的隔离墙，也就是 Sandbox。
 
-现成框架不会改变上面的责任链。Agent SDK 可以封装部分 Harness，MCP 可以帮助 Harness 连接外部 Tool；但连接成功只证明“能通信”，不证明本次动作已经通过校验、审批和权限检查。更完整的协议与框架地图留在后续专题，本章只追踪一次 Tool Call 怎样从申请走到结果。
+现成框架不会改变上面的责任链。Agent SDK 可以帮你封装部分 Harness，MCP 可以帮 Harness 连接外部 Tool。它们解决了“怎样接起来”，没有自动回答“本次是否应该执行”。
 
 下一课会把这些箭头写成可运行代码：[跑通第一个 Tool Calling Loop](03-第一个Tool-Calling-Loop.md)。配套练习已经在[第一阶段综合实践](../exercises/phase-1-capstone/README.md)中覆盖多 Tool Call、矛盾停止状态、Workspace 边界和审批。
+
+## 7. 自己检查一次工具调用
+
+最值得亲手做的是，把一次 Tool Call 写成完整顺序：Model 申请，Harness 检查，Tool 执行，Tool Result 回传，Model 再给 Final。
+
+然后制造一个有两张申请单的场景：`read_file` 成功，危险的 `run_bash` 被拒绝。下一次模型请求必须同时带上成功结果和拒绝结果，两份回执都要保留原 ID。
+
+Provider 的 SDK 类型和初始化代码可以让 AI 生成。你需要亲自检查真实 Message，确认调用与结果是否一一对应。Anthropic 和 OpenAI-compatible 的字段名只需读懂，不需要背下来。
 
 ## 主动回忆
 
@@ -220,6 +231,8 @@ Tool Result 也不是越完整越好。一个 500 KB 日志会挤占 Context，�
 </details>
 
 ## 参考资料
+
+> 资料最后核验于 2026-09-03；会变化的源码锚点收录在下面的复核记录中。
 
 - [本批章节一手资料复核](../research/01-05-chapter-promotion-sources.md)
 - [Anthropic：How tool use works](https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works)

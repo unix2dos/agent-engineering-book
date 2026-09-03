@@ -28,9 +28,13 @@ _Avoid_: File copy, bulk migration
 The shared evidence a chapter must contain before promotion, without forcing every topic into identical headings or prose structure.
 _Avoid_: Fixed chapter template, formatting checklist
 
+**Plain-language Entry**:
+The first explanation of a load-bearing term: a visible action or failure comes first, a short everyday explanation gives it meaning, and only then does the technical name enter. It preserves technical precision without making the reader decode unexplained vocabulary.
+_Avoid_: Glossary dump, analogy-only definition, simplified terminology
+
 **Practice Contract**:
-The learning agreement attached to each lesson that separates code the learner must write once, code AI may generate, behavior that must be verified, and infrastructure that only needs boundary-level understanding.
-_Avoid_: Homework list, code-generation rule
+The learning agreement attached to each lesson that separates code the learner must write once, code AI may generate, behavior that must be verified, and infrastructure that only needs boundary-level understanding; its placement follows the chapter's reading path rather than requiring an opening table.
+_Avoid_: Homework list, code-generation rule, mandatory opening table
 
 **Book Repository**:
 The `agent-engineering-book` GitHub repository containing both Canonical Chapters and executable examples.
