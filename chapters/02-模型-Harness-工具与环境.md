@@ -192,7 +192,7 @@ Tool Result 也不是越完整越好。一个 500 KB 日志会挤占 Context，�
 
 现成框架不会改变上面的责任链。Agent SDK 可以封装部分 Harness，MCP 可以帮助 Harness 连接外部 Tool；但连接成功只证明“能通信”，不证明本次动作已经通过校验、审批和权限检查。更完整的协议与框架地图留在后续专题，本章只追踪一次 Tool Call 怎样从申请走到结果。
 
-下一课会把这些箭头写成可运行代码：[跑通第一个 Tool Calling Loop](03-first-tool-calling-loop.md)。配套练习已经在[第一阶段综合实践](../exercises/phase-1-capstone/README.md)中覆盖多 Tool Call、矛盾停止状态、Workspace 边界和审批。
+下一课会把这些箭头写成可运行代码：[跑通第一个 Tool Calling Loop](03-第一个Tool-Calling-Loop.md)。配套练习已经在[第一阶段综合实践](../exercises/phase-1-capstone/README.md)中覆盖多 Tool Call、矛盾停止状态、Workspace 边界和审批。
 
 ## 主动回忆
 

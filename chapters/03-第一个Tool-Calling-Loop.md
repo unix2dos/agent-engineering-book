@@ -232,7 +232,7 @@ python examples/lesson_03_tool_calling_loop.py
 User -> Assistant Tool Call -> Tool Result -> Assistant Final
 ```
 
-程序退出后，消息全部消失；代码也没有 Context 预算、摘要、长期 Memory 或副作用恢复。下一课从这四条 Message 出发，区分 [Session、Checkpoint 与长期记忆](04-session-checkpoint-memory.md)。
+程序退出后，消息全部消失；代码也没有 Context 预算、摘要、长期 Memory 或副作用恢复。下一课从这四条 Message 出发，区分 [Session、Checkpoint 与长期记忆](04-Session-Checkpoint与长期记忆.md)。
 
 ## 主动回忆
 

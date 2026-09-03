@@ -173,7 +173,7 @@ self-check passed
 
 接着运行[第一阶段综合实践第三关](../exercises/phase-1-capstone/README.md#第三关transcript-与-prompt-view)，亲手实现 JSONL Transcript、Prompt View、重启恢复和 Compaction。
 
-下一课继续回答：完整 Transcript 放不进窗口时，[怎样构造受预算控制的 Prompt View](05-context-engineering.md)？
+下一课继续回答：完整 Transcript 放不进窗口时，[怎样构造受预算控制的 Prompt View](05-上下文工程.md)？
 
 ## 主动回忆
 
