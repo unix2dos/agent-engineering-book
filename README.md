@@ -77,6 +77,8 @@ export OPENAI_BASE_URL="https://provider.example/v1"
 
 [第 6 课 SQLite 练习](exercises/lesson-06-sqlite/README.md)从状态查询开始，验证索引、事务和唯一约束什么时候比继续扩写 JSONL 代码更省事。
 
+[第 8 课安全边界练习](exercises/lesson-08-safety/README.md)先证明 `cwd=workspace` 不是 Sandbox，再逐层加入 Tool Policy、Approval、执行 Backend 与 Elevated。
+
 这些代码是教学实现，不宣称覆盖生产系统的并发、分布式事务、租户隔离和高可用要求。
 
 ## 内容归属
