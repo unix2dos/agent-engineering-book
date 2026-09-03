@@ -16,7 +16,28 @@ VALID_STATUSES = (
 
 def create_schema(database: sqlite3.Connection) -> None:
     """TODO: 第一关 A。建立三张表和一个状态索引。"""
-    raise NotImplementedError("请实现 create_schema()")
+    database.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS execution_events (
+            sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+            execution_id TEXT NOT NULL,
+            status TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS execution_state (
+            execution_id TEXT PRIMARY KEY,
+            status TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS tool_operations (
+            idempotency_key TEXT PRIMARY KEY,
+            arguments_sha256 TEXT NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS execution_state_by_status
+        ON execution_state(status);
+        """
+    )
 
 
 def record_execution_state(
