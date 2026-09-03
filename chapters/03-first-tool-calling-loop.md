@@ -2,63 +2,45 @@
 
 > 本章用一个无副作用的整数乘法工具，跑通有限步、可观察、协议完整的 OpenAI-compatible Tool Calling Loop。完整代码见 [`lesson_03_tool_calling_loop.py`](../examples/lesson_03_tool_calling_loop.py)。
 
-最终消息序列只有四条：
-
-```text
-User
--> Assistant(tool_calls)
--> Tool(tool_call_id, result)
--> Assistant(final)
-```
-
-这个例子故意不从 `read_file` 或 Bash 开始。先把消息协议跑对，再增加权限、持久化和故障恢复；否则测试失败时，很难判断是 Tool Calling 断了，还是文件系统出了问题。
+本课只做一件事：让 Model 请求一次乘法工具，拿到结果，再回答用户。这个例子故意不从 `read_file` 或 Bash 开始。先把最小消息循环跑通，再增加权限、持久化和故障恢复；否则测试失败时，很难判断是 Tool Calling 断了，还是文件系统出了问题。
 
 ## 本章怎样学
 
 | 类型 | 本章要求 |
 | --- | --- |
-| 必须亲写 | `run_agent_loop()` 的分支、Tool Result 配对和请求次数上限 |
+| 必须亲写 | `run_agent_loop()` 的三个分支、Tool Result 配对和请求次数上限 |
 | 允许 AI | SDK 初始化、Fake Response 和重复的类型转换代码 |
-| 必须验证 | 多 Tool Call、坏参数、矛盾停止原因、达到请求上限四条失败路径 |
+| 必须验证 | 先运行本课自检，再完成综合实践中的多 Tool Call、矛盾停止状态和请求上限测试 |
 | 只需读懂 | OpenAI Responses 与 Chat Completions 的字段差异，本练习只实现后一种 |
 
-## 1. Model 只申请，Python 才执行
+## 1. 先看一次完整的四条 Message
 
-用户要求计算 `248 × 15`。第一次请求包含 User Message 和 Tool Schema：
+用户要求计算 `248 × 15`。完整历史最后是：
 
 ```text
-User: 帮我算一下 248 乘以 15
-Tools: multiply(a: integer, b: integer)
+1. User：帮我算一下 248 乘以 15
+2. Assistant Tool Call：multiply(a=248, b=15)，id=call_1
+3. Tool Result：result=3720，tool_call_id=call_1
+4. Assistant Final：248 乘以 15 等于 3720
 ```
 
-Model 返回一张调用申请：
+四条 Message 不是一次 API 返回的。运行过程是：
 
-```json
-{
-  "id": "call_1",
-  "type": "function",
-  "function": {
-    "name": "multiply",
-    "arguments": "{\"a\":248,\"b\":15}"
-  }
-}
+```text
+第一次请求：User + Tool Schema
+第一次返回：Assistant Tool Call
+本地执行：  multiply(248, 15)
+第二次请求：前三条 Message + Tool Schema
+第二次返回：Assistant Final
 ```
 
-Python 解析参数，调用本地 `multiply()`，再把结果作为 `role: tool` Message 放回历史。第二次请求中，Model 看到真实结果 `3720`，才能给出 Final。
+这里有四条 Message、两次模型请求、一次本地工具执行，但只处理了一个用户问题，所以它们共同组成一个 User Turn。
 
-当前 OpenAI 官方 Function Calling 指南主要用 Responses API 展示 `function_call → function_call_output`。本章保留 Chat Completions 的 `assistant.tool_calls → role=tool`，因为很多兼容 Provider 仍使用它，而且四条 Message 更适合观察协议。两种外形不同，都是“Model 申请，应用执行，再回传结果”。[OpenAI Function Calling](https://developers.openai.com/api/docs/guides/function-calling)
+最重要的责任边界也已经出现：Model 只生成 `multiply` 的调用申请，真正执行 `a * b` 的是本地 Python。
 
-## 2. 不要让 Model 控制 `eval()`
+## 2. 准备一个边界清楚的 Tool
 
-计算器教程常见：
-
-```python
-eval(expression)
-```
-
-但 `expression` 来自 Model，而 Model 又会受到用户和外部内容影响。`eval()` 执行 Python 代码，不是受限数学语言；它可能读文件、导入模块或启动进程。[Python `eval()`](https://docs.python.org/3/library/functions.html#eval)
-
-本课只暴露固定运算：
+本地工具只接收两个整数：
 
 ```python
 MAX_ABS_VALUE = 1_000_000
@@ -77,13 +59,13 @@ def multiply(a: int, b: int) -> int:
     return a * b
 ```
 
-Model 只能提供两个数据，程序执行的永远是固定乘法。这个接口功能少，却容易说明安全边界。
+为什么不用更省事的 `eval(expression)`？因为 `expression` 来自 Model，而 Model 又受用户和外部内容影响。`eval()` 执行的是 Python 代码，不是受限数学语言；不可信输入可能借它读取文件、导入模块或启动进程。[Python `eval()`](https://docs.python.org/3/library/functions.html#eval)
+
+固定的 `multiply()` 功能少，但边界清楚：Model 只能提供数据，不能改变程序准备执行什么代码。
 
 `bool` 需要单独拒绝，因为 Python 中 `isinstance(True, int)` 是 `True`。如果只检查 `int`，`multiply(True, 15)` 会悄悄得到 `15`。
 
-## 3. Schema 和执行侧要各守一层
-
-Tool Schema 告诉 Model 正确参数长什么样：
+Model 还需要知道这个工具怎样申请。Tool Schema 就是说明书：
 
 ```python
 TOOLS = [
@@ -106,32 +88,11 @@ TOOLS = [
 ]
 ```
 
-Schema 负责引导生成，本地 Router 才是执行前的门。Model 或兼容 Provider 仍可能给出坏 JSON、未知工具、错误类型或额外字段。
+它告诉 Model：工具名是 `multiply`，必须提供整数 `a` 和 `b`，不能增加其他字段。Schema 不会执行 Python，也不是权限证明；它只提高 Model 生成正确申请的概率。
 
-```python
-def execute_tool(tool_call: object) -> str:
-    try:
-        if tool_call.function.name != "multiply":
-            raise ValueError("未知工具")
-        arguments = json.loads(tool_call.function.arguments)
-        if not isinstance(arguments, dict):
-            raise ValueError("工具参数必须是 JSON 对象")
-        if set(arguments) != {"a", "b"}:
-            raise ValueError("multiply 只接受 a 和 b")
-        payload = {
-            "status": "completed",
-            "result": multiply(arguments["a"], arguments["b"]),
-        }
-    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
-        payload = {"status": "error", "message": str(error)}
-    return json.dumps(payload, ensure_ascii=False)
-```
+## 3. Harness 让四条 Message 跑起来
 
-普通参数错误可以变成受控 Tool Result，让 Model 修正后再试。若 Tool Call 缺少 ID、参数在生成中途被截断，或协议字段互相矛盾，当前状态已经不可信，Harness 应停止整个 Loop。
-
-## 4. 有限步 Agent Loop
-
-核心循环是两次模型请求，中间夹一次本地执行：
+Agent Loop 每次请求后只做三种选择：执行工具并继续、返回 Final、或者报错停止。
 
 ```python
 for step in range(MAX_STEPS):
@@ -165,15 +126,13 @@ for step in range(MAX_STEPS):
 raise RuntimeError("超过最大模型请求次数")
 ```
 
-`message.tool_calls` 回答“Model 请求了哪些工具”；`choice.finish_reason` 回答“Provider 为什么停止这次生成”。正常工具调用要同时满足两边一致。
+每次返回后，Harness 先保存完整 Assistant Message。若里面有 Tool Call，就逐个执行并追加 Tool Result，然后 `continue` 发起下一次模型请求。若没有 Tool Call 且正常结束，才返回 Final。其他状态直接报错。
 
-若 `message` 含有 Tool Call，停止原因却表示输出被截断，参数可能只生成了一半，绝不能交给执行器。最大请求次数也只是一条止损线：它能限制时间和费用，不能修复错误 Prompt 或反复失败的 Tool。
+`step` 表示第几次模型请求，不是消息数。一次请求可能生成多个 Tool Call，因此也可能追加多条 Tool Result。
 
-注意 `step` 表示第几次模型请求，不是消息数。一次请求可能生成多个 Tool Call，对应多个 Tool Result Message。
+## 4. `tool_call_id` 把申请和回执配成一对
 
-## 5. `tool_call_id` 是订单号
-
-Assistant 一次请求两个工具：
+Assistant 可能一次请求两个工具：
 
 ```text
 call_1 -> multiply(248, 15)
@@ -190,9 +149,43 @@ call_2 -> multiply(6, 7)
 }
 ```
 
-没有 ID，Model 无法判断哪份结果回答哪次调用。只有 Tool Result、没有前面的 Assistant Tool Call，也是一条孤立回执，Provider 可以直接拒绝整个请求。
+`tool_call_id` 就像订单号。没有它，Model 无法判断哪份结果回答哪次调用。只有 Tool Result、没有前面的 Assistant Tool Call，也是一张找不到原订单的回执，Provider 可以拒绝整个请求。
 
-这个 ID 只标识模型协议中的一次 Tool Call。以后还会出现 `execution_id` 和 `idempotency_key`：前者标识某次真实执行尝试，后者标识不能重复产生副作用的业务动作。三者不能互换。
+同一批 Tool Call 可以顺序执行，也可以并行执行，但下一次请求必须包含每一个调用的结果。失败和拒绝也要带原来的 ID 返回，不能静默丢掉。
+
+## 5. 跑通之后，再补失败路径
+
+Schema 只负责引导 Model，本地 Router 仍要检查真实输入。下面的代码依次检查工具名、JSON 外形、字段集合和参数类型：
+
+```python
+def execute_tool(tool_call: object) -> str:
+    try:
+        if tool_call.function.name != "multiply":
+            raise ValueError("未知工具")
+        arguments = json.loads(tool_call.function.arguments)
+        if not isinstance(arguments, dict):
+            raise ValueError("工具参数必须是 JSON 对象")
+        if set(arguments) != {"a", "b"}:
+            raise ValueError("multiply 只接受 a 和 b")
+        payload = {
+            "status": "completed",
+            "result": multiply(arguments["a"], arguments["b"]),
+        }
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
+        payload = {"status": "error", "message": str(error)}
+    return json.dumps(payload, ensure_ascii=False)
+```
+
+普通参数错误会变成受控 Tool Result，Model 可以据此修正申请。协议本身不可信时则要停止 Loop。例如：
+
+```text
+消息包含 Tool Call
+但 finish_reason 表示输出被长度截断
+```
+
+此时参数可能只有半段，不能执行。`message.tool_calls` 回答“Model 生成了什么调用”；`choice.finish_reason` 回答“Provider 为什么停止本次生成”，两边必须一致。
+
+最大请求次数是最后一道刹车。它能阻止 Agent 无限循环、持续花钱，却不能修复错误 Prompt 或反复失败的 Tool。
 
 ## 6. 运行和验证
 
@@ -210,7 +203,7 @@ python -B examples/lesson_03_tool_calling_loop.py --self-check
 self-check passed
 ```
 
-自检使用 Fake Model Response，验证本地 Router、参数校验、ID 配对和主要控制流。它不访问网络，也不能证明 API Key、模型名称或兼容 Provider 支持 Tool Calling。
+自检使用 Fake Model Response，验证一次成功调用、额外参数被拒绝、Tool Result ID 配对，以及长度截断不会被当作 Final。它不访问网络，也不能证明 API Key、模型名称或兼容 Provider 支持 Tool Calling。
 
 在线运行使用当前 [openai-python v3.7.0](https://github.com/openai/openai-python/releases/tag/v3.7.0)：
 
@@ -225,9 +218,11 @@ export OPENAI_BASE_URL="https://provider.example/v1"
 python examples/lesson_03_tool_calling_loop.py
 ```
 
+当前 OpenAI 官方指南主要使用 Responses API 的 `function_call -> function_call_output`。本章使用 Chat Completions 的 `assistant.tool_calls -> role=tool`，是为了观察许多 OpenAI-compatible Provider 仍在使用的四条 Message。字段外形不同，责任链相同：Model 申请，应用执行，结果回传。[OpenAI Function Calling](https://developers.openai.com/api/docs/guides/function-calling)
+
 在线请求第一次就返回“模型不支持 tools”时，本地 `multiply()` 尚未执行。应先检查 Provider、模型能力、模型名和 API 路径，而不是修改乘法函数。
 
-完整代码不要抄完就算结束。进入[第一阶段综合实践](../exercises/phase-1-capstone/README.md)，亲手完成第一关；它额外验证多 Tool Call、矛盾停止原因和请求次数上限。
+完整代码不要抄完就算结束。进入[第一阶段综合实践](../exercises/phase-1-capstone/README.md)，亲手完成第一关；它补充验证同批多个 Tool Call、Tool Call 与停止状态矛盾，以及达到模型请求上限。
 
 ## 7. 本课还没有解决什么
 
