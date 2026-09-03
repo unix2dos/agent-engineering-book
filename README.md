@@ -34,7 +34,7 @@
 | 地图 | [第 0 课：Agent 工程史](chapters/00-Agent工程史.md) | 已完成 |
 | 最小运行时 | 第 1～3 课：Agent、Harness 与 Tool Calling Loop | 已完成 |
 | 上下文与状态 | 第 4～5 课：Context、Memory 与 Compaction | 已完成 |
-| 存储选择 | 第 6 课：JSONL、SQLite 与数据库 | 待完成实践 |
+| 存储选择 | 第 6 课：JSONL、SQLite 与数据库 | 实践已完成，待整理 |
 | 可靠与安全 | 第 7～8 课：故障恢复、审批、权限与 Sandbox | 待逐章整理 |
 | 改进闭环 | 第 9～11 课：Trace、Evaluation 与回归门禁 | 计划学习 |
 

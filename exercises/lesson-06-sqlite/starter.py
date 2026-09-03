@@ -46,12 +46,37 @@ def record_execution_state(
     status: str,
 ) -> None:
     """TODO: 第一关 B。同时追加历史并更新最新状态。"""
-    raise NotImplementedError("请实现 record_execution_state()")
+    if status not in VALID_STATUSES:
+        raise ValueError(f"未知执行状态：{status}")
+
+    with database:
+        database.execute(
+            "INSERT INTO execution_events(execution_id, status) VALUES (?, ?)",
+            (execution_id, status),
+        )
+        database.execute(
+            """
+            INSERT INTO execution_state(execution_id, status)
+            VALUES (?, ?)
+            ON CONFLICT(execution_id) DO UPDATE
+            SET status = excluded.status
+            """,
+            (execution_id, status),
+        )
 
 
 def list_unknown_executions(database: sqlite3.Connection) -> list[str]:
     """TODO: 第一关 C。查询最终状态为 unknown 的 execution_id。"""
-    raise NotImplementedError("请实现 list_unknown_executions()")
+    rows = database.execute(
+        """
+        SELECT execution_id
+        FROM execution_state
+        WHERE status = ?
+        ORDER BY execution_id
+        """,
+        ("unknown",),
+    ).fetchall()
+    return [row[0] for row in rows]
 
 
 def claim_operation(
@@ -60,7 +85,29 @@ def claim_operation(
     arguments_sha256: str,
 ) -> bool:
     """TODO: 第一关 D。首次占位返回 True，同一请求重试返回 False。"""
-    raise NotImplementedError("请实现 claim_operation()")
+    with database:
+        cursor = database.execute(
+            """
+            INSERT INTO tool_operations(idempotency_key, arguments_sha256)
+            VALUES (?, ?)
+            ON CONFLICT(idempotency_key) DO NOTHING
+            """,
+            (idempotency_key, arguments_sha256),
+        )
+        if cursor.rowcount == 1:
+            return True
+
+        stored_sha256 = database.execute(
+            """
+            SELECT arguments_sha256
+            FROM tool_operations
+            WHERE idempotency_key = ?
+            """,
+            (idempotency_key,),
+        ).fetchone()[0]
+        if stored_sha256 != arguments_sha256:
+            raise ValueError("同一个 idempotency_key 不能用于不同参数")
+        return False
 
 
 def table_names(database: sqlite3.Connection) -> set[str]:
@@ -179,7 +226,53 @@ def checkpoint_b() -> None:
     print("checkpoint B passed")
 
 
+def checkpoint_c() -> None:
+    database = sqlite3.connect(":memory:")
+    create_schema(database)
+
+    record_execution_state(database, "exec_1", "running")
+    record_execution_state(database, "exec_1", "unknown")
+    record_execution_state(database, "exec_2", "unknown")
+    record_execution_state(database, "exec_2", "succeeded")
+    record_execution_state(database, "exec_3", "running")
+    record_execution_state(database, "exec_3", "unknown")
+
+    assert list_unknown_executions(database) == ["exec_1", "exec_3"]
+    print("checkpoint C passed")
+
+
+def checkpoint_d() -> None:
+    database = sqlite3.connect(":memory:")
+    create_schema(database)
+
+    assert claim_operation(database, "write:file-a", "hash_a") is True
+    assert claim_operation(database, "write:file-a", "hash_a") is False
+
+    try:
+        claim_operation(database, "write:file-a", "hash_b")
+    except ValueError as error:
+        assert "不同参数" in str(error)
+    else:
+        raise AssertionError("同一个幂等 Key 不能用于不同参数")
+
+    assert database.execute(
+        "SELECT idempotency_key, arguments_sha256 FROM tool_operations"
+    ).fetchall() == [("write:file-a", "hash_a")]
+    print("checkpoint D passed")
+
+
 def main() -> None:
+    if "--checkpoint-d" in sys.argv:
+        checkpoint_a()
+        checkpoint_b()
+        checkpoint_c()
+        checkpoint_d()
+        return
+    if "--checkpoint-c" in sys.argv:
+        checkpoint_a()
+        checkpoint_b()
+        checkpoint_c()
+        return
     if "--checkpoint-b" in sys.argv:
         checkpoint_a()
         checkpoint_b()

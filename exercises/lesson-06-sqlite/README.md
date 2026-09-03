@@ -18,6 +18,8 @@ exec_2 succeeded
 
 前者方便追查，后者方便查询。它们必须在同一个事务里更新，否则程序可能只写成功一半。
 
+`execution_state` 是从完整历史提前算出的结果，可以根据 `execution_events` 重建。只有经常查询当前状态时，这张表才值得维护；数据很少、偶尔查询时，只保留历史表会更简单。本练习保留两张表，是为了让事务和查询成本变得可见。
+
 ## 第一关 A：建立表和索引
 
 打开 [`starter.py`](starter.py)，先只实现 `create_schema()`。
@@ -31,6 +33,8 @@ exec_2 succeeded
 再用 `CREATE INDEX execution_state_by_status ON execution_state(status)` 为状态建目录。这样以后查询全部 `unknown` 时，不必逐行扫描整张状态表。
 
 Python 的 `database.executescript("""...""")` 可以一次执行多条建表语句。你要亲手写的是三条 `CREATE TABLE` 和一条 `CREATE INDEX`。
+
+测试里的 `sqlite3.connect(":memory:")` 会建立一份只存在于内存中的临时数据库。它不会生成本地 `.db` 文件；连接关闭后，表和数据一起消失，所以每次自检都能从空库开始。真正需要重启恢复时，应传入文件路径，例如 `sqlite3.connect("agent.db")`。
 
 运行：
 
@@ -107,9 +111,109 @@ checkpoint B passed
 
 这一关的测试会故意让第二次写入失败。如果第一条历史也随之消失，就证明事务真的把两次写入绑在了一起。
 
-## 后续关卡
+## 第一关 C：只找现在仍是 unknown 的执行
 
-- C：直接查询所有 `unknown` 执行；
-- D：用主键保护 `idempotency_key`，区分“同一请求重试”和“同一个 Key 被不同参数误用”。
+现在实现 `list_unknown_executions()`。先看三次执行：
+
+```text
+exec_1：running -> unknown
+exec_2：unknown -> succeeded
+exec_3：running -> unknown
+```
+
+正确答案只有 `exec_1` 和 `exec_3`。`exec_2` 以前出现过 `unknown`，但它现在已经成功，所以不能返回。查询应读取 `execution_state`，而不是在完整历史里搜索所有 `unknown`。
+
+`fetchall()` 返回的是多行数据库记录：
+
+```python
+[("exec_1",), ("exec_3",)]
+```
+
+函数声明要求返回 `list[str]`，所以最终结果应该是：
+
+```python
+["exec_1", "exec_3"]
+```
+
+请使用参数占位符查询，并按 `execution_id` 排序，让结果稳定：
+
+```sql
+SELECT execution_id
+FROM execution_state
+WHERE status = ?
+ORDER BY execution_id
+```
+
+运行：
+
+```bash
+python -B exercises/lesson-06-sqlite/starter.py --checkpoint-c
+```
+
+通过标志：
+
+```text
+checkpoint A passed
+checkpoint B passed
+checkpoint C passed
+```
+
+## 第一关 D：让数据库裁决幂等键
+
+现在实现 `claim_operation()`。它要区分三种情况：
+
+```text
+第一次看到 key_1 + hash_a       -> 占位成功，返回 True
+再次看到 key_1 + hash_a         -> 同一请求重试，返回 False
+再次看到 key_1 + hash_b         -> Key 被不同参数误用，抛出 ValueError
+```
+
+不能先执行 `SELECT`，确认不存在后再 `INSERT`。两个 Worker 可能同时读到“不存在”，然后都以为自己可以执行：
+
+```text
+Worker A：SELECT -> 没有
+Worker B：SELECT -> 没有
+Worker A：INSERT -> 成功
+Worker B：INSERT -> 主键冲突
+```
+
+真正防重的是数据库里的 `PRIMARY KEY`。应用只负责解释结果。可以使用：
+
+```sql
+INSERT INTO tool_operations(idempotency_key, arguments_sha256)
+VALUES (?, ?)
+ON CONFLICT(idempotency_key) DO NOTHING
+```
+
+执行后检查 Cursor 的 `rowcount`：
+
+- `1`：本次真的插入了一行，返回 `True`；
+- `0`：Key 已存在。再读取旧 `arguments_sha256`；相同返回 `False`，不同抛出 `ValueError`。
+
+查询和插入都使用参数占位符，并放进 `with database:`。
+
+运行：
+
+```bash
+python -B exercises/lesson-06-sqlite/starter.py --checkpoint-d
+```
+
+通过标志：
+
+```text
+checkpoint A passed
+checkpoint B passed
+checkpoint C passed
+checkpoint D passed
+```
+
+这一关证明的不是“先查一下有没有”，而是让数据库在写入发生的那个瞬间保证同一个 Key 只有一个占位。
+
+## 完成后你应该能解释
+
+- 为什么 `execution_events` 与 `execution_state` 必须在同一个事务里更新；
+- 为什么查询当前 `unknown` 状态不能只搜索历史记录；
+- 为什么 `PRIMARY KEY` 比应用里的“先查再写”更可靠；
+- 为什么同一个 `idempotency_key` 配上不同参数必须报冲突。
 
 这些关卡完成后，再把第 6 课 Blog 整理成正式书籍章节。
