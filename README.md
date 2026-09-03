@@ -2,51 +2,56 @@
 
 📖 **在线阅读**：[https://levon.gitbook.io/agent-engineering/](https://levon.gitbook.io/agent-engineering/)
 
-这是一本写给 Agent 工程初学者的开源书。它不从框架 API 开始，而是沿着一个问题往下走：语言模型怎样从“只能生成文本”，逐步变成能够调用工具、保存状态、恢复故障并受到安全边界约束的行动系统？
+你让 Model “读取 `report.txt`，再告诉我里面写了什么”。它可以回复“好的”，但它自己并不能打开文件。真正找到文件、检查路径、读取内容并把结果送回 Model 的，是外面的 Agent 程序。
 
-书中的结论来自三类证据：官方文档与开源源码、可以运行的最小代码、主动回忆中真实暴露的理解缺口。目标不是记住一批术语，而是能预测一次 Agent 运行会发生什么，并在出错时找到责任层。
+事情一旦变长，更多问题就会冒出来：该把哪些历史消息发给 Model？程序重启后从哪里继续？工具执行到一半崩溃了，能不能直接重试？用户点了允许，命令就一定安全吗？
+
+这本书从这些具体问题出发，一步步拆开 Agent 的工具循环、上下文、存储、故障恢复和安全边界。目标不是背术语，而是看懂一次 Agent 运行到底发生了什么，出错时知道该查哪一层。
+
+## 从哪里开始
+
+- 第一次系统学习 Agent：从[第 1 课：从语言模型到行动系统](chapters/01-从语言模型到行动系统.md)开始；
+- 已经理解基本概念，想先看代码：[第 3 课：跑通第一个 Tool Calling Loop](chapters/03-第一个Tool-Calling-Loop.md)；
+- 想把第一阶段知识真正串起来：直接做[第一阶段综合实践](exercises/phase-1-capstone/README.md)；
+- 想先知道整个领域是怎么走到今天的：阅读[第 0 课：Agent 工程史](chapters/00-Agent工程史.md)。
+
+完整目录见 [SUMMARY.md](SUMMARY.md)。
 
 ## 适合谁
 
-你需要会基础 Python、Git 和命令行，但不需要预先理解 Tool Calling、Context、JSONL、数据库、幂等、Trace 或 Sandbox。本书会在这些概念第一次真正有用时再引入它们。
+你只需要会一点 Python、Git 和命令行。Tool Calling、Context、JSONL、幂等、Trace、Sandbox 等术语，不要求提前懂；本书会等它们真正派上用场时再解释。
 
 ## 怎么学
 
-每一课都区分四类学习任务：
+承载核心机制的代码，至少亲手写一次；SDK 初始化、类型声明和重复配置，可以让 AI 帮忙。凡是涉及文件写入、故障恢复、上下文裁剪和安全边界，都要实际运行，最好亲手制造一次失败。数据库、容器和 microVM 等成熟设施，不重复造轮子，重点看懂它们解决什么问题、不能替 Agent 负责什么。
 
-- **必须亲写**：承载本课核心机制的最小代码，需要自己实现一次。
-- **允许 AI**：SDK 初始化、类型、配置和重复样板，可以让 AI 生成初稿。
-- **必须验证**：涉及副作用、状态恢复、上下文和安全边界时，需要运行或制造故障，不能只读代码。
-- **只需读懂**：数据库、容器、microVM 等成熟基础设施，只学习职责与边界，不重复实现。
-
-一篇 Blog 文章只有经过“主动回忆 → 当前源码核验 → 实践证据 → 小白审阅”，才会晋升为这里的正式章节。
+一篇 Blog 文章只有经过“主动回忆 → 当前源码核验 → 实践证据 → 小白审阅”，才会成为这里的正式章节。
 
 ## 阅读路线
 
 | 阶段 | 课程 | 状态 |
 |---|---|---|
-| 地图 | [第 0 课：Agent 工程史](chapters/00-Agent工程史.md) | 已晋升 |
-| 最小运行时 | 第 1～3 课：Agent、Harness 与 Tool Calling Loop | 已晋升 |
-| 上下文与状态 | 第 4～5 课：Context、Memory 与 Compaction | 已晋升 |
-| 存储选择 | 第 6 课：JSONL、SQLite 与数据库 | 待完成实践后晋升 |
-| 可靠与安全 | 第 7～8 课：故障恢复、审批、权限与 Sandbox | 待逐章晋升 |
+| 地图 | [第 0 课：Agent 工程史](chapters/00-Agent工程史.md) | 已完成 |
+| 最小运行时 | 第 1～3 课：Agent、Harness 与 Tool Calling Loop | 已完成 |
+| 上下文与状态 | 第 4～5 课：Context、Memory 与 Compaction | 已完成 |
+| 存储选择 | 第 6 课：JSONL、SQLite 与数据库 | 待完成实践 |
+| 可靠与安全 | 第 7～8 课：故障恢复、审批、权限与 Sandbox | 待逐章整理 |
 | 改进闭环 | 第 9～11 课：Trace、Evaluation 与回归门禁 | 计划学习 |
 
-完整目录见 [SUMMARY.md](SUMMARY.md)。
+## 源码依据
 
-## 核心源码参考
+书中的关键结论会与官方文档、开源源码和可运行代码互相核对。长期参考对象包括 Pi、OpenClaw、Hermes、Codex、OpenCode、DeepSeek Harness、OpenAI Agents SDK、Claude Agent SDK、LangGraph、Phoenix 和 Inspect AI；不是为了逐个介绍框架，而是让每个项目回答它最擅长的问题。
 
-本书不会把所有热门框架都讲一遍。以下十一个开源项目组成长期源码参考集，并按它们最适合回答的问题分为三组：
+<details>
+<summary>展开查看长期源码参考</summary>
 
-- **Coding Agent Runtime**：[Pi](https://github.com/earendil-works/pi)、[OpenClaw](https://github.com/openclaw/openclaw)、[Hermes](https://github.com/NousResearch/hermes-agent)、[Codex](https://github.com/openai/codex)、[OpenCode](https://github.com/anomalyco/opencode) 与 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)。它们用于观察 Agent Loop、Session、Context、Tool、权限和安全边界。OpenCode 还适合研究多模型适配、工具注册与输出截断；DeepSeek Harness 适合研究插件化 Runtime、Session Controller 与上下文来源追踪，但它仍处于 Developer Preview，书中只针对固定版本学习，不把当前接口写成稳定规范；
-- **Agent 框架与接口**：[OpenAI Agents SDK](https://github.com/openai/openai-agents-python)、[Claude Agent SDK Python](https://github.com/anthropics/claude-agent-sdk-python) 与 [LangGraph](https://github.com/langchain-ai/langgraph)。它们用于观察通用 Agent Loop、Session、Handoff、Guardrail、状态图与长任务恢复。Claude Agent SDK Python 通过子进程调用捆绑的 Claude Code CLI，开放了消息解析、CLI Transport、MCP Bridge 与 Session Store，但不包含 Claude Code 核心 Runtime；
-- **可观测性与评估**：[Phoenix](https://github.com/Arize-ai/phoenix) 与 [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai)。它们用于观察 Trace、Span、Dataset、Solver、Scorer、Evaluation 与评估日志。
+- **Coding Agent Runtime**：[Pi](https://github.com/earendil-works/pi)、[OpenClaw](https://github.com/openclaw/openclaw)、[Hermes](https://github.com/NousResearch/hermes-agent)、[Codex](https://github.com/openai/codex)、[OpenCode](https://github.com/anomalyco/opencode) 与 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，主要用于观察 Agent Loop、Session、Context、Tool、权限和安全边界。DeepSeek Harness 仍处于 Developer Preview，本书只针对核验过的固定版本讨论；
+- **Agent 框架与接口**：[OpenAI Agents SDK](https://github.com/openai/openai-agents-python)、[Claude Agent SDK Python](https://github.com/anthropics/claude-agent-sdk-python) 与 [LangGraph](https://github.com/langchain-ai/langgraph)，主要用于观察通用 Agent Loop、Session、Handoff、Guardrail、状态图和长任务恢复；
+- **可观测性与评估**：[Phoenix](https://github.com/Arize-ai/phoenix) 与 [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai)，主要用于观察 Trace、Span、Dataset、Solver、Scorer 和 Evaluation。
 
-其他项目只在它们能回答某个章节的独特问题时选读。
+[Claude Code](https://github.com/anthropics/claude-code) 也会作为重要的产品行为参考，但其核心 Runtime 没有开源。书中只根据官方文档、设置、插件和示例研究它的权限、Hooks、Sandbox、Memory、Subagent 与 Workflow，不把这些外部行为说成已经核验过的内部实现。
 
-## 产品行为参考
-
-[Claude Code](https://github.com/anthropics/claude-code) 是重要的 Coding Agent 参考，但其核心 Runtime 没有开源；官方仓库使用 [商业条款许可证](https://github.com/anthropics/claude-code/blob/main/LICENSE.md)。本书通过官方文档、设置、插件与示例研究它的权限、Hooks、Sandbox、Memory、Subagent 和 Workflow，不把这些外部行为描述成已经读过的核心源码。
+</details>
 
 ## 运行配置
 
@@ -62,7 +67,7 @@ export OPENAI_BASE_URL="https://provider.example/v1"
 
 仓库不会读取 OpenCode、Claude Code 或其他 Provider 的本地登录文件。你可以在 Shell、密码管理器、CI 或部署平台中把自己的凭据映射到这三个变量。
 
-## 配套代码
+## 代码与综合实践
 
 教学代码按对应课程放在 `examples/`：
 
@@ -71,8 +76,10 @@ export OPENAI_BASE_URL="https://provider.example/v1"
 - [`lesson_05_context_compaction.py`](examples/lesson_05_context_compaction.py)：JSONL Transcript、Compaction 与 Prompt View；
 - [`lesson_07_tool_reliability.py`](examples/lesson_07_tool_reliability.py)：Execution Ledger、幂等与故障恢复。
 
-这些文件是教学实现，不宣称覆盖生产系统的并发、分布式事务、租户隔离和高可用要求。
+[第一阶段综合实践](exercises/phase-1-capstone/README.md)会把有停止条件的 Agent Loop、受限工作区工具、Transcript、Prompt View、Ledger 和故障恢复串成一个可以运行的小系统。
+
+这些代码是教学实现，不宣称覆盖生产系统的并发、分布式事务、租户隔离和高可用要求。
 
 ## 内容归属
 
-本仓库保存唯一持续维护的完整章节。已经发布的 Blog 文章作为历史快照和入口保留；GitBook 接入后只负责展示本仓库内容，不成为第二份写作来源。
+本仓库保存唯一持续维护的完整章节。已经发布的 Blog 文章作为历史快照和入口保留；GitBook 只负责展示本仓库内容，不成为第二份写作来源。
