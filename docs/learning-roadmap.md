@@ -72,7 +72,9 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 
 ## 第 9 课：Agent Evaluation——如何证明 Agent 真的变好了？
 
-一次成功对话只能证明 Agent 这次没有失败。第 9 课要建立一个可以重复运行的小考场：
+一次成功对话只能证明 Agent 这次没有失败。要比较旧版和新版，必须让它们使用相同的 Model、Tool 和初始环境，做同一套任务；每道题还要提前写清什么算通过，并重复运行，避免把一次运气当成能力。
+
+这套“固定试卷 + 明确答案 + 重复运行 + 比较结果”，就叫 Agent Evaluation。第 9 课会建立这样一个可以重复运行的小考场：
 
 ```text
 固定任务
@@ -85,7 +87,9 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 
 普通代码能判断的事情，先用普通代码判断。文件内容、数据库状态、Tool 参数、安全拒绝和路径边界，都不需要另一个 Model 打分。只有“回答是否清楚”这类无法精确表达的质量，才使用人工评分规则（Rubric）或另一个负责评分的 Model（LLM Judge），并用人工样本校准。
 
-原计划中的 Regression Gate 合并到本课。这里的 Gate 可以只是提交前运行的一条本地命令：硬规则失败就停止发布；自然语言质量只看多次运行的趋势，不因一次分数波动阻断全部工作。
+如果 Evaluation 是考试，Regression Gate 就是发布门口的门卫。候选版本提交前，必须重做几道以前已经通过、以后也绝不能失守的题：Workspace 外的路径必须拒绝，残缺的 Tool Call 不能执行，状态不明的副作用不能自动重试。
+
+只要其中一条旧保证被破坏，检查命令就返回失败，版本不能发布。这就是 Regression Gate：不负责证明新版处处更强，只负责拦住“以前能做到，现在反而坏了”的退步。自然语言是否更清楚会有波动，应该比较多次运行的趋势，不应因为一次评分变化就挡住全部发布。
 
 Recorded-session Replay 只作为进阶案例。它能固定过去的 Model 输出，便宜地重放 Harness，却不能证明当前 Model、Prompt 或 Provider 仍然有效。先使用手写的 Scripted/Fake Model 覆盖关键路径，等测试真的变慢、变贵或难复现时再录制回放。
 

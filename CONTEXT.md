@@ -60,6 +60,10 @@ _Avoid_: Scheduled rewrite, polish cycle, frozen forever
 The first explanation of a load-bearing term: a visible action or failure comes first, a short everyday explanation gives it meaning, and only then does the technical name enter. It preserves technical precision without making the reader decode unexplained vocabulary.
 _Avoid_: Glossary dump, analogy-only definition, simplified terminology
 
+**Narrative Failure Hook**:
+A short, darkly humorous opening scenario derived strictly from realistic Agent engineering accidents (e.g. self-deleting tests, infinite approval spam, uncommitted runaway writes) designed to break reading monotony and provide an emotional memory anchor. It is strictly localized to the chapter opening or post-lesson postmortem, leaving core mechanisms, diagrams, code implementations, and terminal traces rigorously technical.
+_Avoid_: Soap operas, personal relationship metaphors, joke variables in code, meme-heavy pop culture banter
+
 **Practice Contract**:
 The learning agreement attached to each lesson that requires at least one visible piece of evidence and separates code the learner must write once, code AI may generate, behavior that must be verified, and infrastructure that only needs boundary-level understanding. Major curriculum milestones require integrated practice, and adjacent early stages may share one capstone.
 _Avoid_: Homework list, code-generation rule, mandatory opening table

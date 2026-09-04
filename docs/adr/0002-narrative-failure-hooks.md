@@ -1,0 +1,3 @@
+# Adopt localized engineering gallows humor hooks for chapter entries
+
+We introduce short, darkly humorous opening failure scenarios derived strictly from realistic Agent accidents (runaway writes, infinite approval loops, self-deleting tests) at the beginning of chapters, while strictly isolating core technical explanations, architectural diagrams, and implementation code from comedic tropes. This breaks reader cognitive fatigue and creates vivid mental anchors without compromising the book's rigor as a public systems textbook or contaminating clean engineering models with superficial melodrama.
