@@ -13,3 +13,4 @@ redirects:
   05-context-engineering: chapters/05-上下文工程.md
   06-agent-storage-jsonl-sqlite-database: chapters/06-什么时候从JSONL换成SQLite.md
   07-agent-tool-reliability: chapters/07-工具执行幂等与故障恢复.md
+  08-agent-safety-boundaries: chapters/08-审批权限与沙盒边界.md

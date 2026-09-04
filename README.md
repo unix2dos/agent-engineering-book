@@ -35,7 +35,7 @@
 | 最小运行时 | 第 1～3 课：Agent、Harness 与 Tool Calling Loop | 已完成 |
 | 上下文与状态 | 第 4～5 课：Context、Memory 与 Compaction | 已完成 |
 | 存储选择 | [第 6 课：什么时候该从 JSONL 换成 SQLite](chapters/06-什么时候从JSONL换成SQLite.md) | 已完成 |
-| 可靠与安全 | [第 7 课：工具执行、幂等与故障恢复](chapters/07-工具执行幂等与故障恢复.md)；第 8 课：审批、权限与 Sandbox | 第 7 课已完成 |
+| 可靠与安全 | [第 7 课：工具执行、幂等与故障恢复](chapters/07-工具执行幂等与故障恢复.md)；[第 8 课：审批、权限与 Sandbox](chapters/08-审批权限与沙盒边界.md) | 已完成 |
 | 改进闭环 | 第 9～11 课：Trace、Evaluation 与回归门禁 | 计划学习 |
 
 ## 源码依据
