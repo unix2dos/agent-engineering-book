@@ -42,28 +42,7 @@
 
 第 9～11 课是当前唯一详细规划的未来主线，不提前创建空章节。Recorded-session Replay、完整 OpenTelemetry 平台和大规模 Multi-Agent 都在真实问题出现后再补。
 
-## 从哪里开始
-
-- 第一次系统学习 Agent：从[第 1 课：Agent 基础——从语言模型到行动系统](chapters/01-Agent基础.md)开始；
-- 已经理解基本概念，想先看代码：从[第 3 课：Tool Calling Loop——从调用请求到最终回答](chapters/03-工具调用循环.md)开始；
-- 想把前两个阶段真正串起来：直接做[阶段一～二综合实践](exercises/phase-1-capstone/README.md)；
-- 只想先了解工程演进：选读[第 0 课：Agent 工程史](chapters/00-Agent工程史.md)。
-
 完整目录见 [SUMMARY.md](SUMMARY.md)。
-
-## 运行配置
-
-配套代码示例只读取通用的 OpenAI-compatible 环境变量：
-
-```bash
-export OPENAI_API_KEY="your-api-key"
-export OPENAI_MODEL="your-model"
-
-# 使用第三方兼容端点时再设置；OpenAI 官方端点可以省略。
-export OPENAI_BASE_URL="https://provider.example/v1"
-```
-
-仓库不会读取 OpenCode、Claude Code 或其他 Provider 的本地登录文件。你可以在 Shell、密码管理器、CI 或部署平台中把自己的凭据映射到这三个变量。
 
 ## 代码与综合实践
 
