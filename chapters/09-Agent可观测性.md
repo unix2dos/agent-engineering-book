@@ -46,7 +46,7 @@ Span：这条路上的某一步做了什么？
 
 给 Span 加上 `parent_span_id` 后，平铺记录才能接成树：
 
-```json
+```jsonl
 {"trace_id":"trace_42","span_id":"span_root","parent_span_id":null,"name":"agent_run"}
 {"trace_id":"trace_42","span_id":"span_model","parent_span_id":"span_root","name":"model_call"}
 {"trace_id":"trace_42","span_id":"span_tool","parent_span_id":"span_root","name":"read_file"}
@@ -132,14 +132,11 @@ Tracing 通常不是“调用一次就写一个文件”，而是一条数据管
 
 ```text
 业务代码创建 Span
-        |
-        v
+        ↓
 Processor 缓冲和批处理
-        |
-        v
+        ↓
 Exporter 发送
-        |
-        v
+        ↓
 Collector / Tracing Backend 保存和查询
 ```
 
@@ -206,7 +203,7 @@ Tracing 接口尽量不影响业务结果
 
 安全顺序应该是先筛选、截断和遮盖，再把数据交给 Exporter。已经发送到远端后再修改本地日志，无法收回泄露的数据。
 
-## 9. 哪些代码值得亲手写？
+## 9. 工程边界：可观测性核心机制与平台底座的分工
 
 本课的[最小 Trace 练习](../exercises/lesson-09-tracing/README.md)分成五关。它没有要求你搭建 Collector，而是让一条 Trace 从“能接成树”逐步走到“可以安全决定是否导出”：
 
@@ -218,7 +215,7 @@ D  只导出白名单字段，敏感内容默认留在本地
 E  Trace 结束后再决定保留错误还是抽样成功记录
 ```
 
-这五关都值得亲手完成。前三关决定 Trace 能不能正确还原运行过程；后两关决定记录离开本机时会不会泄密，以及故障证据会不会被过早删除。
+这五关构成了 Agent 可观测性系统的最小可靠子集：前三关确立了树状因果链路与业务状态的正交性，确保故障能被精准回溯；后两关在数据出境与存储边界上建立了安全防线，防止凭据泄露并保留关键诊断证据。
 
 ```bash
 python -B exercises/lesson-09-tracing/starter.py --checkpoint-e
@@ -249,7 +246,7 @@ successful_sample_retained=false
 checkpoint E passed
 ```
 
-OpenTelemetry Collector、批量发送、重试队列和 Trace UI 不值得在这本书里重新手写。生产项目应使用成熟 SDK 和 Backend。这里亲手写的是 Agent 必须做对的判断，不是重新发明一套 Trace 平台。
+OpenTelemetry Collector 部署、异步批量刷盘、指数退避重试队列与可视化 Dashboard 等基础设施，应交由成熟的 OTel SDK 与可观测性后端承载。本章亲手构建的是 Agent 运行时必须严格保证的判定逻辑——因果关系还原、调用状态与业务结果解耦、敏感属性脱敏与智能尾部采样策略，而非重新发明一套通用遥测平台。
 
 下一课会使用这些 Trace 判断 Agent 是否真的变好了。一次运行路径能够被看见之后，Evaluation 才能把相同任务重复执行、比较结果，并阻止旧能力悄悄退化。
 
