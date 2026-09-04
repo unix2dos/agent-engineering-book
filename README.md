@@ -1,35 +1,33 @@
 # Agent 工程实践：从工具循环到可靠系统
 
-你让 Model “读取 `report.txt`，再告诉我里面写了什么”。它可以回复“好的”，但它自己并不能打开文件。真正找到文件、检查路径、读取内容并把结果送回 Model 的，是外面的 Agent 程序。
+假设 Agent 已经把一封邮件发出去了，却在写下“发送成功”之前崩溃。
 
-事情一旦变长，更多问题就会冒出来：该把哪些历史消息发给 Model？程序重启后从哪里继续？工具执行到一半崩溃了，能不能直接重试？用户点了允许，命令就一定安全吗？
+程序重启后，只看见一项没有结果的任务。重试，用户可能收到两封邮件；不重试，这封邮件也可能根本没有发出去。
 
-这本书从这些具体问题出发，一步步拆开 Agent 的工具循环、上下文、存储、故障恢复和安全边界。目标不是背术语，而是看懂一次 Agent 运行到底发生了什么，出错时知道该查哪一层。
+能调用工具只是开始。真正困难的是：历史越来越长时给 Model 看什么，程序中断后怎样继续，副作用不明时能不能重试，用户批准后命令又能碰到什么。这本书从一个最小 Tool Calling Loop 出发，一层层补上持久化、Context、故障恢复、Sandbox 和 Tracing，直到一次 Agent 运行可以被解释、限制和验证。
 
-## 从哪里开始
-
-- 第一次系统学习 Agent：从[第 1 课：Agent 基础——从语言模型到行动系统](chapters/01-Agent基础.md)开始；
-- 已经理解基本概念，想先看代码：[第 3 课：Tool Calling Loop——从调用请求到最终回答](chapters/03-工具调用循环.md)；
-- 想把前两个阶段真正串起来：直接做[阶段一～二综合实践](exercises/phase-1-capstone/README.md)；
-- 想先知道整个领域是怎么走到今天的：阅读[第 0 课：Agent 工程史](chapters/00-Agent工程史.md)。
-
-完整目录见 [SUMMARY.md](SUMMARY.md)。
-
-📖 **在线阅读**：[https://levon.gitbook.io/agent-engineering/](https://levon.gitbook.io/agent-engineering/)
-
-## 适合谁
+## 适合谁，怎样学
 
 你只需要会一点 Python、Git 和命令行。Tool Calling、Context、JSONL、幂等、Trace、Sandbox 等术语，不要求提前懂；本书会等它们真正派上用场时再解释。
 
-本书以 Agent Runtime / AI Systems 为主要技术深度，同时保留真实应用落地。它适合希望从后端工程进入 Agent 应用或 Runtime 岗位的人，不以模型训练和纯算法研究为主线。
+本书以 Agent Runtime / AI Systems 为主要技术深度，同时保留真实应用落地。本书不把框架名称或一次成功演示当作证据，每个关键结论都要经过实际材料检查：
 
-## 怎么学
+- 用官方文档和固定版本的源码确认真实实现；
+- 用最小代码跑通关键路径；
+- 主动制造截断、崩溃、重复执行和越界访问；
+- 通过主动回忆检查能否独立解释和迁移。
 
-学习投入大致按 70% 系统原理、30% 应用落地分配。承载核心机制的代码，至少亲手写一次；SDK 初始化、类型声明和重复配置，可以让 AI 帮忙。凡是涉及文件写入、故障恢复、上下文裁剪和安全边界，都要实际运行，最好亲手制造一次失败。数据库、容器和 microVM 等成熟设施，不重复造轮子，重点看懂它们解决什么问题、不能替 Agent 负责什么。
+📖 **在线阅读**：[https://levon.gitbook.io/agent-engineering/](https://levon.gitbook.io/agent-engineering/)
 
-应用部分不会为每个概念新建一个 Demo。现有 Workspace/Coding Agent 会持续加入 Evaluation、Workflow、长任务和生产运行能力，最终形成一份可以演示、解释和写进简历的完整项目。每个阶段结束后，再集中整理口述题、系统设计题和项目证据。
+## 源码依据
 
-所有正式章节均遵循“主动回忆设计 → 当前源码核验 → 实践证据校验 → 初学者盲测”的准入标准，拒绝未经运行验证的二手解读。
+源码参考不追求把热门框架全部讲一遍，而是分成三组，让每组项目回答自己最擅长的问题：
+
+- **Coding Agent Runtime**：[Pi](https://github.com/earendil-works/pi)、[OpenClaw](https://github.com/openclaw/openclaw)、[Hermes](https://github.com/NousResearch/hermes-agent)、[Codex](https://github.com/openai/codex)、[OpenCode](https://github.com/anomalyco/opencode) 与 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，主要用于观察 Agent Loop、Session、Context、Tool、权限和安全边界。DeepSeek Harness 仍处于 Developer Preview，本书只针对核验过的固定版本讨论；
+- **Agent 框架与接口**：[OpenAI Agents SDK](https://github.com/openai/openai-agents-python)、[Claude Agent SDK Python](https://github.com/anthropics/claude-agent-sdk-python) 与 [LangGraph](https://github.com/langchain-ai/langgraph)，主要用于观察通用 Agent Loop、Session、Handoff、Guardrail、状态图和长任务恢复；
+- **可观测性与评估**：[Phoenix](https://github.com/Arize-ai/phoenix) 与 [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai)，主要用于观察 Trace、Span、Dataset、Solver、Scorer 和 Evaluation。
+
+[Claude Code](https://github.com/anthropics/claude-code) 也会作为重要的产品行为参考，但其核心 Runtime 没有开源。书中只根据官方文档、设置、插件和示例研究它的权限、Hooks、Sandbox、Memory、Subagent 与 Workflow，不把这些外部行为说成已经核验过的内部实现。
 
 ## 阅读路线
 
@@ -44,15 +42,14 @@
 
 第 9～11 课是当前唯一详细规划的未来主线，不提前创建空章节。Recorded-session Replay、完整 OpenTelemetry 平台和大规模 Multi-Agent 都在真实问题出现后再补。
 
-## 源码依据
+## 从哪里开始
 
-书中的关键结论均与官方文档、开源源码和可运行代码互相核对。我们不逐个堆砌框架，而是让不同领域的代表性实现回答其最擅长的问题：
+- 第一次系统学习 Agent：从[第 1 课：Agent 基础——从语言模型到行动系统](chapters/01-Agent基础.md)开始；
+- 已经理解基本概念，想先看代码：从[第 3 课：Tool Calling Loop——从调用请求到最终回答](chapters/03-工具调用循环.md)开始；
+- 想把前两个阶段真正串起来：直接做[阶段一～二综合实践](exercises/phase-1-capstone/README.md)；
+- 只想先了解工程演进：选读[第 0 课：Agent 工程史](chapters/00-Agent工程史.md)。
 
-- **Coding Agent Runtime**：[Pi](https://github.com/earendil-works/pi)、[OpenClaw](https://github.com/openclaw/openclaw)、[Hermes](https://github.com/NousResearch/hermes-agent)、[Codex](https://github.com/openai/codex)、[OpenCode](https://github.com/anomalyco/opencode) 与 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，主要用于观察 Agent Loop、Session、Context、Tool、权限和安全边界。DeepSeek Harness 仍处于 Developer Preview，本书只针对核验过的固定版本讨论；
-- **Agent 框架与接口**：[OpenAI Agents SDK](https://github.com/openai/openai-agents-python)、[Claude Agent SDK Python](https://github.com/anthropics/claude-agent-sdk-python) 与 [LangGraph](https://github.com/langchain-ai/langgraph)，主要用于观察通用 Agent Loop、Session、Handoff、Guardrail、状态图和长任务恢复；
-- **可观测性与评估**：[Phoenix](https://github.com/Arize-ai/phoenix) 与 [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai)，主要用于观察 Trace、Span、Dataset、Solver、Scorer 和 Evaluation。
-
-[Claude Code](https://github.com/anthropics/claude-code) 也会作为重要的产品行为参考，但其核心 Runtime 没有开源。书中只根据官方文档、设置、插件和示例研究它的权限、Hooks、Sandbox、Memory、Subagent 与 Workflow，不把这些外部行为说成已经核验过的内部实现。
+完整目录见 [SUMMARY.md](SUMMARY.md)。
 
 ## 运行配置
 
