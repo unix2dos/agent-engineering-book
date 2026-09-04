@@ -60,3 +60,55 @@ checkpoint A passed
 ```
 
 这份 Trace 单独用于排查运行过程，不进入 Prompt，也不替代 Transcript 和 Ledger。
+
+## 检查点 B：调用成功，不等于业务成功
+
+一次 Model API 请求正常返回了，但内容表示任务无法完成：
+
+```text
+调用过程：ok
+业务结果：failed
+```
+
+这两个结果可以同时成立。前者说明 Model Call 正常结束；后者说明 Agent 没有完成用户目标。
+
+实现 `finish_span()`，满足下面五条规则：
+
+1. Span 只能从 `status="running"` 结束；
+2. `operation_status` 只能是 `ok` 或 `error`；
+3. `ended_at_ms` 不能早于 `started_at_ms`；
+4. 保存 `ended_at_ms`，并计算 `duration_ms`；
+5. 把 `operation_status` 保存到 `status`，把业务结果另存为 `outcome`。
+
+测试特意传入：
+
+```text
+operation_status=ok
+outcome=failed
+```
+
+不要根据 `outcome` 偷偷把 Span 的 `status` 改成 `error`。它们回答的不是同一个问题。
+
+运行：
+
+```bash
+python -B exercises/lesson-09-tracing/starter.py --checkpoint-b
+```
+
+当前会看到：
+
+```text
+NotImplementedError: 请实现 finish_span
+```
+
+完成后应看到：
+
+```text
+trace_id=trace_demo
+span_count=3
+checkpoint A passed
+operation_status=ok
+business_outcome=failed
+duration_ms=125
+checkpoint B passed
+```

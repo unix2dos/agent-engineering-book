@@ -28,6 +28,27 @@ def append_span(
     })
 
 
+def finish_span(
+    span: dict,
+    *,
+    ended_at_ms: int,
+    operation_status: str,
+    outcome: str,
+) -> None:
+    """TODO: 检查点 B。结束 Span，并分开保存调用状态与业务结果。"""
+    if span.get("status") != "running":
+        raise ValueError("只有 running Span 可以结束")
+    if operation_status not in {"ok", "error"}:
+        raise ValueError(f"未知调用状态：{operation_status}")
+    if ended_at_ms < span["started_at_ms"]:
+        raise ValueError("结束时间不能早于开始时间")
+
+    span["status"] = operation_status
+    span["outcome"] = outcome
+    span["ended_at_ms"] = ended_at_ms
+    span["duration_ms"] = ended_at_ms - span["started_at_ms"]
+
+
 def checkpoint_a() -> None:
     trace = {"trace_id": "trace_demo", "spans": []}
 
@@ -91,11 +112,77 @@ def checkpoint_a() -> None:
     print("checkpoint A passed")
 
 
+def checkpoint_b() -> None:
+    checkpoint_a()
+
+    span = {
+        "trace_id": "trace_demo",
+        "span_id": "span_model",
+        "parent_span_id": "span_root",
+        "name": "model_call",
+        "status": "running",
+        "started_at_ms": 1000,
+    }
+    finish_span(
+        span,
+        ended_at_ms=1125,
+        operation_status="ok",
+        outcome="failed",
+    )
+
+    assert span["status"] == "ok"
+    assert span["outcome"] == "failed"
+    assert span["ended_at_ms"] == 1125
+    assert span["duration_ms"] == 125
+
+    try:
+        finish_span(
+            {
+                "status": "running",
+                "started_at_ms": 2000,
+            },
+            ended_at_ms=1999,
+            operation_status="error",
+            outcome="failed",
+        )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("结束时间早于开始时间时必须被拒绝")
+
+    for invalid_span, invalid_status in [
+        ({"status": "ok", "started_at_ms": 1000}, "ok"),
+        ({"status": "running", "started_at_ms": 1000}, "completed"),
+    ]:
+        try:
+            finish_span(
+                invalid_span,
+                ended_at_ms=1001,
+                operation_status=invalid_status,
+                outcome="failed",
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("非 running Span 和未知调用状态必须被拒绝")
+
+    print("operation_status=ok")
+    print("business_outcome=failed")
+    print("duration_ms=125")
+    print("checkpoint B passed")
+
+
 def main() -> None:
+    if "--checkpoint-b" in sys.argv:
+        checkpoint_b()
+        return
     if "--checkpoint-a" in sys.argv:
         checkpoint_a()
         return
-    print("运行：python -B exercises/lesson-09-tracing/starter.py --checkpoint-a")
+    print(
+        "运行：python -B exercises/lesson-09-tracing/starter.py "
+        "--checkpoint-a 或 --checkpoint-b"
+    )
 
 
 if __name__ == "__main__":
