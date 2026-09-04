@@ -20,13 +20,13 @@
 
 这个顺序不是照抄某一套课程，而是对多份一手资料的综合判断：Anthropic 建议从最简单方案开始，只在结果证明有必要时增加复杂度；OpenAI 当前 Agent Eval 指南明确建议在仍处于行为调试阶段时先看 Trace，明确什么是“好”以后再建立可重复的 Dataset 和 Eval Run；LangGraph 则说明长任务、人工中断和故障恢复依赖持久化状态。[Anthropic Building Effective Agents](https://www.anthropic.com/research/building-effective-agents)；[OpenAI Agent Evals](https://developers.openai.com/api/docs/guides/agent-evals)；[LangGraph Checkpoint](https://github.com/langchain-ai/langgraph/blob/81bf17b23123e4ef8b9d5f49fa09a0122fc2edd1/libs/checkpoint/README.md#L17-L60)
 
-因此，本书第 0～8 课已经完成“能行动、能保存、能恢复、能限制”这段主干。接下来最合理的三项能力仍是：
+因此，本书第 0～8 课已经完成“能行动、能保存、能恢复、能限制”这段主干，第 9 课也已经完成最小 Trace。经过后续价值审视，接下来只详细规划三课：
 
-1. **Trace 与可观测性**：先把一次运行发生了什么看清楚；
-2. **Evaluation**：再把“这次看起来不错”变成可重复实验；
-3. **回归门禁与失败回流**：最后让关键错误阻止发布，并把新失败补回测试集。
+1. **第 10 课 Evaluation 与回归检查**：把“这次看起来不错”变成可重复实验，并让关键退步停止发布；
+2. **第 11 课 Orchestration 与长任务**：在证据表明单 Agent 不够时，再加入 Workflow、Routing、Handoff 和有限 Subagent；
+3. **第 12 课 Production Runtime**：处理并发、队列、限流、成本、部署、监控与回滚。
 
-这三项完成前，不建议把 Multi-Agent、RAG、MCP/A2A 或某个新框架插入主线。它们值得学，但属于后续能力或按需求选择的分支。
+Recorded-session Replay、完整 OTel、RAG、MCP/A2A 和大规模 Multi-Agent 都不单独占主线课。它们值得学，但只在项目出现对应问题时加入。
 
 ## 研究样本与版本锚点
 
@@ -106,7 +106,7 @@ LangGraph 把 Durable Execution、HITL、Memory 和 Deployment 作为核心定�
 
 HF 把 Observability/Evaluation 放在 Bonus Unit，但最终项目又使用 Benchmark；Microsoft 把生产、协议、Context、Memory、部署与安全并列为可独立进入的课程；OpenAI 当前明确给出 Trace → Dataset/Eval Run 的改进顺序。[HF README](https://github.com/huggingface/agents-course/blob/8c0832eae634ebb34541c65265caa6da4c5d2c57/README.md#L15-L32)；[Microsoft 课程目录](https://github.com/microsoft/ai-agents-for-beginners/blob/7b20684e56ae3e565d0568bb13de06912d4d19bc/README.md#L94-L115)；[OpenAI Agent Evals](https://developers.openai.com/api/docs/guides/agent-evals)
 
-**本书取舍**：Trace 不是选读。它承接已经完成的 Runtime；Evaluation 和回归随后建立可测的改进闭环。
+**本书取舍**：第 9 课保留为支撑可靠工程的基础课，最小运行关联用于解释失败；完整 OTel、Collector、生产采样和 Trace UI 属于可选实现。Evaluation 与回归随后建立可测的改进闭环。
 
 ### 分歧四：Eval 是 Benchmark、评分平台，还是工程测试？
 
@@ -152,27 +152,23 @@ Inspect 用 `Dataset + Solver + Scorer` 描述 Eval；Google ADK 同时展示确
 
 这两阶段与当前 Coding Agent 源码能够互相验证：Pi 把 Session Entry 与压缩后模型视图区分开；DeepSeek Harness 展示 Tool Call 到单一 Tool Result 的完整流水线；OpenClaw 把 Tool Policy、Sandbox 与 Elevated 分开。[Pi Compaction](https://github.com/earendil-works/pi/blob/6aedd1066e540642165aa30fa7b4a1b863778aa7/packages/coding-agent/docs/compaction.md#L25-L81)；[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/blob/76fda729799fe9b3848dbe2c211d4b231032b81e/docs/tool-execution-pipeline.zh.md#L8-L62)；[OpenClaw](https://github.com/openclaw/openclaw/blob/29b57be03d2a26332f508d91cf54d58a9a42e7a2/docs/gateway/sandbox-vs-tool-policy-vs-elevated.md#L8-L43)
 
-### 阶段三：看见与改进——接下来只详细规划这三项能力
+### 阶段三：看见与验证——第 9 课已完成，第 10 课是下一步
 
-#### 能力 1：Trace 与因果运行记录
+#### 第 9 课：Trace 与因果运行记录
 
 在现有综合实践外包一层 `trace_id`，为每次 Model、Tool、Approval 和恢复尝试记录父子 `span_id`、开始/结束时间、状态、Token/成本和错误原因；同时显式决定哪些 Prompt、Tool 参数和结果允许进入遥测。OpenAI 和 Phoenix 都用 Trace 表示端到端操作、Span 表示子操作；Google ADK 当前文档还提醒 Prompt、回复、Tool 参数和结果可能经 Telemetry 离开进程。[OpenAI Tracing](https://github.com/openai/openai-agents-python/blob/89c02c828ee8510fe9a84ee6675608193aa13b02/docs/tracing.md#L15-L47)；[Phoenix Trace](https://github.com/Arize-ai/phoenix/blob/a71218c7349fb33d1e6d3612cf63cbc70e708c04/docs/phoenix/tracing/concepts-tracing/what-are-traces.mdx#L6-L65)；[ADK Telemetry](https://github.com/google/adk-python/blob/89777c146bd26c04bd45d9ed67b5d3e64a6957f1/docs/guides/telemetry/telemetry_config/index.md#L1-L39)
 
-**最小证据**：给定一个失败 Trace，学习者能指出失败在 Model、Tool、Policy、Backend 还是恢复逻辑，而不是只说“Agent 答错了”。
+**完成状态**：已完成。给定一个失败 Trace，学习者能够指出失败在 Model、Tool、Policy、Backend 还是恢复逻辑。完整 Collector、生产 Tail Sampling 和 Trace UI 不再继续扩写。
 
-#### 能力 2：Evaluation 的实验结构
+#### 第 10 课：Evaluation 与回归检查
 
 从已经遇到的真实失败中选 10 个样本，给每个样本定义输入、预期不变量、允许变化的质量维度和评分方式。优先用普通代码判断 JSON 是否有效、Tool 是否选对、危险动作是否被拒绝；只有无法确定性判断的质量再使用人工或 LLM Judge，并检查自动评分与人工判断是否一致。OpenAI 建议使用任务特定目标、生产/历史样本并校准自动评分；Phoenix 区分硬不变量与质量信号；Inspect 把结构固定为 Dataset、Solver、Scorer。[OpenAI Eval Best Practices](https://developers.openai.com/api/docs/guides/evaluation-best-practices)；[Phoenix pytest](https://github.com/Arize-ai/phoenix/blob/a71218c7349fb33d1e6d3612cf63cbc70e708c04/docs/phoenix/evaluation/integrations/pytest.mdx#L34-L52)；[Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai/blob/7aa7343e4a14fa7be07e5a09c7431df5e88c17ee/docs/index.qmd#L85-L95)
 
-**最小证据**：同一个 Agent 修改前后运行同一批样本，能够看到逐例结果和汇总变化，而不是凭一次对话判断好坏。
+同一课把“绝不能退步”的硬规则接入本地测试或 CI；把非确定性质量作为多次运行后的趋势，避免一次 Judge 波动阻止所有发布；将线上或人工 Review 发现的新失败去敏后补入 Task Set。Phoenix 的 pytest 集成把 `assert` 结果接到 CI Exit Code，同时建议把开放质量作为趋势信号；HF 也把最终学习成果放到可自动评估的 Benchmark 中。[Phoenix pytest](https://github.com/Arize-ai/phoenix/blob/a71218c7349fb33d1e6d3612cf63cbc70e708c04/docs/phoenix/evaluation/integrations/pytest.mdx#L1-L41)；[HF Final Project](https://github.com/huggingface/agents-course/blob/8c0832eae634ebb34541c65265caa6da4c5d2c57/README.md#L24-L26)
 
-#### 能力 3：回归门禁与失败回流
+**最小证据**：同一个 Agent 修改前后运行同一批任务，能看到逐例结果和汇总变化；故意破坏 Tool Result 配对或安全拒绝规则时，检查必须失败；只改变正常措辞时，不应因为字符串不同而误报。
 
-把“绝不能退步”的硬不变量接入普通测试/CI；把非确定性质量作为多次运行后的趋势，避免一次 Judge 波动阻止所有发布；将线上或人工 Review 发现的新失败去敏后补入 Dataset。Phoenix 的 pytest 集成把 `assert` 结果直接接到 CI Exit Code，同时建议把开放质量作为趋势信号；HF 也把最终学习成果放到可自动评估的 Benchmark 中。[Phoenix pytest](https://github.com/Arize-ai/phoenix/blob/a71218c7349fb33d1e6d3612cf63cbc70e708c04/docs/phoenix/evaluation/integrations/pytest.mdx#L1-L41)；[HF Final Project](https://github.com/huggingface/agents-course/blob/8c0832eae634ebb34541c65265caa6da4c5d2c57/README.md#L24-L26)
-
-**最小证据**：故意破坏 Tool Result 配对或安全拒绝规则时，CI 必须失败；只改变一句自然语言措辞时，不应因为精确字符串不同而误报。
-
-### 阶段四：编排与长任务——完成阶段三后再展开
+### 第 11 课：编排与长任务
 
 能力包括固定 Workflow、Routing、Parallel/Fan-out、Retry、Interrupt/Resume、Handoff、Subagent 和 Multi-Agent。选择标准是：现有单 Agent 的 Eval 已经证明需要职责拆分、并行或持续运行，而不是“多个 Agent 看起来更先进”。Anthropic 与 OpenAI 都明确把代码编排、模型编排及其成本/确定性取舍分开；LangGraph 专门为长任务、持久状态和人工中断提供低层编排。[Anthropic](https://www.anthropic.com/research/building-effective-agents)；[OpenAI Orchestration](https://github.com/openai/openai-agents-python/blob/89c02c828ee8510fe9a84ee6675608193aa13b02/docs/multi_agent.md#L1-L50)；[LangGraph README](https://github.com/langchain-ai/langgraph/blob/81bf17b23123e4ef8b9d5f49fa09a0122fc2edd1/README.md#L35-L57)
 
@@ -182,10 +178,11 @@ Inspect 用 `Dataset + Solver + Scorer` 描述 Eval；Google ADK 同时展示确
 - **连接与协作**：MCP、A2A、远程 Tool、跨 Agent 协议与不可信边界；
 - **交互环境**：Browser、Computer Use、Voice、Realtime 和多模态输入；
 - **专用执行环境**：Coding Agent、数据分析 Agent、Sandbox Agent。
+- **测试加速**：Recorded-session Replay。它固定过去的 Model 输出来检查 Harness，不证明当前 Model 仍能完成任务。
 
 Microsoft 和 HF 的课程证明这些都是常见 Agent 主题，但它们的目录也显示课程更像可独立进入的广度集合；这不能证明 RAG、MCP 或 Browser 是 Runtime 的统一前置知识。[Microsoft 课程目录](https://github.com/microsoft/ai-agents-for-beginners/blob/7b20684e56ae3e565d0568bb13de06912d4d19bc/README.md#L94-L115)；[HF 课程目录](https://github.com/huggingface/agents-course/blob/8c0832eae634ebb34541c65265caa6da4c5d2c57/README.md#L15-L32)
 
-### 阶段五：部署与运营
+### 第 12 课：Production Runtime
 
 能力包括部署拓扑、持久化服务、密钥与租户隔离、并发与队列、限流与重试、延迟/成本预算、版本与回滚、线上监控、审计和事故处理。每个能力分支最终都要回到这个阶段，但只有在已有 Trace 与最小 Eval 后，生产结果才可观察、可比较。[Claude Agent SDK Hosting](https://platform.claude.com/docs/en/agent-sdk/hosting)；[OpenAI Production Best Practices](https://developers.openai.com/api/docs/guides/production-best-practices)
 
@@ -195,7 +192,7 @@ Microsoft 和 HF 的课程证明这些都是常见 Agent 主题，但它们的�
 2. 每一阶段至少留下一份可运行的综合证据，而不是只完成框架 Quickstart。
 3. 新框架只有在能回答现有参考集回答不了的问题时，才加入 Topic Reference。
 4. Vendor API、模型名、默认配置和产品能力必须固定版本；稳定的责任边界与判断方法写入正文。
-5. 第 9～11 课完成后，根据综合实践和 Eval 结果决定先展开阶段四，还是插入一个确有需要的能力分支；阶段五仍在目标 Agent 具备最小评估闭环后进入。
+5. 当前只详细规划第 10～12 课；RAG、MCP、Recorded-session Replay 和大型平台能力只在综合 Agent 暴露对应问题时加入。
 
 ## 当前资料中的风险提示
 

@@ -21,9 +21,13 @@
 
 你只需要会一点 Python、Git 和命令行。Tool Calling、Context、JSONL、幂等、Trace、Sandbox 等术语，不要求提前懂；本书会等它们真正派上用场时再解释。
 
+本书以 Agent Runtime / AI Systems 为主要技术深度，同时保留真实应用落地。它适合希望从后端工程进入 Agent 应用或 Runtime 岗位的人，不以模型训练和纯算法研究为主线。
+
 ## 怎么学
 
-承载核心机制的代码，至少亲手写一次；SDK 初始化、类型声明和重复配置，可以让 AI 帮忙。凡是涉及文件写入、故障恢复、上下文裁剪和安全边界，都要实际运行，最好亲手制造一次失败。数据库、容器和 microVM 等成熟设施，不重复造轮子，重点看懂它们解决什么问题、不能替 Agent 负责什么。
+学习投入大致按 70% 系统原理、30% 应用落地分配。承载核心机制的代码，至少亲手写一次；SDK 初始化、类型声明和重复配置，可以让 AI 帮忙。凡是涉及文件写入、故障恢复、上下文裁剪和安全边界，都要实际运行，最好亲手制造一次失败。数据库、容器和 microVM 等成熟设施，不重复造轮子，重点看懂它们解决什么问题、不能替 Agent 负责什么。
+
+应用部分不会为每个概念新建一个 Demo。现有 Workspace/Coding Agent 会持续加入 Evaluation、Workflow、长任务和生产运行能力，最终形成一份可以演示、解释和写进简历的完整项目。每个阶段结束后，再集中整理口述题、系统设计题和项目证据。
 
 所有正式章节均遵循“主动回忆设计 → 当前源码核验 → 实践证据校验 → 初学者盲测”的准入标准，拒绝未经运行验证的二手解读。
 
@@ -33,12 +37,12 @@
 |---|---|---|
 | 一：判断与行动 | 第 0～3 课：Agent 工程史、Harness 与 Tool Calling Loop | 已完成 |
 | 二：状态、可靠性与控制 | 第 4～8 课：Context、存储、故障恢复与 Sandbox | 已完成 |
-| 三：看见与改进 | 第 9～11 课：Trace、Evaluation 与回归门禁 | 正在进行 |
-| 四：编排与长任务 | Workflow、Routing、Handoff、Subagent 与 Multi-Agent | 待阶段三验证后展开 |
+| 三：看见与验证 | 第 9～10 课：Trace，以及合并回归检查的 Agent Evaluation | 第 9 课已完成 |
+| 四：编排与长任务 | 第 11 课：Workflow、Routing、Handoff、少量 Subagent、后台任务与恢复 | 待第 10 课验证后开始 |
+| 五：生产运行 | 第 12 课：并发、队列、限流、成本、部署、监控与回滚 | 待第 11 课验证后开始 |
 | 可选分支 | RAG、MCP/A2A、Browser、Voice、多模态与专用 Sandbox | 按实际问题选择 |
-| 五：部署与持续运营 | 持久化、并发、密钥、成本、监控与回滚 | 后续阶段 |
 
-这张表只展示能力主干，不提前创建空章节。每个阶段完成后，再根据综合实践暴露的问题展开下一段。
+第 10～12 课是当前唯一详细规划的未来主线，不提前创建空章节。Recorded-session Replay、完整 OpenTelemetry 平台和大规模 Multi-Agent 都在真实问题出现后再补。
 
 ## 源码依据
 
@@ -80,6 +84,8 @@ export OPENAI_BASE_URL="https://provider.example/v1"
 [第 8 课安全边界练习](exercises/lesson-08-safety/README.md)先证明 `cwd=workspace` 不是 Sandbox，再逐层加入 Tool Policy、Approval、执行 Backend 与 Elevated。
 
 [第 9 课 Trace 练习](exercises/lesson-09-tracing/README.md)先把一次 Agent Run 组织成具有共同 `trace_id` 和父子关系的 Span。
+
+后续课程继续扩展同一个综合 Agent：第 10 课加入固定任务与回归检查，第 11 课加入编排和长任务，第 12 课再处理生产运行。RAG 与 MCP 只在这个项目确实需要知识检索或外部能力时加入。
 
 这些代码是教学实现，不宣称覆盖生产系统的并发、分布式事务、租户隔离和高可用要求。
 

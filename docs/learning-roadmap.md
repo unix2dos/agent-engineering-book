@@ -1,8 +1,40 @@
 # Agent 工程学习路线
 
-学完第 8 课以后，面前会同时出现 RAG、Multi-Agent、MCP、Browser、Voice 和各种 Agent SDK。它们都值得学，但不能一起成为“下一课”。这张路线只回答一个问题：为了独立设计、实现和排查 Agent，下一项能力应该建立在哪项能力上？
+Agent 能跑起来以后，RAG、MCP、Multi-Agent、Trace、Eval 和部署会一起出现。如果“热门框架有这个功能”就足以成为下一课，这条路线永远走不完。
 
-框架会换名字，能力之间的依赖更稳定。因此主干按“能做什么”组织，只详细规划最近三课。
+本书用两个问题筛选核心内容：它是否会改变大多数 Agent 项目的关键判断？这个判断是否需要亲手实现或验证？两个答案都是“是”，才值得进入主线。
+
+## 什么叫核心？
+
+“默认开启”不能判断一项能力的价值。Trace Exporter 可能因隐私和成本而关闭，测试也不会运行在每次用户请求里，但它们仍可能决定一个 Agent 能否被安全修改和发布。
+
+这里把能力分成三层：
+
+| 层级 | 判断标准 | 例子 |
+| --- | --- | --- |
+| 运行必需 | 缺少它，Agent 无法完成一次任务 | Model、Harness、Tool、Loop、停止条件 |
+| 可靠工程必需 | Agent 能跑，但无法安全修改、验证或发布 | 状态恢复、安全边界、最小观测、Evaluation、回归检查 |
+| 规模化或可选 | 达到特定流量、复杂度或业务需求后才值得建设 | Recorded-session Replay、完整 OTel、RAG、MCP、大规模 Multi-Agent |
+
+这本书不只追求“能跑”。目标是做出一个可以安全修改、验证和运行的 Agent，同时停在单个学习者能够完成的范围内。
+
+## 职业方向与学习比例
+
+主方向是 Agent Runtime / AI Systems Engineer，同时保留 Agent 应用工程能力：
+
+```text
+70% 系统原理
++
+30% 真实应用
+=
+用一个可运行项目证明 Runtime 能力
+```
+
+Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编排和生产运行。应用部分负责把这些能力放进一个真实 Workspace/Coding Agent，而不是为每个概念创建新 Demo。
+
+这个方向与当前岗位的交集很直接：OpenAI 的 Codex Agent Systems 职位把 Harness、Sandbox、Orchestration、Evals、生产可靠性、Observability、延迟和成本放在同一条职责链上；Anthropic 的 Applied AI Engineer 同时要求 Agent Framework、Evaluation、Transcript Analysis、MCP 和部署经验。[OpenAI Codex Agent Systems](https://openai.com/careers/ai-systems-engineer-codex-agents-san-francisco/)、[Anthropic Applied AI Engineer](https://job-boards.greenhouse.io/anthropic/jobs/5057647008)
+
+## 最终主线
 
 ```text
 前置：能读 Python、Git 和命令行
@@ -14,112 +46,132 @@
 阶段二：状态、可靠性与控制                 已完成，第 4～8 课
   |
   v
-阶段三：看见与改进                         下一步，第 9～11 课
-  |
-  +------> 可选能力分支
-  |          Retrieval / RAG / Memory
-  |          MCP / A2A / 远程 Tool
-  |          Browser / Computer Use / Voice / 多模态
+阶段三：看见与验证                         第 9 课已完成，第 10 课下一步
   |
   v
-阶段四：编排与长任务
+第 11 课：Orchestration 与长任务
   |
   v
-阶段五：部署与持续运营
+第 12 课：Production Runtime
+  |
+  v
+综合项目：可验证、可恢复、可部署的 Workspace Agent
+  |
+  +------> 按真实需求进入可选分支
 ```
 
-可选分支不是跳级入口。无论 Agent 最后要搜索知识、操作浏览器还是与别的 Agent 通信，它都需要先留下可定位的运行记录，也需要能重复验证修改是否变好。
+## 已完成的能力
 
-## 阶段一：判断与行动
+第 0～3 课解决 Agent 怎样行动：判断任务是否需要 Agent，区分 Model、Harness、Tool 和 Environment，亲手跑通 Tool Calling Loop，并正确处理 Tool Result 与停止条件。
 
-第 0～3 课已经完成这一阶段。你先判断一个任务是否真的需要 Agent，再亲手跑通下面的循环：
+第 4～8 课解决 Agent 怎样保存和控制：Session、Transcript、Checkpoint、Memory、Context、JSONL、SQLite、Ledger、幂等、故障恢复、Approval、Permission 与 Sandbox 都已经通过文章和代码练习验证。
+
+第 9 课解决一次运行怎样被还原。它保留为支撑可靠工程的基础课，但不再扩展 Collector、完整 Tail Sampling 平台或可视化产品。
+
+按最终主线粗略估算：Runtime 基础约完成 90%，完整工程主线约完成 65%～70%，最终综合项目约完成一半。剩余差距集中在质量验证、长任务编排和生产运行。
+
+## 第 10 课：Agent Evaluation——如何证明 Agent 真的变好了？
+
+一次成功对话只能证明 Agent 这次没有失败。第 10 课要建立一个可以重复运行的小考场：
 
 ```text
-Model 提出 Tool Call
--> Harness 校验并执行 Tool
--> Tool Result 回到 Model
--> Model 给出 Final
+固定任务
+-> 写清成功条件
+-> 运行当前 Agent
+-> 检查文件、数据库、Tool 和副作用
+-> 与修改前比较
+-> 把新失败加入回归集
 ```
 
-这一阶段的完成标准不是“调用过某个 SDK”，而是能解释 Model、Harness、Tool 和 Environment 各自负责什么，并能识别错误参数、矛盾停止原因和无限循环。
+普通代码能判断的事情，先用普通代码判断。文件内容、数据库状态、Tool 参数、安全拒绝和路径边界，都不需要另一个 Model 打分。只有“回答是否清楚”这类无法精确表达的质量，才使用人工评分规则（Rubric）或另一个负责评分的 Model（LLM Judge），并用人工样本校准。
 
-## 阶段二：状态、可靠性与控制
+原计划中的 Regression Gate 合并到本课。这里的 Gate 可以只是提交前运行的一条本地命令：硬规则失败就停止发布；自然语言质量只看多次运行的趋势，不因一次分数波动阻断全部工作。
 
-第 4～8 课把一次成功演示变成可以恢复、可以限制的小型 Runtime：
+Recorded-session Replay 只作为进阶案例。它能固定过去的 Model 输出，便宜地重放 Harness，却不能证明当前 Model、Prompt 或 Provider 仍然有效。先使用手写的 Scripted/Fake Model 覆盖关键路径，等测试真的变慢、变贵或难复现时再录制回放。
 
-- Session、Transcript、Checkpoint 和 Memory 不再混成一个 `history`；
-- Prompt View 可以压缩，完整事实仍留在持久记录；
-- JSONL 与 SQLite 根据访问方式选择，而不是根据文件大小贴标签；
-- Ledger 记录真实执行尝试，`unknown` 副作用先对账再决定；
-- Tool Policy、Approval 和 Backend 先做应用决策，Permission 与 Sandbox 由系统执行。
+[Anthropic 的 Agent Eval 指南](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)把 Eval 拆成 Task、Trial、Transcript、Outcome 与 Grader；[OpenAI Agent Evals](https://developers.openai.com/api/docs/guides/agent-evals)也建议从单次失败记录走向可重复的 Dataset 和 Eval Run。课程只借用这套稳定关系，不绑定某个 Eval 平台。
 
-如果程序重启、Tool Result 丢失或命令被系统拒绝，你已经能判断应该查哪一层。这就是进入下一阶段的前提。
+## 第 11 课：Agent Orchestration——Workflow、Routing 与长任务
 
-[阶段一～二综合实践](../exercises/phase-1-capstone/README.md)把最小 Loop、Workspace Tool、Transcript、Compaction、Ledger 和故障恢复接成一个系统；第 8 课的安全边界练习再补上 Policy、Approval、Permission 与 Sandbox。
+一个 Agent 能完成短任务，不代表它适合把所有步骤都交给 Model 决定。第 11 课先把确定部分收回代码，再处理真正需要动态选择的部分：
 
-## 阶段三：看见与改进
+- Workflow 固定哪些步骤；
+- Routing 怎样选择模型、工具或处理分支；
+- Handoff 怎样转交责任和上下文；
+- 少量 Subagent 什么时候带来并行收益；
+- 后台任务怎样等待、取消和恢复；
+- 长任务怎样留下可继续的状态。
 
-当前 Agent 能运行，却还不会系统回答两个问题：它为什么失败？修改以后真的更好吗？第 9～11 课只解决这两个缺口。
+这一课不会把 Multi-Agent 当成单 Agent 的升级版。只有 Evaluation 已经证明单 Agent 的失败来自职责过多、需要并行或任务持续时间太长，才增加另一个 Agent。
 
-### 第 9 课：Trace——一次运行到底发生了什么？
+## 第 12 课：Production Runtime——并发、队列与持续运行
 
-先在现有综合实践外面加一层运行记录。一次任务共享 `trace_id`，每次 Model 请求、Tool 执行、Approval 和恢复尝试各有自己的 `span_id`，同时记录父子关系、开始和结束时间、状态、Token、成本与错误。
+本机运行成功之后，还要面对同时到来的 Session、Provider 限流、进程重启和版本发布。第 12 课只保留上线最常遇到的系统问题：
 
-最小证据不是一个漂亮 Dashboard，而是一份失败 Trace：你能指出错误来自 Model、Tool、Policy、Backend 还是恢复代码。Prompt、Tool 参数和结果可能包含隐私，本课还要决定哪些内容可以写入遥测。
+- 多 Session 并发与隔离；
+- 队列、积压时减慢或拒绝新任务的 Backpressure，以及取消；
+- Provider 限流、超时与故障；
+- Token、延迟和成本；
+- 密钥与用户数据边界；
+- 健康检查、部署和回滚；
+- 线上失败怎样回到 Evaluation Task Set。
 
-### 第 10 课：Evaluation——Agent 到底有没有变好？
+课程不会展开完整的多租户平台或高可用数据库集群。那些能力只有在真实规模出现后才进入新的学习阶段。
 
-看到一次 Trace 以后，再把真实失败整理成一小组样本。每个样本包含输入、必须满足的规则、允许变化的质量部分和评分方法。
+## 一个项目贯穿后续课程
 
-JSON 是否有效、Tool 是否选对、危险动作是否被拒绝，优先用普通代码判断。只有“回答是否有帮助”这类不能精确计算的质量，才交给人工或 LLM Judge。完成时，同一个 Agent 修改前后要运行同一批样本，而不是凭一段顺利对话判断效果。
+后续不再创建互不相关的练习项目。现有[阶段一～二综合实践](../exercises/phase-1-capstone/README.md)会逐步变成最终的 Workspace/Coding Agent：
 
-### 第 11 课：回归门禁——怎样阻止旧问题再次出现？
+```text
+现有 Tool Loop、Session、Ledger 与 Sandbox
++ 第 10 课的任务集和回归检查
++ 第 11 课的 Workflow、后台任务与取消
++ 第 12 课的并发、配置、健康检查和部署
+= 一份可以演示、解释和继续维护的项目
+```
 
-最后把确定性的底线接进测试和 CI。故意破坏 Tool Result 配对或安全拒绝规则时，测试必须失败；只改一句正常措辞时，不应因为字符串不同而误报。
+项目最终要证明：它能完成一个真实 Workspace 任务；失败可以定位；程序重启后可以恢复；关键安全规则不能被新版本破坏；部署后能够检查健康状态并回退。
 
-线上和人工 Review 发现的新失败，在去掉敏感信息后补回 Dataset。这样一次事故不只得到解释，还会留下下一次发布前自动重跑的样本。
+## 面试与项目表达
 
-三课结束时，需要完成一个综合实践：制造一次 Agent 失败，用 Trace 定位原因，把它加入 Eval Dataset，修复后让回归门禁由失败变为通过。
+正文继续按工程问题组织，不改成题库。每个阶段结束后，单独整理：
 
-## 阶段四：编排与长任务
+- 五到十个口头复述题；
+- 一道系统设计题和常见追问；
+- 项目中的代码与运行证据；
+- 可以写进简历的表述；
+- 尚未掌握、不能宣称的能力。
 
-完成最小评估闭环以后，才决定是否增加 Workflow、Routing、并行、Retry、Interrupt/Resume、Handoff、Subagent 或 Multi-Agent。
+面试内容检验能否把项目讲清楚，不负责决定课程顺序。
 
-Multi-Agent 不是单 Agent 的高级版本。它会增加路由、并发、共享状态和责任边界。只有 Eval 已经证明单 Agent 在具体样本上受限，而且限制确实来自职责过多、需要并行或任务持续时间太长，拆分才有依据。
+## 可选分支
 
-这一阶段现在只保留能力范围，不创建空章节。第 11 课完成后，再根据综合实践暴露的瓶颈安排具体课程。
+下面这些内容有价值，但不阻塞主线：
 
-## 可选能力分支
+- 知识与数据：Retrieval、RAG、引用和长期 Memory 检索；
+- 连接与协作：MCP、A2A 和远程 Tool；
+- 测试加速：Recorded-session Replay；
+- 观测平台：完整 OpenTelemetry、Collector、生产 Tail Sampling 和 Trace UI；
+- 复杂协作：大规模 Multi-Agent 与插件平台；
+- 交互环境：Browser、Computer Use、Voice、Realtime 和多模态。
 
-阶段三之后，可以按真实问题选择分支：
-
-- 知识与数据：Retrieval、RAG、引用，以及长期 Memory 的写入、检索和遗忘；
-- 连接与协作：MCP、A2A、远程 Tool 与跨 Agent 信任边界；
-- 交互环境：Browser、Computer Use、Voice、Realtime 和多模态输入；
-- 专用执行环境：Coding Agent、数据分析 Agent 与远程 Sandbox。
-
-这些分支不进入固定主干。一个项目只有在回答了现有课程无法回答的问题时，才成为新的主题参考。
-
-## 阶段五：部署与持续运营
-
-本机成功运行不等于可以上线。部署会带来持久化服务、密钥与租户隔离、并发与队列、限流、延迟和成本、版本回滚、线上监控与事故处理。
-
-这一阶段放在 Trace 和最小 Eval 之后。否则上线只能证明服务启动了，无法证明 Agent 行为没有退步。无论前面选择哪条能力分支，最终都要回到这里。
+RAG 与 MCP 可以在 Workspace Agent 真正需要知识检索或外部能力时加入。它们是应用侧的重要能力，但不是所有 Runtime 的前置条件。
 
 ## 路线怎样维护
 
-README 始终展示完整阶段，`SUMMARY.md` 只列已经存在的课程。这里只详细规划接下来三课；第 11 课完成后，再根据 Trace、Eval 和综合实践证据展开下一阶段。
+README 展示完整主线，`SUMMARY.md` 只列已经存在的课程。当前只详细规划第 10～12 课，不创建空章节。
 
-旧章节也不定期返工。只有出现真实读者卡点、示例失败、主要源码变化，或后续章节暴露矛盾时，才重新打开。
+旧章节只在出现真实读者卡点、示例失败、主要源码变化，或后续课程暴露矛盾时重新打开。一个新框架或醒目的产品功能，不会单独触发全书重写。
 
 ## 一手资料
 
-完整核验过程、固定源码版本和不同课程体系的分歧，见[学习路线一手资料综合](../research/learning-roadmap-primary-sources.md)。主要依据包括：
+完整核验过程和固定源码版本见[学习路线一手资料综合](../research/learning-roadmap-primary-sources.md)。主要依据包括：
 
 - [Anthropic：Building Effective Agents](https://www.anthropic.com/research/building-effective-agents)
+- [Anthropic：Demystifying Evals for AI Agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)
 - [OpenAI：Agent Evals](https://developers.openai.com/api/docs/guides/agent-evals)
 - [OpenAI Agents SDK](https://github.com/openai/openai-agents-python/tree/89c02c828ee8510fe9a84ee6675608193aa13b02)
-- [Google ADK](https://github.com/google/adk-python/tree/89777c146bd26c04bd45d9ed67b5d3e64a6957f1)
+- [Google ADK](https://github.com/google/adk-python/tree/c7ffcfa85a8e8970f6318306479d9c4c110583b2)
 - [LangGraph](https://github.com/langchain-ai/langgraph/tree/81bf17b23123e4ef8b9d5f49fa09a0122fc2edd1)
 - [Phoenix](https://github.com/Arize-ai/phoenix/tree/a71218c7349fb33d1e6d3612cf63cbc70e708c04)
 - [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai/tree/7aa7343e4a14fa7be07e5a09c7431df5e88c17ee)

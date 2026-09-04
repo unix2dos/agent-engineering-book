@@ -12,8 +12,16 @@ _Avoid_: Personal notebook, portfolio-first showcase, authoritative encyclopedia
 The learner's ability to independently design, implement, and diagnose Agent systems; textbook quality supports that ability, while portfolio value and traffic are downstream results.
 _Avoid_: Publishing volume, traffic target, portfolio-first roadmap
 
+**Career Direction**:
+Agent Runtime and AI Systems are the primary technical depth; one real Agent application must prove that the runtime knowledge can deliver useful work. Learning effort is roughly 70% systems principles and 30% application evidence.
+_Avoid_: Framework operator, model-research curriculum, runtime theory without an application
+
+**Core Lesson**:
+A transferable capability that changes how most Agent systems are designed, verified, or operated and requires hands-on evidence to learn. Popularity, a framework feature, or a default-on setting does not by itself make a topic core.
+_Avoid_: Framework tour, feature catalogue, default-enabled feature
+
 **Curriculum Spine**:
-The stable Agent runtime capability path from tools and state through safety, observability, evaluation, orchestration, and deployment. The full capability stages stay visible, while only the next three lessons are planned in detail; fast-changing frameworks remain evidence or optional branches.
+The Pareto-filtered path from tools and state through reliability, safety, minimal observability, evaluation, orchestration, long-running work, and production operation. Only the next three lessons are planned in detail; fast-changing frameworks and specialized capabilities remain evidence or optional branches.
 _Avoid_: Framework catalogue, fixed encyclopedia, personal learning chronology
 
 **Target Reader**:
@@ -51,6 +59,22 @@ _Avoid_: Glossary dump, analogy-only definition, simplified terminology
 **Practice Contract**:
 The learning agreement attached to each lesson that requires at least one visible piece of evidence and separates code the learner must write once, code AI may generate, behavior that must be verified, and infrastructure that only needs boundary-level understanding. Major curriculum milestones require integrated practice, and adjacent early stages may share one capstone.
 _Avoid_: Homework list, code-generation rule, mandatory opening table
+
+**Application Proof Project**:
+The existing Workspace and Coding Agent that accumulates each stage's core mechanisms and provides one end-to-end portfolio artifact. New lessons extend this project unless a genuinely different environment is required.
+_Avoid_: Toy collection, new demo per concept, framework showcase
+
+**Agent Evaluation**:
+A repeatable task set with explicit success conditions that runs the current Agent and checks its real output or environment state. Deterministic checks come first; subjective graders are added only when code cannot express the required quality.
+_Avoid_: One successful chat, platform dashboard, judge-only score
+
+**Regression Gate**:
+The release check that blocks a change when a previously guaranteed behavior or safety invariant fails. Quality signals that naturally vary are tracked across runs rather than treated as one-shot hard failures.
+_Avoid_: Generic CI, exact wording comparison, single judge score
+
+**Recorded-session Replay**:
+An optional Harness testing technique that feeds recorded Model or Tool outputs back through the current Runtime to reproduce Runtime behavior without paying for a live call. It does not prove that the current Model, Prompt, or external service still succeeds.
+_Avoid_: Session recovery, live-model rerun, Agent evaluation
 
 **Book Repository**:
 The `agent-engineering-book` GitHub repository containing both Canonical Chapters and executable examples.
