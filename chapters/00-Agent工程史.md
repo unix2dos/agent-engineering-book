@@ -27,7 +27,7 @@ while True:
 → 连续行动
 → 结构化协议
 → 真实任务评测
-→ 管理 Model 本轮能看的内容（Context）与执行状态
+→ Context 与执行状态管理
 → 跨实现互操作
 → 处理权限、副作用与恢复
 ```
@@ -38,7 +38,7 @@ while True:
 
 研究者把这三个部分叫作 Belief、Desire 和 Intention，合起来简称 BDI。1990 年代的 Agent-Oriented Programming 与 BDI Agent 已经尝试把它们放进可执行系统。[Intelligent Agents: Theory and Practice](https://doi.org/10.1017/S0269888900008122)
 
-这些研究提出了今天仍会遇到的问题，却不是 LLM Agent 的直接代码祖先。经典系统主要依赖手工规则和计划，今天的 LLM Agent 主要依赖生成模型、Context 和工具调用。它们关心的问题相似，底层做法不同。
+这些研究提出了今天仍会遇到的问题，却不是 LLM Agent 的直接代码祖先。经典系统主要依赖手工规则和计划，今天的 LLM Agent 主要依赖生成模型、Context 和工具调用。
 
 ## 2. 2022～2023：模型开始边行动边观察
 
@@ -76,13 +76,6 @@ Agent 能修改代码以后，人们需要一张可以重复使用的试卷。SW
 
 SWE-agent 则研究参加这场考试的系统。Agent 使用什么仓库导航、编辑命令、错误反馈和测试接口，会直接改变它的表现。这套 Agent 与计算机打交道的界面叫 Agent-Computer Interface。[SWE-agent v3](https://arxiv.org/abs/2405.15793v3)
 
-最短区别是：
-
-```text
-SWE-bench 是试卷
-SWE-agent 是参加考试的 Agent 系统
-```
-
 这也说明 Harness 不是模型旁边无关紧要的胶水。工具只返回 `failed`，和返回错误行、堆栈、退出码，会让同一个模型走出完全不同的下一步。工具接口会改变模型能做什么，也会改变它能看见什么。
 
 ## 4. 长任务迫使系统管理 Context 与状态
@@ -99,24 +92,24 @@ Checkpoint 程序走到某处时留下的状态存档
 
 LangGraph 把任务拆成可以循环连接的步骤，并用 Checkpointer 保存步骤状态。程序因此可以中断后继续，也可以停下来等待人工确认。[LangGraph v0.2](https://blog.langchain.com/langgraph-v0-2/)
 
-但 Checkpoint 仍不能证明外部动作只发生了一次。邮件可能已经发出，程序却在保存“成功”之前崩溃。Checkpoint 只能告诉你程序最后存到哪里，不能证明外面的邮件到底发了几次。
+但 Checkpoint 无法证明外部副作用只发生过一次。邮件可能已经发出，程序却在落盘“成功”前崩溃；恢复点只能说明本地状态存到了哪里，无法证明外部动作的真实发生次数。
 
 ## 5. 2024～2025：连接工具与连接 Agent 分成两层
 
 同一个天气工具如果要分别适配五种 Agent 应用，就会出现五套连接代码。MCP 在 2024 年提出一套共同的连接方式，让 Agent 应用可以发现和调用外部 Tool、Resource 与 Prompt。[MCP 发布公告](https://www.anthropic.com/news/model-context-protocol)
 
-最短记忆是：**MCP 连接 Agent 应用与外部能力。** 它不负责替应用运行 Agent Loop，也不证明某次工具调用应该被允许。
+一句话定位：**MCP 连接 Agent 应用与外部能力。**
 
-MCP 后来的规范已经和 2024 年首发版本不同。历史课只需要记住它解决了哪层连接问题；真正写代码时，再查看当前稳定规范，不要照抄旧教程。[MCP Changelog](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/2026-07-28/docs/specification/2026-07-28/changelog.mdx#L10-L28)
+MCP 后来的规范已经和 2024 年首发版本不同。工程史只需理解它解决了哪层连接问题；实际工程落地时，再查阅当前稳定规范，不要照抄旧教程。[MCP Changelog](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/2026-07-28/docs/specification/2026-07-28/changelog.mdx#L10-L28)
 
-如果不是调用天气工具，而是把调查任务交给另一个远程 Agent，就进入了另一层连接。A2A 让不同服务器、厂商或框架里的 Agent 发现能力、交换消息并合作处理任务。[A2A 发布公告](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/)
+如果不是调用本地工具，而是把子任务派发给另一个远程系统，就进入了另一层连接。A2A 让不同服务器、厂商或框架里的 Agent 互相发现能力、交换消息并协同作业。[A2A 发布公告](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/)
 
 ```text
-Agent 调文件、数据库或搜索工具   看 MCP
-Agent 把任务交给另一个远程 Agent 看 A2A
+Agent 连接文件、数据库或搜索工具   看 MCP
+Agent 把任务派发给另一个远程系统   看 A2A
 ```
 
-两者都不能代替 Harness。连接成功只证明“能够调用”，不证明“本次应该调用”，也不负责本地循环、Context 和执行恢复。
+无论 MCP 还是 A2A，都不能代替 Harness。连接成功只代表“具备调用通道”，并不代表“本次应该调用”，更不负责本地执行循环、Context 调度与故障恢复。
 
 ## 6. 今天：可靠性成为独立工程层
 
@@ -145,11 +138,9 @@ Agent 把任务交给另一个远程 Agent 看 A2A
 
 ## 7. 怎样使用这张历史地图？
 
-这不是一张需要背年份的时间表。看到一个新名词时，先问它在补哪个缺口：是让 Model 能申请工具，还是让程序能恢复、限制权限、避免重复执行，或者比较系统是否真的变好？
+看到一个新框架或协议时，先看它在补哪一层的缺口：是让模型申请工具，还是限制权限、保存状态、避免重复执行，或是度量系统质量？
 
-最值得亲手做的是写出章首的最小循环，并标出 Model 与 Harness 分别负责什么。时间线和引用格式可以让 AI 帮忙，经典 BDI 的形式逻辑只需知道它提出了什么问题，不需要在这里重新实现。
-
-项目和协议会继续变化。历史动机可以从本章理解，当前实现必须重新核验官方文档和固定源码版本。
+最值得亲手实践的，是写出章首的最小工具循环，并明确划出 Model 与 Harness 各自的责任边界。经典理论只需理解其演进动机，具体代码落地时务必查阅当前最新的稳定规范与一手文档。
 
 ## 主动回忆
 

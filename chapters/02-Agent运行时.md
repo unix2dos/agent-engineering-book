@@ -1,14 +1,8 @@
 # 第 2 课：Agent Runtime——Model、Harness、Tool 与 Environment
 
-你让 Agent“读取 `config.json`，再告诉我里面使用什么主题”。Model 很快回答：“我来读取。”
+你让 Agent“读取 `config.json`，再告诉我里面使用什么主题”。Model 很快回答：“我来读取。”但这绝不等于文件已经被打开。
 
-```text
-Model 说要读取文件
-!=
-文件已经被打开
-```
-
-Model 只能生成一张 `read_file` 申请单。真正打开文件的，是它外面的程序。这个程序还要检查路径、权限和停止条件，再把文件内容送回 Model。
+Model 只能生成一张 `read_file` 申请单。真正打开文件的，是它外面的宿主程序：它需要校验路径合法性、检查执行权限与停止条件，再将真实读取结果送回 Model。
 
 ## 1. Model 说要读文件，谁真的动手？
 
@@ -16,25 +10,20 @@ Model 只能生成一张 `read_file` 申请单。真正打开文件的，是它�
 
 ```text
 User Request
--> Harness 把历史和 Tool Schema 发给 Model
--> Model 返回 read_file Tool Call
--> Harness 检查协议、参数、权限与审批
--> Tool 读取文件系统
--> Environment 返回内容或错误
--> Harness 写入 Tool Result
--> Model 根据真实结果继续调用工具或给出 Final
+→ Harness 把历史和 Tool Schema 发给 Model
+→ Model 返回 read_file Tool Call
+→ Harness 检查协议、参数、权限与审批
+→ Tool 读取文件系统
+→ Environment 返回内容或错误
+→ Harness 写入 Tool Result
+→ Model 根据真实结果继续调用工具或给出 Final
 ```
 
-夹在 Model 和真实世界之间、负责推动这条流程的程序，通常叫 **Harness**。整套正在运行的组合叫 Agent Runtime，也就是“让 Agent 真正运转起来的那套程序”。
+夹在 Model 和真实世界之间、负责推动这条流程的程序，通常叫 **Harness**。而由 Model、Harness、Tool 与 Environment 共同构成的可运行整体，就是 **Agent Runtime**。
 
-```text
-Agent Runtime
-= Model + Harness + Tools + Environment
-```
+现在再看这四个核心部分分别负责什么：
 
-现在再看四个部分分别负责什么：
-
-| 部分 | 说人话 | 不负责什么 |
+| 核心组件 | 职责描述 | 职责边界（不负责什么） |
 | --- | --- | --- |
 | Model | 判断下一步，写出工具名和参数 | 不直接拥有本地文件权限 |
 | Harness | 保存消息、检查申请、找到工具并控制循环 | 不替 Model 决定开放任务该怎么做 |
@@ -106,7 +95,7 @@ OpenAI-compatible Chat Completions 使用另一套外形：
 
 ```text
 Assistant tool_calls[].id
--> Tool Message 的 tool_call_id
+→ Tool Message 的 tool_call_id
 ```
 
 字段名不同，责任相同：每份结果必须回答原来的那张申请单。没有 ID，系统不知道错误属于 `read_file` 还是 `run_bash`；配错 ID，格式看似完整，语义却已经错位。
@@ -125,8 +114,8 @@ toolu_B：run_bash("rm -rf output")
 Harness 可以顺序执行，也可以并行执行。第一项可能成功，第二项可能被策略拒绝。下一次请求仍要为两个调用各返回一份结果：
 
 ```text
-toolu_A -> succeeded，附文件内容
-toolu_B -> rejected，明确说明没有执行
+toolu_A → succeeded，附文件内容
+toolu_B → rejected，明确说明没有执行
 ```
 
 拒绝、超时和失败也属于结果。静默丢掉 `toolu_B`，Model 会一直等待，或者误以为它仍在运行。
@@ -203,7 +192,7 @@ Tool 应返回受限片段、截断标记和回查位置。完整日志可以另
 
 然后制造一个有两张申请单的场景：`read_file` 成功，危险的 `run_bash` 被拒绝。下一次模型请求必须同时带上成功结果和拒绝结果，两份回执都要保留原 ID。
 
-Provider 的 SDK 类型和初始化代码可以让 AI 生成。你需要亲自检查真实 Message，确认调用与结果是否一一对应。Anthropic 和 OpenAI-compatible 的字段名只需读懂，不需要背下来。
+SDK 类型定义与协议初始化可直接参考官方范式，核心精力应放在核验 Message 数组的真实结构上，确认每一个 Tool Call 与 Tool Result 的 ID 严格成对闭环。不同厂商的具体字段命名只需理解其映射关系，无需死记硬背。
 
 ## 主动回忆
 

@@ -25,7 +25,7 @@
 
 承载核心机制的代码，至少亲手写一次；SDK 初始化、类型声明和重复配置，可以让 AI 帮忙。凡是涉及文件写入、故障恢复、上下文裁剪和安全边界，都要实际运行，最好亲手制造一次失败。数据库、容器和 microVM 等成熟设施，不重复造轮子，重点看懂它们解决什么问题、不能替 Agent 负责什么。
 
-一篇 Blog 文章只有经过“主动回忆 → 当前源码核验 → 实践证据 → 小白审阅”，才会成为这里的正式章节。
+所有正式章节均遵循“主动回忆设计 → 当前源码核验 → 实践证据校验 → 初学者盲测”的准入标准，拒绝未经运行验证的二手解读。
 
 ## 阅读路线
 
@@ -33,7 +33,7 @@
 |---|---|---|
 | 一：判断与行动 | 第 0～3 课：Agent 工程史、Harness 与 Tool Calling Loop | 已完成 |
 | 二：状态、可靠性与控制 | 第 4～8 课：Context、存储、故障恢复与 Sandbox | 已完成 |
-| 三：看见与改进 | 第 9～11 课：Trace、Evaluation 与回归门禁 | 接下来学习 |
+| 三：看见与改进 | 第 9～11 课：Trace、Evaluation 与回归门禁 | 正在进行 |
 | 四：编排与长任务 | Workflow、Routing、Handoff、Subagent 与 Multi-Agent | 待阶段三验证后展开 |
 | 可选分支 | RAG、MCP/A2A、Browser、Voice、多模态与专用 Sandbox | 按实际问题选择 |
 | 五：部署与持续运营 | 持久化、并发、密钥、成本、监控与回滚 | 后续阶段 |
@@ -42,7 +42,7 @@
 
 ## 源码依据
 
-书中的关键结论会与官方文档、开源源码和可运行代码互相核对。长期参考对象包括 Pi、OpenClaw、Hermes、Codex、OpenCode、DeepSeek Harness、OpenAI Agents SDK、Claude Agent SDK、LangGraph、Phoenix 和 Inspect AI；不是为了逐个介绍框架，而是让每个项目回答它最擅长的问题。
+书中的关键结论均与官方文档、开源源码和可运行代码互相核对。我们不逐个堆砌框架，而是让不同领域的代表性实现回答其最擅长的问题：
 
 - **Coding Agent Runtime**：[Pi](https://github.com/earendil-works/pi)、[OpenClaw](https://github.com/openclaw/openclaw)、[Hermes](https://github.com/NousResearch/hermes-agent)、[Codex](https://github.com/openai/codex)、[OpenCode](https://github.com/anomalyco/opencode) 与 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，主要用于观察 Agent Loop、Session、Context、Tool、权限和安全边界。DeepSeek Harness 仍处于 Developer Preview，本书只针对核验过的固定版本讨论；
 - **Agent 框架与接口**：[OpenAI Agents SDK](https://github.com/openai/openai-agents-python)、[Claude Agent SDK Python](https://github.com/anthropics/claude-agent-sdk-python) 与 [LangGraph](https://github.com/langchain-ai/langgraph)，主要用于观察通用 Agent Loop、Session、Handoff、Guardrail、状态图和长任务恢复；
@@ -50,11 +50,9 @@
 
 [Claude Code](https://github.com/anthropics/claude-code) 也会作为重要的产品行为参考，但其核心 Runtime 没有开源。书中只根据官方文档、设置、插件和示例研究它的权限、Hooks、Sandbox、Memory、Subagent 与 Workflow，不把这些外部行为说成已经核验过的内部实现。
 
-
-
 ## 运行配置
 
-在线示例只读取通用的 OpenAI-compatible 环境变量：
+配套代码示例只读取通用的 OpenAI-compatible 环境变量：
 
 ```bash
 export OPENAI_API_KEY="your-api-key"
@@ -83,6 +81,6 @@ export OPENAI_BASE_URL="https://provider.example/v1"
 
 这些代码是教学实现，不宣称覆盖生产系统的并发、分布式事务、租户隔离和高可用要求。
 
-## 内容归属
+## 单一真实源（SSOT）与发布规范
 
-本仓库保存唯一持续维护的完整章节。已经发布的 Blog 文章作为历史快照和入口保留：链接失效或承重事实错误时修正，但不再同步整篇正文；新 Blog 只在阶段完成或某个问题值得独立传播时发布。GitBook 只负责展示本仓库内容，不成为第二份写作来源。
+本仓库是唯一持续维护的权威源（Single Source of Truth）。历史发布的 Blog 文章仅作为外部快照和引流入口保留，除修正失效链接和关键事实错误外，不再全量同步正文；新 Blog 仅在阶段收官或特定话题独立成篇时发布。GitBook 镜像仅用于排版展示，不作为并行写作来源。
