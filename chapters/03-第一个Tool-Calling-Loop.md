@@ -277,7 +277,7 @@ python examples/lesson_03_tool_calling_loop.py
 
 最值得亲手写的是 `run_agent_loop()` 的三个出口、Tool Result 配对和模型请求次数上限。SDK 初始化、Fake Response 和重复的类型转换代码可以让 AI 帮忙。Responses 与 Chat Completions 的字段差异只需读懂，不需要背下来。
 
-完整代码不要抄完就算结束。进入[第一阶段综合实践](../exercises/phase-1-capstone/README.md)，亲手完成第一关。它补充验证同批多个 Tool Call、Tool Call 与停止状态矛盾，以及达到模型请求上限。
+完整代码不要抄完就算结束。进入[阶段一～二综合实践](../exercises/phase-1-capstone/README.md)，亲手完成第一关。它补充验证同批多个 Tool Call、Tool Call 与停止状态矛盾，以及达到模型请求上限。
 
 ## 7. 本课还没有解决什么
 
@@ -320,7 +320,7 @@ User -> Assistant Tool Call -> Tool Result -> Assistant Final
 
 - [本批章节一手资料复核](../research/01-05-chapter-promotion-sources.md)
 - [完整教学代码](https://github.com/unix2dos/agent-engineering-book/blob/main/examples/lesson_03_tool_calling_loop.py)
-- [第一阶段综合实践](https://github.com/unix2dos/agent-engineering-book/tree/main/exercises/phase-1-capstone)
+- [阶段一～二综合实践](https://github.com/unix2dos/agent-engineering-book/tree/main/exercises/phase-1-capstone)
 - [OpenAI Function Calling](https://developers.openai.com/api/docs/guides/function-calling)
 - [openai-python v3.7.0](https://github.com/openai/openai-python/releases/tag/v3.7.0)
 - [Python `eval()`](https://docs.python.org/3/library/functions.html#eval)

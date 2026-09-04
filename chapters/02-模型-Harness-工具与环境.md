@@ -195,7 +195,7 @@ Tool 应返回受限片段、截断标记和回查位置。完整日志可以另
 
 现成框架不会改变上面的责任链。Agent SDK 可以帮你封装部分 Harness，MCP 可以帮 Harness 连接外部 Tool。它们解决了“怎样接起来”，没有自动回答“本次是否应该执行”。
 
-下一课会把这些箭头写成可运行代码：[跑通第一个 Tool Calling Loop](03-第一个Tool-Calling-Loop.md)。配套练习已经在[第一阶段综合实践](../exercises/phase-1-capstone/README.md)中覆盖多 Tool Call、矛盾停止状态、Workspace 边界和审批。
+下一课会把这些箭头写成可运行代码：[跑通第一个 Tool Calling Loop](03-第一个Tool-Calling-Loop.md)。配套练习已经在[阶段一～二综合实践](../exercises/phase-1-capstone/README.md)中覆盖多 Tool Call、矛盾停止状态、Workspace 边界和审批。
 
 ## 7. 自己检查一次工具调用
 

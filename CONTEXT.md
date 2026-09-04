@@ -8,6 +8,14 @@ This repository grows a beginner-friendly Agent engineering book from source res
 A beginner-friendly Agent engineering book whose chapters must teach a coherent path and provide verifiable examples; personal notes feed it, while portfolio value is a consequence rather than its organizing goal.
 _Avoid_: Personal notebook, portfolio-first showcase, authoritative encyclopedia
 
+**Learning North Star**:
+The learner's ability to independently design, implement, and diagnose Agent systems; textbook quality supports that ability, while portfolio value and traffic are downstream results.
+_Avoid_: Publishing volume, traffic target, portfolio-first roadmap
+
+**Curriculum Spine**:
+The stable Agent runtime capability path from tools and state through safety, observability, evaluation, orchestration, and deployment. The full capability stages stay visible, while only the next three lessons are planned in detail; fast-changing frameworks remain evidence or optional branches.
+_Avoid_: Framework catalogue, fixed encyclopedia, personal learning chronology
+
 **Target Reader**:
 A reader who can use basic Python, Git, and the command line but has not studied Agent engineering systematically; the book does not assume prior knowledge of tool protocols, context management, persistence, evaluation, or sandboxing.
 _Avoid_: Non-programmer, experienced Agent engineer
@@ -17,8 +25,12 @@ The only actively maintained full-text version of a lesson, stored in this book 
 _Avoid_: Blog source, mirrored article, duplicate chapter
 
 **Published Blog Snapshot**:
-A previously published Blog article kept as a historical version and entry point to its Canonical Chapter; it is not maintained as a second full-text source.
-_Avoid_: Canonical chapter, synchronized copy
+A previously published Blog article kept as a historical version and entry point to its Canonical Chapter. Broken links are repaired and load-bearing factual errors are corrected in place with a visible note, but its full text is never synchronized with the Book.
+_Avoid_: Canonical chapter, synchronized copy, abandoned page
+
+**Blog Gateway Post**:
+A short Blog publication created when a curriculum phase completes, or when one reader problem deserves an independent entry, and directs readers to the Canonical Chapters; it is a discovery surface, not a mirrored lesson.
+_Avoid_: Duplicate chapter, release log, second source of truth
 
 **Chapter Promotion**:
 The one-chapter-at-a-time process that turns a Published Blog Snapshot into a Canonical Chapter only after active recall, current-source verification, practical evidence, and beginner-level review.
@@ -28,12 +40,16 @@ _Avoid_: File copy, bulk migration
 The shared evidence a chapter must contain before promotion, without forcing every topic into identical headings or prose structure.
 _Avoid_: Fixed chapter template, formatting checklist
 
+**Triggered Chapter Maintenance**:
+Reopening a Canonical Chapter only after a concrete reader block, failing example, changed primary source, or contradiction with a later lesson is found.
+_Avoid_: Scheduled rewrite, polish cycle, frozen forever
+
 **Plain-language Entry**:
 The first explanation of a load-bearing term: a visible action or failure comes first, a short everyday explanation gives it meaning, and only then does the technical name enter. It preserves technical precision without making the reader decode unexplained vocabulary.
 _Avoid_: Glossary dump, analogy-only definition, simplified terminology
 
 **Practice Contract**:
-The learning agreement attached to each lesson that separates code the learner must write once, code AI may generate, behavior that must be verified, and infrastructure that only needs boundary-level understanding; its placement follows the chapter's reading path rather than requiring an opening table.
+The learning agreement attached to each lesson that requires at least one visible piece of evidence and separates code the learner must write once, code AI may generate, behavior that must be verified, and infrastructure that only needs boundary-level understanding. Major curriculum milestones require integrated practice, and adjacent early stages may share one capstone.
 _Avoid_: Homework list, code-generation rule, mandatory opening table
 
 **Book Repository**:

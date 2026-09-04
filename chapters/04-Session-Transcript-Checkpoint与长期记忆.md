@@ -223,7 +223,7 @@ self-check passed
 
 `summary`、`turns` 和 Context 组装值得自己写一次。JSON 序列化、文件路径和 SDK 初始化可以让 AI 帮忙。数据库和 Provider 托管 Conversation 暂时只需看懂职责，不需要重复实现。
 
-下一课继续运行[第一阶段综合实践第三关](../exercises/phase-1-capstone/README.md#第三关transcript-与-prompt-view)，亲手实现 JSONL Transcript、Prompt View、重启恢复和 Compaction。
+下一课继续运行[阶段一～二综合实践第三关](../exercises/phase-1-capstone/README.md#第三关transcript-与-prompt-view)，亲手实现 JSONL Transcript、Prompt View、重启恢复和 Compaction。
 
 ## 主动回忆
 
@@ -257,4 +257,4 @@ self-check passed
 - [本批章节一手资料复核](../research/01-05-chapter-promotion-sources.md)
 - [OpenAI Conversation state](https://developers.openai.com/api/docs/guides/conversation-state)
 - [完整教学代码](https://github.com/unix2dos/agent-engineering-book/blob/main/examples/lesson_04_session_memory.py)
-- [第一阶段综合实践](https://github.com/unix2dos/agent-engineering-book/tree/main/exercises/phase-1-capstone)
+- [阶段一～二综合实践](https://github.com/unix2dos/agent-engineering-book/tree/main/exercises/phase-1-capstone)

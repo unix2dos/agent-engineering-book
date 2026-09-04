@@ -10,10 +10,10 @@
 
 - 第一次系统学习 Agent：从[第 1 课：从语言模型到行动系统](chapters/01-从语言模型到行动系统.md)开始；
 - 已经理解基本概念，想先看代码：[第 3 课：跑通第一个 Tool Calling Loop](chapters/03-第一个Tool-Calling-Loop.md)；
-- 想把第一阶段知识真正串起来：直接做[第一阶段综合实践](exercises/phase-1-capstone/README.md)；
+- 想把前两个阶段真正串起来：直接做[阶段一～二综合实践](exercises/phase-1-capstone/README.md)；
 - 想先知道整个领域是怎么走到今天的：阅读[第 0 课：Agent 工程史](chapters/00-Agent工程史.md)。
 
-完整目录见 [SUMMARY.md](SUMMARY.md)。
+完整目录见 [SUMMARY.md](SUMMARY.md)，后续能力顺序见[学习路线](docs/learning-roadmap.md)。
 
 📖 **在线阅读**：[https://levon.gitbook.io/agent-engineering/](https://levon.gitbook.io/agent-engineering/)
 
@@ -31,12 +31,14 @@
 
 | 阶段 | 课程 | 状态 |
 |---|---|---|
-| 地图 | [第 0 课：Agent 工程史](chapters/00-Agent工程史.md) | 已完成 |
-| 最小运行时 | 第 1～3 课：Agent、Harness 与 Tool Calling Loop | 已完成 |
-| 上下文与状态 | 第 4～5 课：Context、Memory 与 Compaction | 已完成 |
-| 存储选择 | [第 6 课：什么时候该从 JSONL 换成 SQLite](chapters/06-什么时候从JSONL换成SQLite.md) | 已完成 |
-| 可靠与安全 | [第 7 课：工具执行、幂等与故障恢复](chapters/07-工具执行幂等与故障恢复.md)；[第 8 课：审批、权限与 Sandbox](chapters/08-审批权限与沙盒边界.md) | 已完成 |
-| 改进闭环 | 第 9～11 课：Trace、Evaluation 与回归门禁 | 计划学习 |
+| 一：判断与行动 | 第 0～3 课：Agent 工程史、Harness 与 Tool Calling Loop | 已完成 |
+| 二：状态、可靠性与控制 | 第 4～8 课：Context、存储、故障恢复与 Sandbox | 已完成 |
+| 三：看见与改进 | 第 9～11 课：Trace、Evaluation 与回归门禁 | 接下来学习 |
+| 四：编排与长任务 | Workflow、Routing、Handoff、Subagent 与 Multi-Agent | 待阶段三验证后展开 |
+| 可选分支 | RAG、MCP/A2A、Browser、Voice、多模态与专用 Sandbox | 按实际问题选择 |
+| 五：部署与持续运营 | 持久化、并发、密钥、成本、监控与回滚 | 后续阶段 |
+
+这张表只展示能力主干，不提前创建空章节。每个阶段完成后，再根据综合实践暴露的问题展开下一段。详细依据见[Agent 工程学习路线](docs/learning-roadmap.md)。
 
 ## 源码依据
 
@@ -73,7 +75,7 @@ export OPENAI_BASE_URL="https://provider.example/v1"
 - [`lesson_05_context_compaction.py`](examples/lesson_05_context_compaction.py)：JSONL Transcript、Compaction 与 Prompt View；
 - [`lesson_07_tool_reliability.py`](examples/lesson_07_tool_reliability.py)：Execution Ledger、幂等与故障恢复。
 
-[第一阶段综合实践](exercises/phase-1-capstone/README.md)会把有停止条件的 Agent Loop、受限工作区工具、Transcript、Prompt View、Ledger 和故障恢复串成一个可以运行的小系统。
+[阶段一～二综合实践](exercises/phase-1-capstone/README.md)会把有停止条件的 Agent Loop、受限工作区工具、Transcript、Prompt View、Ledger 和故障恢复串成一个可以运行的小系统。
 
 [第 6 课 SQLite 练习](exercises/lesson-06-sqlite/README.md)从状态查询开始，验证索引、事务和唯一约束什么时候比继续扩写 JSONL 代码更省事。
 
@@ -83,4 +85,4 @@ export OPENAI_BASE_URL="https://provider.example/v1"
 
 ## 内容归属
 
-本仓库保存唯一持续维护的完整章节。已经发布的 Blog 文章作为历史快照和入口保留；GitBook 只负责展示本仓库内容，不成为第二份写作来源。
+本仓库保存唯一持续维护的完整章节。已经发布的 Blog 文章作为历史快照和入口保留：链接失效或承重事实错误时修正，但不再同步整篇正文；新 Blog 只在阶段完成或某个问题值得独立传播时发布。GitBook 只负责展示本仓库内容，不成为第二份写作来源。

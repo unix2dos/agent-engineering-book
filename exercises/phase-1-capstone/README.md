@@ -1,4 +1,4 @@
-# 第一阶段综合实践：可靠的 Workspace Agent
+# 阶段一～二综合实践：可靠的 Workspace Agent
 
 这次不再新增一份完整 Agent 实现。[`lesson_07_tool_reliability.py`](../../examples/lesson_07_tool_reliability.py) 已经包含 Tool、Context、Compaction、Ledger 与恢复，继续复制只会产生两套答案。
 
