@@ -1,4 +1,4 @@
-# 第 1 课：从语言模型到行动系统
+# 第 1 课：Agent 基础——从语言模型到行动系统
 
 你对 Model 说：“查一下明天上海的天气。如果下雨，早上八点提醒我带伞。”
 
@@ -103,7 +103,7 @@ Agent 会增加模型请求次数、等待时间和出错路径。它用这些�
 
 最值得亲手做的是画出一次 `Model -> Tool -> Result -> Model`。Model 没有本地权限，Tool 代码使用宿主进程已有的权限，Harness 决定本次是否允许调用。术语查找和图表排版可以让 AI 帮忙，但“这项任务是否真的需要 Agent”要由你自己判断。
 
-下一课会沿一次真实 Tool Call，继续拆开[模型、Harness、工具与环境](02-模型-Harness-工具与环境.md)。想直接动手，也可以进入[阶段一～二综合实践](../exercises/phase-1-capstone/README.md)。
+下一课会沿一次真实 Tool Call，继续拆开[Agent Runtime——Model、Harness、Tool 与 Environment](02-Agent运行时.md)。想直接动手，也可以进入[阶段一～二综合实践](../exercises/phase-1-capstone/README.md)。
 
 ## 主动回忆
 

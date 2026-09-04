@@ -6,11 +6,18 @@ structure:
 
 redirects:
   00-agent-engineering-history: chapters/00-Agent工程史.md
-  01-agent-from-model-to-action-system: chapters/01-从语言模型到行动系统.md
-  02-agent-runtime-model-harness-tools-environment: chapters/02-模型-Harness-工具与环境.md
-  03-first-tool-calling-loop: chapters/03-第一个Tool-Calling-Loop.md
-  04-session-checkpoint-memory: chapters/04-Session-Transcript-Checkpoint与长期记忆.md
+  01-agent-from-model-to-action-system: chapters/01-Agent基础.md
+  02-agent-runtime-model-harness-tools-environment: chapters/02-Agent运行时.md
+  03-first-tool-calling-loop: chapters/03-工具调用循环.md
+  04-session-checkpoint-memory: chapters/04-会话持久化.md
   05-context-engineering: chapters/05-上下文工程.md
-  06-agent-storage-jsonl-sqlite-database: chapters/06-什么时候从JSONL换成SQLite.md
-  07-agent-tool-reliability: chapters/07-工具执行幂等与故障恢复.md
-  08-agent-safety-boundaries: chapters/08-审批权限与沙盒边界.md
+  06-agent-storage-jsonl-sqlite-database: chapters/06-Agent存储.md
+  07-agent-tool-reliability: chapters/07-工具可靠性.md
+  08-agent-safety-boundaries: chapters/08-Agent沙盒.md
+  01-cong-yu-yan-mo-xing-dao-xing-dong-xi-tong: chapters/01-Agent基础.md
+  02-mo-xing-harness-gong-ju-yu-huan-jing: chapters/02-Agent运行时.md
+  03-di-yi-ge-toolcallingloop: chapters/03-工具调用循环.md
+  04sessiontranscriptcheckpoint-yu-chang-qi-ji-yi: chapters/04-会话持久化.md
+  06-shen-me-shi-hou-cong-jsonl-huan-cheng-sqlite: chapters/06-Agent存储.md
+  07-gong-ju-zhi-xing-mi-deng-yu-gu-zhang-hui-fu: chapters/07-工具可靠性.md
+  08-shen-pi-quan-xian-yu-sha-he-bian-jie: chapters/08-Agent沙盒.md

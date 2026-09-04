@@ -8,8 +8,8 @@
 
 ## 从哪里开始
 
-- 第一次系统学习 Agent：从[第 1 课：从语言模型到行动系统](chapters/01-从语言模型到行动系统.md)开始；
-- 已经理解基本概念，想先看代码：[第 3 课：跑通第一个 Tool Calling Loop](chapters/03-第一个Tool-Calling-Loop.md)；
+- 第一次系统学习 Agent：从[第 1 课：Agent 基础——从语言模型到行动系统](chapters/01-Agent基础.md)开始；
+- 已经理解基本概念，想先看代码：[第 3 课：Tool Calling Loop——从调用请求到最终回答](chapters/03-工具调用循环.md)；
 - 想把前两个阶段真正串起来：直接做[阶段一～二综合实践](exercises/phase-1-capstone/README.md)；
 - 想先知道整个领域是怎么走到今天的：阅读[第 0 课：Agent 工程史](chapters/00-Agent工程史.md)。
 
