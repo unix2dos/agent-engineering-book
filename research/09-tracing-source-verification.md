@@ -8,7 +8,7 @@
 
 Tracing 不是 Agent 能运行的必要组成。它观察 Model、Harness、Tool 和运行环境已经发生的工作，不参与 Agent Loop 的最低成立条件。
 
-当任务包含多轮调用、重试、并发、远程执行或生产故障时，Tracing 又会成为可诊断和可运营的重要能力。开源项目普遍让 Tracing 默认关闭或使用 No-op，因为内容采集、成本和存储位置需要由运行者决定。
+当任务包含多轮调用、重试、并发、远程执行或生产故障时，Tracing 又会成为可诊断和可运营的重要能力。当前核验的几个项目普遍让 Tracing 默认关闭或使用 No-op；这能避免在用户尚未选择采集范围和存储位置时就发送运行内容，也把成本决定留给部署方。
 
 上一轮“Pi 与 Hermes 没有 Tracing”的判断不成立。重新检查当前源码后：Pi 已提供 Vendor-neutral Telemetry Contract、Agent Span Schema 和部分 Harness 埋点，但默认没有 Exporter；Hermes 已提供可选的 Langfuse 插件，能够记录 Turn、LLM Call 和 Tool Call。
 
@@ -20,7 +20,7 @@ Tracing 不是 Agent 能运行的必要组成。它观察 Model、Harness、Tool
 | OpenClaw | [`64da06a`](https://github.com/openclaw/openclaw/commit/64da06a78ffa98c5bb425cc79059d992260a4c76) | 可选 `diagnostics-otel` 插件通过 OTLP/HTTP 导出 Model、Harness、Skill、Tool、Exec、Context 和 Tool Loop Span；Diagnostics、插件与 OTel 配置必须同时开启。 |
 | OpenCode | [`v1.18.27`](https://github.com/anomalyco/opencode/releases/tag/v1.18.27)，源码 Commit [`4b7e19e`](https://github.com/anomalyco/opencode/commit/4b7e19e315cca414121ba1d61523fef74bb3ae8b) | `OTEL_EXPORTER_OTLP_ENDPOINT` 激活 OTLP Trace Exporter；`experimental.openTelemetry` 控制 AI SDK Model Span。另有 `OPENCODE_DIRECT_TRACE=1` 开启的开发用本地 JSONL。 |
 | Pi | [`2d41163`](https://github.com/earendil-works/pi/commit/2d41163332c1a6d11c45911a92100fd2a55e4d1a) | `pi-telemetry` 定义 Span、事件、属性、状态、No-op 和 In-memory Adapter；Agent 定义 `pi.ai.request`、`pi.harness.run/turn/step/tool` 等 Schema。包本身没有 Exporter，部分 Runtime Span 与跨进程传播仍在实现中。 |
-| Hermes Agent | [`6327930`](https://github.com/NousResearch/hermes-agent/commit/63279301bcbdc185c1b07b98a9312eb0c862f26d) | 默认关闭的 `observability/langfuse` 插件记录 Turn、LLM 与 Tool，并发送到 Langfuse。另一套 OTLP Exporter主要观察 Gateway Health、Diagnostic 与 Cron Event，不等于完整 Agent Trace。 |
+| Hermes Agent | [`6327930`](https://github.com/NousResearch/hermes-agent/commit/63279301bcbdc185c1b07b98a9312eb0c862f26d) | 默认关闭的 `observability/langfuse` 插件记录 Turn、LLM 与 Tool，并发送到 Langfuse。另一套 OTLP Exporter 主要观察 Gateway Health、Diagnostic 与 Cron Event，不等于完整 Agent Trace。 |
 
 ## 为什么通常找不到本地文件
 

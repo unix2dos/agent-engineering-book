@@ -52,6 +52,8 @@ Span：这条路上的某一步做了什么？
 {"trace_id":"trace_42","span_id":"span_tool","parent_span_id":"span_root","name":"read_file"}
 ```
 
+这棵树表达谁包含谁，不直接表达谁先发生。两个子 Span 谁先开始、是否重叠，要看各自的开始时间和结束时间，不能根据它们在列表中的位置猜。
+
 这里必须守住两个关系：
 
 - 同一个 Trace 中，`span_id` 不能重复，否则两步会共享同一身份；
@@ -97,7 +99,7 @@ Agent 任务：failed
 
 反过来也一样：Tool 可能返回业务上的 `failed`，但负责调用 Tool 的程序正常收到了这个结果。此时“调用过程正常结束”和“Tool 完成目标”是两个判断。
 
-本书练习暂时用 `completed`、`failed` 表示简化结果。生产系统通常会把两层拆开：
+本书练习把两层拆开保存：`status` 使用 `running`、`ok`、`error`，`outcome` 再记录 `succeeded`、`failed`、`unknown` 等业务结果。
 
 ```text
 Span status     这一步是否正常完成观测范围内的工作
@@ -143,7 +145,7 @@ Collector / Tracing Backend 保存和查询
 
 最后一站可以是 Phoenix、Langfuse、Tempo、Jaeger 或商业平台。只有项目明确选择本地文件 Exporter，Trace 才会出现在磁盘上。
 
-这也是多数 Coding Agent 默认关闭 Tracing 的原因：Prompt、Tool 参数和终端输出可能含有秘密；完整保存还会增加网络、存储和性能成本。默认关闭不代表项目认为它没用，而是把“是否记录、记录多少、发到哪里”留给运行者决定。
+让 Tracing 默认关闭或使用 No-op 很常见。这样至少可以避免在用户尚未选择存储位置时，就把 Prompt、Tool 参数和终端输出发出去；完整保存还会增加网络、存储和性能成本。默认关闭不代表它没用，而是把“是否记录、记录多少、发到哪里”留给运行者决定。
 
 ## 7. 五个开源 Coding Agent 怎样实现？
 
@@ -206,10 +208,20 @@ Tracing 接口尽量不影响业务结果
 
 ## 9. 哪些代码值得亲手写？
 
-本课的[最小 Trace 练习](../exercises/lesson-09-tracing/README.md)只要求亲手实现 `append_span()`，因为重复 ID、父子关系和追加记录正是这一课的承重部分。
+本课的[最小 Trace 练习](../exercises/lesson-09-tracing/README.md)分成五关。它没有要求你搭建 Collector，而是让一条 Trace 从“能接成树”逐步走到“可以安全决定是否导出”：
+
+```text
+A  用 trace_id、span_id 和 parent_span_id 接出运行路径
+B  分开保存调用状态、业务结果和耗时
+C  用 tool_call_id 与 execution_id 表示同一调用的多次尝试
+D  只导出白名单字段，敏感内容默认留在本地
+E  Trace 结束后再决定保留错误还是抽样成功记录
+```
+
+这五关都值得亲手完成。前三关决定 Trace 能不能正确还原运行过程；后两关决定记录离开本机时会不会泄密，以及故障证据会不会被过早删除。
 
 ```bash
-python -B exercises/lesson-09-tracing/starter.py --checkpoint-a
+python -B exercises/lesson-09-tracing/starter.py --checkpoint-e
 ```
 
 通过后会看到：
@@ -218,11 +230,26 @@ python -B exercises/lesson-09-tracing/starter.py --checkpoint-a
 trace_id=trace_demo
 span_count=3
 checkpoint A passed
+operation_status=ok
+business_outcome=failed
+duration_ms=125
+checkpoint B passed
+tool_call_count=1
+execution_count=2
+execution_span_count=2
+checkpoint C passed
+local_attribute_count=6
+exported_attribute_count=3
+sensitive_content_exported=false
+checkpoint D passed
+running_decision=pending
+error_retained=true
+unknown_retained=true
+successful_sample_retained=false
+checkpoint E passed
 ```
 
-值得亲手验证的是两个失败用例：重复 `span_id` 必须被拒绝，不存在的 `parent_span_id` 也必须被拒绝。
-
-OpenTelemetry Collector、批量发送、重试队列和 Trace UI 不值得在这本书里重新手写。生产项目应使用成熟 SDK 和 Backend。本课自己写一个小字典，只是为了看懂它们在保护什么关系。
+OpenTelemetry Collector、批量发送、重试队列和 Trace UI 不值得在这本书里重新手写。生产项目应使用成熟 SDK 和 Backend。这里亲手写的是 Agent 必须做对的判断，不是重新发明一套 Trace 平台。
 
 下一课会使用这些 Trace 判断 Agent 是否真的变好了。一次运行路径能够被看见之后，Evaluation 才能把相同任务重复执行、比较结果，并阻止旧能力悄悄退化。
 
@@ -249,7 +276,7 @@ OpenTelemetry Collector、批量发送、重试队列和 Trace UI 不值得在�
 5. 请求正常返回只证明调用过程完成，返回内容和业务目标仍可能失败。
 6. Transcript 负责模型上下文，Ledger 负责执行与恢复，Trace 负责诊断路径；Trace 不是外部副作用的权威回执。
 7. Span 通常经 Exporter 发往 Collector 或远端 Backend，而且许多项目默认关闭这条管道。
-8. Pi 让宿主自行选择是否记录和保存；OpenClaw提供配置好即可发送的标准 Exporter。
+8. Pi 让宿主自行选择是否记录和保存；OpenClaw 提供配置好即可发送的标准 Exporter。
 9. 任务开始时还不知道最终会不会失败；完成后采样才能按结果决定保留。
 10. Prompt、Response、Tool 参数与结果、Header、环境变量、文件和终端输出都可能含有秘密。
 
