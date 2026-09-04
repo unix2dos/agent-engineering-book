@@ -21,8 +21,12 @@ A transferable capability that changes how most Agent systems are designed, veri
 _Avoid_: Framework tour, feature catalogue, default-enabled feature
 
 **Curriculum Spine**:
-The Pareto-filtered path from tools and state through reliability, safety, minimal observability, evaluation, orchestration, long-running work, and production operation. Only the next three lessons are planned in detail; fast-changing frameworks and specialized capabilities remain evidence or optional branches.
+The Pareto-filtered path from deciding whether an Agent is needed through Runtime ownership, Tool Calling, persistence, Context, reliability, safety, minimal observability, evaluation, orchestration, long-running work, and production operation. The history chapter is an optional map, each main lesson owns one reader question, and only the next three lessons are planned in detail.
 _Avoid_: Framework catalogue, fixed encyclopedia, personal learning chronology
+
+**Topic Practice**:
+A focused exercise that supports one or more Core Lessons without claiming a separate place in the Curriculum Spine. The SQLite storage exercise is the current example: it connects persistence choices with reliability guarantees.
+_Avoid_: Core Lesson, standalone course, toy demo
 
 **Target Reader**:
 A reader who can use basic Python, Git, and the command line but has not studied Agent engineering systematically; the book does not assume prior knowledge of tool protocols, context management, persistence, evaluation, or sandboxing.

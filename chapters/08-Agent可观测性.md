@@ -1,4 +1,4 @@
-# 第 9 课：Agent Tracing——用 Trace 与 Span 还原一次运行
+# 第 8 课：Agent Tracing——用 Trace 与 Span 还原一次运行
 
 一次 Agent 任务结束后，屏幕只显示“执行失败”。你打开三份记录，看到的却是：
 
@@ -59,7 +59,7 @@ Span：这条路上的某一步做了什么？
 - 同一个 Trace 中，`span_id` 不能重复，否则两步会共享同一身份；
 - `parent_span_id` 必须指向真实父 Span，否则会出现找不到上级的孤儿节点。
 
-第 9 课练习采用单进程教学模型，要求先写父 Span，再写子 Span。真实的分布式收集器可能先收到子节点，稍后才收到父节点，所以会先接收乱序数据，再按 ID 还原关系。
+第 8 课练习采用单进程教学模型，要求先写父 Span，再写子 Span。真实的分布式收集器可能先收到子节点，稍后才收到父节点，所以会先接收乱序数据，再按 ID 还原关系。
 
 ## 3. Trace ID 为什么不能代替 Tool Call ID？
 
@@ -144,41 +144,21 @@ Collector / Tracing Backend 保存和查询
 
 让 Tracing 默认关闭或使用 No-op 很常见。这样至少可以避免在用户尚未选择存储位置时，就把 Prompt、Tool 参数和终端输出发出去；完整保存还会增加网络、存储和性能成本。默认关闭不代表它没用，而是把“是否记录、记录多少、发到哪里”留给运行者决定。
 
-## 7. 五个开源 Coding Agent 怎样实现？
+## 7. 为什么五个项目都有埋点，却仍可能看不到 Trace？
 
-这些项目都提供了某种 Tracing 能力，但边界并不相同。
+“项目支持 Tracing”可能只表示它定义了 Span 接口，也可能表示它能导出到远端，还可能只是提供一份本地调试记录。把五个项目放在一起，差别主要在“记录送到哪里”：
 
-### Codex：远程遥测与本地 Rollout Trace 分开
+| 项目 | 提供的路径 | 默认或本地表现 |
+| --- | --- | --- |
+| Codex | `codex-otel` 发送 OTLP；Rollout Trace 单独写本地 | 两条路径分开配置，本地记录可能包含敏感内容 |
+| OpenClaw | `diagnostics-otel` 插件发送 OTLP | Diagnostics、插件和 Endpoint 都启用后才导出 |
+| OpenCode | OTLP Exporter；Direct Mode 另有调试 JSONL | 调试 JSONL 不是标准 OpenTelemetry Span 仓库 |
+| Pi | `TelemetryContext`、Span Schema 和内存测试实现 | 默认是 No-op，不替宿主选择 Exporter |
+| Hermes | 可选 Langfuse 插件记录 Turn、LLM 与 Tool | Gateway 的 OTLP 诊断不能冒充完整任务 Trace |
 
-Codex 的 `codex-otel` 可以把日志、Trace 和指标发送到配置的 OTLP Backend。另一条 Rollout Trace 路径只在设置 `CODEX_ROLLOUT_TRACE_ROOT` 后启用，把 `trace.jsonl`、`payloads/*.json` 和可选的 `state.json` 写到本地。
+所以，源码里出现 `TelemetrySpan`，不等于磁盘会出现 `trace.jsonl`；找到一份 JSONL，也不等于它保存了标准 Span。判断时要继续追踪 Processor、Exporter 和 Backend。完整源码位置与固定版本见[本课一手资料复核](../research/08-tracing-source-verification.md)。
 
-Codex 源码特意强调：Rollout Trace 是本地诊断记录，不是上传遥测。它可能包含 Prompt、Tool 输入输出和终端内容，需要当作敏感文件处理。
-
-### OpenClaw：插件把运行事件送进 OTLP
-
-OpenClaw 通过可选的 `diagnostics-otel` 插件导出 Trace。只有 Diagnostics、插件和 OTLP 配置同时启用，Exporter 才会工作。Model Call、Harness 生命周期、Tool、Exec 和 Context Assembly 都可以成为 Span。
-
-数据通常发送到 OTLP Collector。它能把日志镜像为 stdout JSONL，但那是日志输出，不是默认的本地 Span 仓库。
-
-### OpenCode：标准 OTLP 加一条开发调试记录
-
-OpenCode `v1.18.27` 已提供 OTLP Trace Exporter。设置 `OTEL_EXPORTER_OTLP_ENDPOINT` 后，它会把 Span 发到该地址的 `/v1/traces`；AI SDK 的 Model Span 还由 `experimental.openTelemetry` 开关控制。
-
-OpenCode 另有一条仅供 Direct Interactive Mode 调试的 JSONL：设置 `OPENCODE_DIRECT_TRACE=1` 后，运行事件写入 `~/.local/share/opencode/log/direct/`。这条记录用于检查流式事件、权限与界面状态，不应和标准 OpenTelemetry Span 混为一谈。
-
-### Pi：先定义接口，不替宿主选择 Backend
-
-Pi 当前提供 `TelemetryContext`、`TelemetrySpan`、父子关系和一套 Agent Telemetry Schema。默认 Context 是 No-op，也就是调用照常执行，但不记录任何 Span。
-
-Pi 还提供只活在当前进程中的 `InMemoryTelemetryContext`，主要用于测试。它没有内置 Exporter，也不决定是否使用 OpenTelemetry、Sentry、日志或其他 Backend。因此 Pi 具备 Tracing 契约和部分 Harness 埋点，不等于 Pi CLI 默认会生成 Trace 文件；其跨进程传播等能力仍有一部分处于设计或实现阶段。
-
-### Hermes：用可选插件把 Turn、LLM 与 Tool 送到 Langfuse
-
-Hermes 内置但默认不启用 `observability/langfuse` 插件。启用并配置凭据后，它为每个 Turn 建立根观察记录，为每次 LLM Call 和 Tool Call 建立子记录，再发送到 Langfuse Cloud 或自建 Langfuse。
-
-Hermes 还有面向 Gateway Health 和 Diagnostic Event 的 OTLP Exporter。它们观察的是网关运行状况，不应被直接当成完整的 Agent 任务 Trace。
-
-五个项目放在一起，能看到一个共同选择：
+五个项目最后都保留了同一条边界：
 
 ```text
 Agent 核心逻辑可以在没有 Trace 的情况下运行
@@ -205,7 +185,7 @@ Tracing 接口尽量不影响业务结果
 
 ## 9. 工程边界：可观测性核心机制与平台底座的分工
 
-本课的[最小 Trace 练习](../exercises/lesson-09-tracing/README.md)分成五关。它没有要求你搭建 Collector，而是让一条 Trace 从“能接成树”逐步走到“可以安全决定是否导出”：
+本课的[最小 Trace 练习](../exercises/lesson-08-tracing/README.md)分成五关。它没有要求你搭建 Collector，而是让一条 Trace 从“能接成树”逐步走到“可以安全决定是否导出”：
 
 ```text
 A  用 trace_id、span_id 和 parent_span_id 接出运行路径
@@ -218,7 +198,7 @@ E  Trace 结束后再决定保留错误还是抽样成功记录
 这五关构成了 Agent 可观测性系统的最小可靠子集：前三关确立了树状因果链路与业务状态的正交性，确保故障能被精准回溯；后两关在数据出境与存储边界上建立了安全防线，防止凭据泄露并保留关键诊断证据。
 
 ```bash
-python -B exercises/lesson-09-tracing/starter.py --checkpoint-e
+python -B exercises/lesson-08-tracing/starter.py --checkpoint-e
 ```
 
 通过后会看到：
@@ -281,9 +261,9 @@ OpenTelemetry Collector 部署、异步批量刷盘、指数退避重试队列�
 
 ## 参考资料
 
-> 开源实现最后核验于 2026-09-04，完整记录见[第 9 课一手资料复核](../research/09-tracing-source-verification.md)。
+> 开源实现最后核验于 2026-09-04，完整记录见[第 8 课一手资料复核](../research/08-tracing-source-verification.md)。
 
-- [第 9 课最小 Trace 练习](../exercises/lesson-09-tracing/README.md)
+- [第 8 课最小 Trace 练习](../exercises/lesson-08-tracing/README.md)
 - [OpenTelemetry Traces](https://opentelemetry.io/docs/concepts/signals/traces/)
 - [Codex OpenTelemetry](https://github.com/openai/codex/blob/8e6a44b428e31f91b21edc97904fcdf4f0931ade/codex-rs/otel/README.md)
 - [Codex Rollout Trace](https://github.com/openai/codex/blob/8e6a44b428e31f91b21edc97904fcdf4f0931ade/codex-rs/rollout-trace/README.md)

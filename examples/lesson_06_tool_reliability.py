@@ -1,4 +1,4 @@
-"""Chapter 04: tool execution ledger, idempotency, and recovery."""
+"""Lesson 06: tool execution ledger, idempotency, and recovery."""
 
 import hashlib
 import json

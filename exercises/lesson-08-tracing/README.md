@@ -1,4 +1,4 @@
-# 第 9 课实践：把一次 Agent 运行组织成 Trace
+# 第 8 课实践：把一次 Agent 运行组织成 Trace
 
 Agent 完成一次任务后，你手里有 Model 日志、Tool 日志和执行账本。如果它们没有共同的身份和层级，只能逐行猜测哪些记录属于同一个任务。
 
@@ -44,7 +44,7 @@ status          当前步骤是否正常结束
 运行：
 
 ```bash
-python -B exercises/lesson-09-tracing/starter.py --checkpoint-a
+python -B exercises/lesson-08-tracing/starter.py --checkpoint-a
 ```
 
 函数尚未实现时会看到：
@@ -94,7 +94,7 @@ outcome=failed
 运行：
 
 ```bash
-python -B exercises/lesson-09-tracing/starter.py --checkpoint-b
+python -B exercises/lesson-08-tracing/starter.py --checkpoint-b
 ```
 
 函数尚未实现时会看到：
@@ -143,7 +143,7 @@ tool_call_id=call_write
 运行：
 
 ```bash
-python -B exercises/lesson-09-tracing/starter.py --checkpoint-c
+python -B exercises/lesson-08-tracing/starter.py --checkpoint-c
 ```
 
 函数尚未实现时会看到：
@@ -183,7 +183,7 @@ Trace 里可能同时存在两类字段：
 运行：
 
 ```bash
-python -B exercises/lesson-09-tracing/starter.py --checkpoint-d
+python -B exercises/lesson-08-tracing/starter.py --checkpoint-d
 ```
 
 函数尚未实现时会看到：
@@ -229,7 +229,7 @@ Trace 已结束，而且全部成功
 运行：
 
 ```bash
-python -B exercises/lesson-09-tracing/starter.py --checkpoint-e
+python -B exercises/lesson-08-tracing/starter.py --checkpoint-e
 ```
 
 函数尚未实现时会看到：

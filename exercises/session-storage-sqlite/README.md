@@ -1,10 +1,10 @@
-# 第 6 课实践：什么时候该从 JSONL 换成 SQLite
+# 专项实践：什么时候该从 JSONL 换成 SQLite
 
 假设 `session.jsonl` 已经写了十万行。程序重启后，你想找出所有最终状态为 `unknown` 的工具执行。
 
 JSONL 当然能查。但程序得从第一行读到最后一行，再按 `execution_id` 整理每次状态。偶尔查一次没问题；每次启动都查，代码就会慢慢长出索引、去重和锁。
 
-这一课不重写完整 Agent。我们只用 Python 自带的 `sqlite3` 做一件小事：同时保存“全部状态变化”和“每次执行的最新状态”。
+这个练习不重写完整 Agent。我们只用 Python 自带的 `sqlite3` 做一件小事：同时保存“全部状态变化”和“每次执行的最新状态”。它连接第 4 课的存储选择与第 6 课的可靠执行，但不单独占用一课。
 
 ```text
 execution_events              execution_state
@@ -39,7 +39,7 @@ Python 的 `database.executescript("""...""")` 可以一次执行多条建表语
 运行：
 
 ```bash
-python -B exercises/lesson-06-sqlite/starter.py --checkpoint-a
+python -B exercises/session-storage-sqlite/starter.py --checkpoint-a
 ```
 
 通过标志：
@@ -99,7 +99,7 @@ SET status = excluded.status
 运行：
 
 ```bash
-python -B exercises/lesson-06-sqlite/starter.py --checkpoint-b
+python -B exercises/session-storage-sqlite/starter.py --checkpoint-b
 ```
 
 通过标志：
@@ -147,7 +147,7 @@ ORDER BY execution_id
 运行：
 
 ```bash
-python -B exercises/lesson-06-sqlite/starter.py --checkpoint-c
+python -B exercises/session-storage-sqlite/starter.py --checkpoint-c
 ```
 
 通过标志：
@@ -195,7 +195,7 @@ ON CONFLICT(idempotency_key) DO NOTHING
 运行：
 
 ```bash
-python -B exercises/lesson-06-sqlite/starter.py --checkpoint-d
+python -B exercises/session-storage-sqlite/starter.py --checkpoint-d
 ```
 
 通过标志：
@@ -216,4 +216,4 @@ checkpoint D passed
 - 为什么 `PRIMARY KEY` 比应用里的“先查再写”更可靠；
 - 为什么同一个 `idempotency_key` 配上不同参数必须报冲突。
 
-这些关卡完成后，再把第 6 课 Blog 整理成正式书籍章节。
+这些关卡完成后，你应该能说明：JSONL 何时已经够用，SQLite 又是在什么读写压力下开始省事。然后把事务与唯一约束带回第 6 课的 Tool Reliability 场景，判断它们怎样约束真实副作用。

@@ -416,7 +416,7 @@ def main() -> None:
         checkpoint_a()
         return
     print(
-        "运行：python -B exercises/lesson-09-tracing/starter.py "
+        "运行：python -B exercises/lesson-08-tracing/starter.py "
         "--checkpoint-a、--checkpoint-b、--checkpoint-c、--checkpoint-d "
         "或 --checkpoint-e"
     )

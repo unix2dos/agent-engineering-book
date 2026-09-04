@@ -1,4 +1,4 @@
-# 第 9 课一手资料复核：Trace、Span 与 Agent 可观测性
+# 第 8 课一手资料复核：Trace、Span 与 Agent 可观测性
 
 > 核验时间：2026-09-04（Asia/Shanghai）。
 >

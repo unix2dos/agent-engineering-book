@@ -40,19 +40,19 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 前置：能读 Python、Git 和命令行
   |
   v
-阶段一：判断与行动                         已完成，第 0～3 课
+阶段一：判断与行动                         已完成，第 1～3 课；第 0 课选读
   |
   v
-阶段二：状态、可靠性与控制                 已完成，第 4～8 课
+阶段二：状态、可靠性与控制                 已完成，第 4～7 课
   |
   v
-阶段三：看见与验证                         第 9 课已完成，第 10 课下一步
+阶段三：看见与验证                         第 8 课已完成，第 9 课下一步
   |
   v
-第 11 课：Orchestration 与长任务
+第 10 课：Orchestration 与长任务
   |
   v
-第 12 课：Production Runtime
+第 11 课：Production Runtime
   |
   v
 综合项目：可验证、可恢复、可部署的 Workspace Agent
@@ -62,17 +62,17 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 
 ## 已完成的能力
 
-第 0～3 课解决 Agent 怎样行动：判断任务是否需要 Agent，区分 Model、Harness、Tool 和 Environment，亲手跑通 Tool Calling Loop，并正确处理 Tool Result 与停止条件。
+第 1～3 课解决 Agent 怎样行动：判断任务是否需要 Agent，区分 Model、Harness、Tool 和 Environment，亲手跑通 Tool Calling Loop，并正确处理 Tool Result 与停止条件。第 0 课只提供工程史地图，不是后续课程的前置要求。
 
-第 4～8 课解决 Agent 怎样保存和控制：Session、Transcript、Checkpoint、Memory、Context、JSONL、SQLite、Ledger、幂等、故障恢复、Approval、Permission 与 Sandbox 都已经通过文章和代码练习验证。
+第 4～7 课解决 Agent 怎样保存和控制：Session、Transcript、Checkpoint、Memory、Context、JSONL、SQLite、Ledger、幂等、故障恢复、Approval、Permission 与 Sandbox 都已经通过文章和代码练习验证。SQLite 是贯穿持久化与可靠性的专项实践，不再单独占用一课。
 
-第 9 课解决一次运行怎样被还原。它保留为支撑可靠工程的基础课，但不再扩展 Collector、完整 Tail Sampling 平台或可视化产品。
+第 8 课解决一次运行怎样被还原。它保留为支撑可靠工程的基础课，但不再扩展 Collector、完整 Tail Sampling 平台或可视化产品。
 
 按最终主线粗略估算：Runtime 基础约完成 90%，完整工程主线约完成 65%～70%，最终综合项目约完成一半。剩余差距集中在质量验证、长任务编排和生产运行。
 
-## 第 10 课：Agent Evaluation——如何证明 Agent 真的变好了？
+## 第 9 课：Agent Evaluation——如何证明 Agent 真的变好了？
 
-一次成功对话只能证明 Agent 这次没有失败。第 10 课要建立一个可以重复运行的小考场：
+一次成功对话只能证明 Agent 这次没有失败。第 9 课要建立一个可以重复运行的小考场：
 
 ```text
 固定任务
@@ -91,9 +91,9 @@ Recorded-session Replay 只作为进阶案例。它能固定过去的 Model 输�
 
 [Anthropic 的 Agent Eval 指南](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)把 Eval 拆成 Task、Trial、Transcript、Outcome 与 Grader；[OpenAI Agent Evals](https://developers.openai.com/api/docs/guides/agent-evals)也建议从单次失败记录走向可重复的 Dataset 和 Eval Run。课程只借用这套稳定关系，不绑定某个 Eval 平台。
 
-## 第 11 课：Agent Orchestration——Workflow、Routing 与长任务
+## 第 10 课：Agent Orchestration——Workflow、Routing 与长任务
 
-一个 Agent 能完成短任务，不代表它适合把所有步骤都交给 Model 决定。第 11 课先把确定部分收回代码，再处理真正需要动态选择的部分：
+一个 Agent 能完成短任务，不代表它适合把所有步骤都交给 Model 决定。第 10 课先把确定部分收回代码，再处理真正需要动态选择的部分：
 
 - Workflow 固定哪些步骤；
 - Routing 怎样选择模型、工具或处理分支；
@@ -104,9 +104,9 @@ Recorded-session Replay 只作为进阶案例。它能固定过去的 Model 输�
 
 这一课不会把 Multi-Agent 当成单 Agent 的升级版。只有 Evaluation 已经证明单 Agent 的失败来自职责过多、需要并行或任务持续时间太长，才增加另一个 Agent。
 
-## 第 12 课：Production Runtime——并发、队列与持续运行
+## 第 11 课：Production Runtime——并发、队列与持续运行
 
-本机运行成功之后，还要面对同时到来的 Session、Provider 限流、进程重启和版本发布。第 12 课只保留上线最常遇到的系统问题：
+本机运行成功之后，还要面对同时到来的 Session、Provider 限流、进程重启和版本发布。第 11 课只保留上线最常遇到的系统问题：
 
 - 多 Session 并发与隔离；
 - 队列、积压时减慢或拒绝新任务的 Backpressure，以及取消；
@@ -124,9 +124,9 @@ Recorded-session Replay 只作为进阶案例。它能固定过去的 Model 输�
 
 ```text
 现有 Tool Loop、Session、Ledger 与 Sandbox
-+ 第 10 课的任务集和回归检查
-+ 第 11 课的 Workflow、后台任务与取消
-+ 第 12 课的并发、配置、健康检查和部署
++ 第 9 课的任务集和回归检查
++ 第 10 课的 Workflow、后台任务与取消
++ 第 11 课的并发、配置、健康检查和部署
 = 一份可以演示、解释和继续维护的项目
 ```
 
@@ -159,7 +159,7 @@ RAG 与 MCP 可以在 Workspace Agent 真正需要知识检索或外部能力时
 
 ## 路线怎样维护
 
-README 展示完整主线，`SUMMARY.md` 只列已经存在的课程。当前只详细规划第 10～12 课，不创建空章节。
+README 展示完整主线，`SUMMARY.md` 只列已经存在的课程。当前只详细规划第 9～11 课，不创建空章节。
 
 旧章节只在出现真实读者卡点、示例失败、主要源码变化，或后续课程暴露矛盾时重新打开。一个新框架或醒目的产品功能，不会单独触发全书重写。
 

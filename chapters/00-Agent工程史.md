@@ -1,36 +1,10 @@
 # 第 0 课：Agent 工程史——从工具循环到可靠运行时
 
-你让 Model“读取 `report.txt` 并总结”。它能理解要求，却碰不到这份文件。真正打开文件的，是 Model 外面那段负责执行和回传结果的程序，也就是 Harness。
+2023 年 3 月，早期 Auto-GPT 已经能让 Model 连续选择搜索、网页摘要和记忆操作。每走一步，程序都会停下来等人批准。[最早 Prompt](https://github.com/Significant-Gravitas/AutoGPT/commit/b099adcb0830ab00c003749c2ae2cf0f5ec5524a)、[早期循环](https://github.com/Significant-Gravitas/AutoGPT/commit/68640a58640156398aea344da21683a5f7f27487)
 
-最小循环只有几步：
+这套原型今天看起来很简单，却一下暴露了后续几年一直在解决的问题：循环可能失控，历史会越来越长，工具可能越权，程序崩溃后还可能重复执行动作。
 
-```python
-history = [user_message]
-
-while True:
-    reply = model(history)
-    history.append(reply)
-
-    if not reply.tool_calls:
-        return reply.final
-
-    for call in reply.tool_calls:
-        result = host_execute(call)
-        history.append(result)
-```
-
-这段伪代码能跑一次工具，却回答不了很多问题：参数错了怎么办？循环停不下来怎么办？历史放不下怎么办？程序崩溃后能否继续？工具是否重复执行？谁允许它删除文件？Agent 工程的各层，正是沿着这些缺口长出来的。
-
-```text
-生成文本
-→ 调用工具
-→ 连续行动
-→ 结构化协议
-→ 真实任务评测
-→ Context 与执行状态管理
-→ 跨实现互操作
-→ 处理权限、副作用与恢复
-```
+Agent 工程并不是某个框架一次设计出来的。每当 Agent 多获得一种能力，系统就会遇到一种新的失败；下一层工程，往往就是为了补住这个失败。
 
 ## 1. Agent 问题早于大模型
 
@@ -40,136 +14,102 @@ while True:
 
 这些研究提出了今天仍会遇到的问题，却不是 LLM Agent 的直接代码祖先。经典系统主要依赖手工规则和计划，今天的 LLM Agent 主要依赖生成模型、Context 和工具调用。
 
-## 2. 2022～2023：模型开始边行动边观察
+## 2. 2022～2023：模型开始边做边看
 
-模型先做一步，看见外部结果，再调整下一步。ReAct 把这个过程组织成推理、行动和观察交替出现的轨迹。[ReAct v3](https://arxiv.org/abs/2210.03629v3)
+ReAct 把一次任务组织成推理、行动和观察交替出现的轨迹：先做一步，看见外部结果，再调整下一步。[ReAct v3](https://arxiv.org/abs/2210.03629v3)
 
-Agent Loop 不一定使用 ReAct，也不要求把 Model 的内部思考公开给用户。现代 Model 可以直接返回结构化 Tool Call，由 Harness 驱动同样的循环。
-
-另一个问题是：Model 能不能在训练时学会什么时候调用 API、参数怎样填、结果怎样继续使用？研究这种训练方法的工作叫 Toolformer。它不是一个可以持续执行任务的 Agent Runtime。[Toolformer v1](https://arxiv.org/abs/2302.04761v1)
-
-两者可以这样记：
+Toolformer 研究的是另一个问题：能不能在训练时让 Model 学会何时调用 API、参数怎样填、结果怎样继续使用。它不是一个可以持续执行任务的 Agent Runtime。[Toolformer v1](https://arxiv.org/abs/2302.04761v1)
 
 ```text
 ReAct      研究运行时怎样边做边看
 Toolformer 研究训练时怎样学会使用工具
 ```
 
-Auto-GPT 在 2023 年 3 月从一份“长期目标加工具”的 Prompt，很快变成可以公开运行的连续命令循环。到 3 月 28 日，源码已经能让 Model 反复选择搜索、网页摘要和内存操作，并在每一步等待人工授权。浏览器操作和子实例当时还没有完成。[最早 Prompt](https://github.com/Significant-Gravitas/AutoGPT/commit/b099adcb0830ab00c003749c2ae2cf0f5ec5524a)、[早期循环](https://github.com/Significant-Gravitas/AutoGPT/commit/68640a58640156398aea344da21683a5f7f27487)
+Auto-GPT 把“让 Model 持续决定下一步”真正放进公开可运行的代码。循环失控、费用、权限和崩溃恢复也因此从边缘问题变成了工程问题。
 
-这个原型把“让 Model 持续决定下一步”真正放进了代码。循环失控、费用、权限和崩溃恢复也因此从边缘问题变成工程主线。
+同年 6 月，OpenAI Function Calling 让开发者先给 Model 一份函数说明。Model 可以返回结构化的工具名和参数，应用不必再从普通文字里猜它想调用什么。[OpenAI Function Calling 公告](https://openai.com/index/function-calling-and-other-api-updates/)
 
-同年 6 月，OpenAI Function Calling 让开发者先给 Model 一张函数说明书。Model 不再用普通文字说“请查天气”，而是返回结构化的工具名和参数。这减少了程序猜测命令的麻烦，但真正执行工具的仍是应用。[OpenAI Function Calling 公告](https://openai.com/index/function-calling-and-other-api-updates/)
+结构化调用解决了“怎样表达申请”，没有解决“谁执行、能否执行、执行后怎样恢复”。这条边界会在第 1～3 课逐步展开。
 
-因此，最小循环要补上第一条责任边界：
+## 3. 2023～2024：Coding Agent 需要真实试卷
 
-```text
-Model   提出调用什么工具、传什么参数
-Harness 校验、授权、执行，再把结果交还模型
-```
+Agent 能修改代码以后，只看一段回答已经不够了。SWE-bench 把真实 GitHub Issue 与对应修复整理成评测任务，检查 Agent 能否理解仓库、修改文件并让测试通过。[SWE-bench v3](https://arxiv.org/abs/2310.06770v3)
 
-Tool Call 是一张调用申请单，不是工具已经执行的证明。
+SWE-agent 研究的是参加这场考试的系统。Agent 使用什么仓库导航、编辑命令、错误反馈和测试接口，会直接改变表现。这套 Agent 与计算机打交道的界面叫 Agent-Computer Interface。[SWE-agent v3](https://arxiv.org/abs/2405.15793v3)
 
-## 3. 2023～2024：Coding Agent 变成可测系统
+于是，人们开始认真对待 Model 外面的程序。工具只返回 `failed`，和返回错误行、堆栈、退出码，会让同一个 Model 走出完全不同的下一步。
 
-Agent 能修改代码以后，人们需要一张可以重复使用的试卷。SWE-bench 把真实 GitHub Issue 与对应修复整理成评测任务。它不再问“Model 能否写一段代码”，而是问 Agent 能否理解仓库、修改文件并让测试通过。[SWE-bench v3](https://arxiv.org/abs/2310.06770v3)
+## 4. 长任务逼出了状态和 Context 管理
 
-SWE-agent 则研究参加这场考试的系统。Agent 使用什么仓库导航、编辑命令、错误反馈和测试接口，会直接改变它的表现。这套 Agent 与计算机打交道的界面叫 Agent-Computer Interface。[SWE-agent v3](https://arxiv.org/abs/2405.15793v3)
+循环变长以后，所有历史不可能永远塞进 Model 的窗口。程序必须决定哪些内容现在给 Model 看，哪些只留在外部存储。MemGPT 把这种做法类比成计算机管理内存；后来人们更常把“这一轮到底该给 Model 看什么”叫作 Context Engineering。[MemGPT v2](https://arxiv.org/abs/2310.08560v2)、[Anthropic Context Engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
 
-这也说明 Harness 不是模型旁边无关紧要的胶水。工具只返回 `failed`，和返回错误行、堆栈、退出码，会让同一个模型走出完全不同的下一步。工具接口会改变模型能做什么，也会改变它能看见什么。
+任务还可能跨进程、跨时间继续。LangGraph 把任务拆成可以循环连接的步骤，并用 Checkpointer 保存步骤状态，程序因此可以中断后继续，也可以停下来等待人工确认。[LangGraph v0.2](https://blog.langchain.com/langgraph-v0-2/)
 
-## 4. 长任务迫使系统管理 Context 与状态
+但保存进度不等于记录外部动作。邮件可能已经发出，程序却在写下“成功”前崩溃。恢复点只能说明本地最后保存到了哪里，不能证明邮件究竟发了几次。
 
-循环变长以后，所有历史不可能永远塞进 Model 的窗口。程序必须决定哪些内容现在放到 Model 面前，哪些留在外部存储。MemGPT 把这种做法类比成计算机管理内存；后来人们更常把“这一轮到底该给 Model 看什么”叫作 Context Engineering。[MemGPT v2](https://arxiv.org/abs/2310.08560v2)、[Anthropic Context Engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
-
-这时三个经常混淆的对象开始分开：
-
-```text
-Context    模型这一次真正看见的内容
-Session    以 session_id 标识的一段会话
-Checkpoint 程序走到某处时留下的状态存档
-```
-
-LangGraph 把任务拆成可以循环连接的步骤，并用 Checkpointer 保存步骤状态。程序因此可以中断后继续，也可以停下来等待人工确认。[LangGraph v0.2](https://blog.langchain.com/langgraph-v0-2/)
-
-但 Checkpoint 无法证明外部副作用只发生过一次。邮件可能已经发出，程序却在落盘“成功”前崩溃；恢复点只能说明本地状态存到了哪里，无法证明外部动作的真实发生次数。
-
-## 5. 2024～2025：连接工具与连接 Agent 分成两层
+## 5. 连接工具与连接 Agent 分成两层
 
 同一个天气工具如果要分别适配五种 Agent 应用，就会出现五套连接代码。MCP 在 2024 年提出一套共同的连接方式，让 Agent 应用可以发现和调用外部 Tool、Resource 与 Prompt。[MCP 发布公告](https://www.anthropic.com/news/model-context-protocol)
 
-一句话定位：**MCP 连接 Agent 应用与外部能力。**
-
-MCP 后来的规范已经和 2024 年首发版本不同。工程史只需理解它解决了哪层连接问题；实际工程落地时，再查阅当前稳定规范，不要照抄旧教程。[MCP Changelog](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/2026-07-28/docs/specification/2026-07-28/changelog.mdx#L10-L28)
-
-如果不是调用本地工具，而是把子任务派发给另一个远程系统，就进入了另一层连接。A2A 让不同服务器、厂商或框架里的 Agent 互相发现能力、交换消息并协同作业。[A2A 发布公告](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/)
+如果不是调用工具，而是把子任务派发给另一个远程系统，就进入另一层连接。A2A 让不同服务器、厂商或框架里的 Agent 互相发现能力、交换消息并协同作业。[A2A 发布公告](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/)
 
 ```text
 Agent 连接文件、数据库或搜索工具   看 MCP
 Agent 把任务派发给另一个远程系统   看 A2A
 ```
 
-无论 MCP 还是 A2A，都不能代替 Harness。连接成功只代表“具备调用通道”，并不代表“本次应该调用”，更不负责本地执行循环、Context 调度与故障恢复。
+连接成功只代表通道存在。它没有决定本次是否应该调用，也没有自动解决权限、状态和故障恢复。
 
-## 6. 今天：可靠性成为独立工程层
+## 6. 今天：能行动以后，还要能够负责
 
-现代 Agent SDK 开始把循环、任务转交、输入输出检查、运行记录和会话管理打包起来。但一个能持续调用工具的系统仍要回答：谁批准动作？进程最多能访问什么？崩溃以后怎样恢复？同一个请求会不会执行两次？[OpenAI Agents SDK](https://github.com/openai/openai-agents-python)
+把这些变化放在一起，会看到一条比产品发布时间更稳定的路线：
 
-把前面的缺口叠起来，可以得到后续课程的责任地图：
+右栏里的术语现在不用记。先看清每种新能力暴露了什么问题，后面的课程会在真正用到时再解释名字。
 
-| 层 | 主要回答的问题 |
-|---|---|
-| Tool Calling | 模型想调用什么？参数是什么？ |
-| Agent Loop | 谁执行工具、回传结果并决定是否继续？ |
-| Context / Memory | 这一次给模型看什么？哪些信息跨轮次或跨 Session 保留？ |
-| Session / Checkpoint | 重启以后怎样恢复对话或工作流状态？ |
-| MCP / A2A | 外部能力和远程 Agent 怎样跨实现连接？ |
-| Approval / Sandbox | 谁同意这次动作？操作系统强制限制它最多能做什么？ |
-| Idempotency / Ledger（执行账本） | 怎样证明动作发生过几次？状态不明时能否安全重试？ |
-| Trace / Evaluation | 怎样回看一次运行？怎样比较一批任务是否变好？ |
+| 新能力 | 随之出现的问题 | 后续工程 |
+| --- | --- | --- |
+| Model 能申请工具 | 申请怎样变成真实执行？ | Tool Calling Loop 与 Runtime |
+| Agent 能连续行动 | 历史放不下，重启后进度丢失 | Session、Context 与 Checkpoint |
+| Tool 能修改真实世界 | 崩溃后不知道动作是否完成 | Idempotency 与 Ledger |
+| Agent 能运行命令 | 用户批准后仍可能越界 | Permission 与 Sandbox |
+| 系统可以长时间运行 | 失败发生在哪一步？改动是否真的变好？ | Trace 与 Evaluation |
 
-这些层不是某个框架一次发明出来的。人们把 API、数据库、安全和评测中的成熟做法接到最小工具循环上，一层层补住新出现的问题。
+这些做法大多不是 Agent 领域凭空发明的。人们把 API、数据库、安全和测试中的成熟办法接到工具循环上，一层层补住新失败。
 
-一个系统可以同时拥有 Function Calling、MCP 和 Checkpoint：它能申请工具、连接工具，也能保存进度。但没有 Approval、Sandbox、幂等和 Ledger，它仍可能越权修改文件，或在崩溃后重复发送邮件。
+所以，这段历史真正要留下的不是年份，而是一条判断：
 
-所以，本章真正要记住的不是年份，而是一条判断：
+> Agent 每向现实世界多走一步，运行它的程序就必须多承担一层可验证的责任。
 
-> Agent 每向现实世界多走一步，Harness 就必须多承担一层可验证的责任。
+## 7. 怎样使用这张地图？
 
-## 7. 怎样使用这张历史地图？
+以后看到一个新框架或协议，先问它补的是哪种缺口：让 Model 表达调用、保存任务状态、限制执行边界，还是判断系统有没有变好。
 
-看到一个新框架或协议时，先看它在补哪一层的缺口：是让模型申请工具，还是限制权限、保存状态、避免重复执行，或是度量系统质量？
+如果一个项目只展示“可以调用很多工具”，却没有说明停止、恢复、权限和验证，不要把缺少的部分自动脑补出来。后面的课程会按照上表的顺序，把这些责任逐层放回一个可以运行的 Agent。
 
-最值得亲手实践的，是写出章首的最小工具循环，并明确划出 Model 与 Harness 各自的责任边界。经典理论只需理解其演进动机，具体代码落地时务必查阅当前最新的稳定规范与一手文档。
+想沿主线学习，可以从[第 1 课：Agent 基础](01-Agent基础.md)开始。
 
 ## 主动回忆
 
 先合上正文，口头回答：
 
-1. 为什么 Agent 工程史不适合写成产品发布时间表？
-2. 最小 Tool Calling Loop 中，Model 与 Harness 分别负责什么？
-3. Agent Loop 是否必须使用 ReAct？
-4. ReAct 与 Toolformer 分别解决什么问题？
-5. SWE-bench 与 SWE-agent 有什么区别？
-6. 为什么工具接口会改变同一个模型的表现？
-7. Context、Session 与 Checkpoint 分别是什么？
-8. MCP 与 A2A 分别连接谁？它们为什么不能代替 Harness？
-9. 为什么 Checkpoint 不能证明邮件只发送了一次？
-10. Function Calling、Checkpoint、Sandbox、Ledger 与 Evaluation 分别补哪个缺口？
+1. 为什么 Agent 工程史不适合只写成产品发布时间表？
+2. ReAct 与 Toolformer 分别研究什么？
+3. SWE-bench 与 SWE-agent 有什么区别？
+4. 为什么工具接口会改变同一个 Model 的表现？
+5. MCP 与 A2A 分别连接什么？
+6. 为什么 Checkpoint 不能证明邮件只发送了一次？
+7. Agent 获得行动能力后，为什么还需要可靠性、安全和评测？
 
 <details>
 <summary>检查简答</summary>
 
-1. 稳定主线是“新能力暴露新缺口，下一层工程再补上”，不是项目热度。
-2. Model 提出工具名和参数；Harness 校验、授权、执行、回传，并控制循环。
-3. 不必须。ReAct 是经典的推理—行动组织方式，现代 Tool Calling Loop 可以直接处理结构化调用。
-4. ReAct 研究运行时怎样边做边看；Toolformer 研究训练时怎样学会选择工具。
-5. SWE-bench 是真实仓库任务的评测试卷；SWE-agent 是参加评测的 Agent 系统。
-6. 工具决定模型能采取哪些动作，也决定它能得到哪些环境证据。
-7. Context 是本次 Model 可见内容；Session 是一段会话的容器；Checkpoint 是程序走到某处时留下的状态存档。
-8. MCP 连接外部能力；A2A 连接远程 Agent；Harness 负责本地 Loop、策略、Context 和执行控制。
-9. 外部动作可能成功，但进程在成功状态写盘前崩溃；恢复点只记录本地已知状态。
-10. 它们依次处理结构化调用、状态恢复、强制边界、执行事实与系统质量判断。
+1. 更稳定的主线是“新能力暴露新失败，下一层工程再补住它”，不是项目热度。
+2. ReAct 研究运行时怎样边做边看；Toolformer 研究训练时怎样学会选择工具。
+3. SWE-bench 是真实仓库任务的评测试卷；SWE-agent 是参加评测的 Agent 系统。
+4. 工具决定 Model 能采取哪些动作，也决定它能得到哪些环境证据。
+5. MCP 连接 Agent 应用与外部能力；A2A 连接不同系统中的远程 Agent。
+6. 外部动作可能已经成功，但进程在成功状态写盘前崩溃。
+7. 能行动只说明系统具备能力；可靠性、安全和评测分别约束动作怎样恢复、最多能做什么，以及改动是否有效。
 
 </details>
 

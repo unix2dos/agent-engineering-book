@@ -346,7 +346,7 @@ def main() -> None:
         return
     print(
         "从第一关开始：python -B "
-        "exercises/lesson-08-safety/starter.py --checkpoint-a"
+        "exercises/lesson-07-safety/starter.py --checkpoint-a"
     )
 
 

@@ -1,4 +1,4 @@
-# 第 8 课实践：批准执行，不等于安全执行
+# 第 7 课实践：批准执行，不等于安全执行
 
 Agent 在 Workspace 中运行：
 
@@ -31,7 +31,7 @@ Shell 从 `workspace/` 启动，再尝试读取相邻的 `outside-secret.txt`。
 运行：
 
 ```bash
-python -B exercises/lesson-08-safety/starter.py --checkpoint-a
+python -B exercises/lesson-07-safety/starter.py --checkpoint-a
 ```
 
 预期输出：
@@ -90,7 +90,7 @@ Tool Policy 禁止 write_file
 运行：
 
 ```bash
-python -B exercises/lesson-08-safety/starter.py --checkpoint-b
+python -B exercises/lesson-07-safety/starter.py --checkpoint-b
 ```
 
 完成后应看到：
@@ -135,7 +135,7 @@ Tool 可见，而且用户批准
 运行：
 
 ```bash
-python -B exercises/lesson-08-safety/starter.py --checkpoint-c
+python -B exercises/lesson-07-safety/starter.py --checkpoint-c
 ```
 
 完成后应看到：
@@ -163,7 +163,7 @@ Approval 是 Harness 的决定；Permission 是进程真实拥有的能力。用
 运行：
 
 ```bash
-python -B exercises/lesson-08-safety/starter.py --checkpoint-d
+python -B exercises/lesson-07-safety/starter.py --checkpoint-d
 ```
 
 在普通 macOS/Linux 用户下应看到：
@@ -198,7 +198,7 @@ macOS Sandbox Backend
 运行：
 
 ```bash
-python -B exercises/lesson-08-safety/starter.py --checkpoint-e
+python -B exercises/lesson-07-safety/starter.py --checkpoint-e
 ```
 
 在支持 `sandbox-exec` 的 macOS 上应看到：
@@ -245,7 +245,7 @@ Elevated 表示“这一次已获准调用是否离开外层 Sandbox，改到 Ho
 运行：
 
 ```bash
-python -B exercises/lesson-08-safety/starter.py --checkpoint-f
+python -B exercises/lesson-07-safety/starter.py --checkpoint-f
 ```
 
 完成后应看到：
@@ -264,7 +264,7 @@ checkpoint F passed
 ```text
 应用内决策：Tool Policy -> Approval -> Backend / Elevated
 操作系统执行：当前进程 Permission + Sandbox 规则
-执行后记录：Tool Result + 第 7 课 Ledger
+执行后记录：Tool Result + 第 6 课 Ledger
 ```
 
 这套练习没有实现生产 Sandbox。它只验证每一层回答的问题不同，以及应用决策最终必须落到操作系统能够强制的执行 Backend。

@@ -282,7 +282,7 @@ def main() -> None:
         return
     print(
         "从第一关开始：python -B "
-        "exercises/lesson-06-sqlite/starter.py --checkpoint-a"
+        "exercises/session-storage-sqlite/starter.py --checkpoint-a"
     )
 
 

@@ -1,8 +1,8 @@
 # 阶段一～二综合实践：可靠的 Workspace Agent
 
-这次不再新增一份完整 Agent 实现。[`lesson_07_tool_reliability.py`](../../examples/lesson_07_tool_reliability.py) 已经包含 Tool、Context、Compaction、Ledger 与恢复，继续复制只会产生两套答案。
+这次不再新增一份完整 Agent 实现。[`lesson_06_tool_reliability.py`](../../examples/lesson_06_tool_reliability.py) 已经包含 Tool、Context、Compaction、Ledger 与恢复，继续复制只会产生两套答案。
 
-综合实践采用另一种方式：从一个很小的 starter 开始，你亲手补上核心控制逻辑；每通过一关，再接入现有代码中的一层能力。`lesson_07_tool_reliability.py` 只在完成当前尝试后用于对照。
+综合实践采用另一种方式：从一个很小的 starter 开始，你亲手补上核心控制逻辑；每通过一关，再接入现有代码中的一层能力。`lesson_06_tool_reliability.py` 只在完成当前尝试后用于对照。
 
 ## 最终目标
 
@@ -28,7 +28,7 @@
 3. **Transcript 与 Prompt View**：完整历史和模型可见视图分离。
 4. **Ledger 与幂等**：执行尝试、终态、`unknown` 与重试身份。
 5. **故障注入**：在副作用之后、回执之前模拟崩溃。
-6. **接入 Trace**：作为第 9 课的真实观察对象。
+6. **接入 Trace**：作为第 8 课的真实观察对象。
 
 ## 第一关：你现在要写什么
 
