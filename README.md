@@ -79,6 +79,8 @@ export OPENAI_BASE_URL="https://provider.example/v1"
 
 [第 8 课安全边界练习](exercises/lesson-08-safety/README.md)先证明 `cwd=workspace` 不是 Sandbox，再逐层加入 Tool Policy、Approval、执行 Backend 与 Elevated。
 
+[第 9 课 Trace 练习](exercises/lesson-09-tracing/README.md)先把一次 Agent Run 组织成具有共同 `trace_id` 和父子关系的 Span。
+
 这些代码是教学实现，不宣称覆盖生产系统的并发、分布式事务、租户隔离和高可用要求。
 
 ## 单一真实源（SSOT）与发布规范
