@@ -75,9 +75,9 @@ Shell 是通用执行入口。允许它以后，文件重定向、Python 脚本�
 Tool Policy 通过以后，Harness 还可以针对某一次调用询问用户。这叫 **Approval**：
 
 ```text
-Tool 不可见 -> denied_by_policy，不询问，也不执行
-Tool 可见，但用户拒绝 -> rejected，不执行
-Tool 可见，而且用户批准 -> 才进入执行阶段
+Tool 不可见 → denied_by_policy，不询问，也不执行
+Tool 可见，但用户拒绝 → rejected，不执行
+Tool 可见，而且用户批准 → 才进入执行阶段
 ```
 
 这里有明确的优先关系：Approval 不能复活已经被 Policy 禁止的 Tool。否则系统一边说“这个能力不允许出现”，一边又弹窗问“要不要允许”，边界就互相打架了。
@@ -105,8 +105,8 @@ os_read=false
 命令通过 Policy 和 Approval 后，Harness 还要选择在哪里启动它：
 
 ```text
-Host Backend     -> 直接继承宿主进程的权限
-Sandbox Backend  -> 先套上 OS、容器或 VM 规则，再启动命令
+Host Backend     → 直接继承宿主进程的权限
+Sandbox Backend  → 先套上 OS、容器或 VM 规则，再启动命令
 ```
 
 练习在 macOS 上使用系统命令 `/usr/bin/sandbox-exec`，给同一条 `cat` 加一条最小 Seatbelt 规则：只禁止读取测试用的 `outside-secret.txt`。
@@ -116,7 +116,7 @@ Sandbox Backend  -> 先套上 OS、容器或 VM 规则，再启动命令
 ```python
 profile = """(version 1)
 (allow default)
-(deny file-read-data (literal \"/tmp/.../outside-secret.txt\"))
+(deny file-read-data (literal "/tmp/.../outside-secret.txt"))
 """
 
 subprocess.run([
@@ -163,7 +163,7 @@ Elevated 不会自动获得 `root`，不会永久关闭后续 Sandbox，也不�
 更准确的全流程是：
 
 ```text
-应用内决策：Tool Policy -> Approval -> Backend / Elevated
+应用内决策：Tool Policy → Approval → Backend / Elevated
 操作系统执行：当前用户 Permission + Sandbox 规则
 执行后记录：Tool Result + Ledger
 ```
@@ -184,9 +184,9 @@ Permission 与 Sandbox 不是两个依次运行的 `if`。Harness 选好 Backend
 
 ```text
 curl 发起连接
--> Sandbox 隔离网络，或者强制流量经过 Proxy
--> Proxy / Firewall 检查目标
--> 允许或拒绝
+→ Sandbox 隔离网络，或者强制流量经过 Proxy
+→ Proxy / Firewall 检查目标
+→ 允许或拒绝
 ```
 
 文件规则也一样。禁止 `write_file` 是入口策略；只读挂载、Seatbelt、Bubblewrap、受限 Token、容器或 VM 才可能成为机器强制的边界。
@@ -206,9 +206,9 @@ Pi 当前安全文档明确说明：内置 Tool 和扩展默认拥有启动 Pi �
 OpenClaw 把它们拆得很清楚：
 
 ```text
-Tool Policy -> 哪些 Tool 可用
-Sandbox     -> Tool 在 Host 还是受限 Backend 运行
-Elevated    -> 某次 exec 能否离开普通 Sandbox
+Tool Policy → 哪些 Tool 可用
+Sandbox     → Tool 在 Host 还是受限 Backend 运行
+Elevated    → 某次 exec 能否离开普通 Sandbox
 ```
 
 它也明确指出：禁止 `write`、`edit` 不会让获准的 `exec` 自动只读。更高层要求强制 Sandbox 时，Elevated 不能绕过，而且 Sandbox 无法创建就应拒绝执行。
@@ -237,10 +237,10 @@ OpenSandbox 不是 Agent，也不是某一种隔离技术。它把“创建隔�
 
 ```text
 Agent / Harness
--> SDK、CLI 或 MCP
--> OpenSandbox Server
--> Docker 或 Kubernetes
--> Sandbox 内的 execd 执行命令
+→ SDK、CLI 或 MCP
+→ OpenSandbox Server
+→ Docker 或 Kubernetes
+→ Sandbox 内的 execd 执行命令
 ```
 
 `execd` 是放在 Sandbox 内的小服务。外面的 Harness 不直接在 Host 上运行命令，而是把请求交给它。OpenSandbox 还可以强制让出站流量经过旁路代理（Egress Sidecar），并把真实密钥保存在 Sandbox 外，请求发出时才注入（Credential Vault）。这样 Agent 读到的环境变量和文件里不必出现真实密钥。
@@ -249,15 +249,17 @@ Agent / Harness
 
 E2B 在本章中用来观察远程 Firecracker microVM；OpenSandbox 则展示另一种设计：同一套 API 后面可以替换 Docker、Kubernetes 和更强的隔离运行方式。两者都只解决执行环境，不替 Harness 负责 Tool Policy、Approval 和 Ledger。
 
-## 10. 这部分代码该亲手写多少？
+## 10. 工程边界：应用层控制流与底座隔离机制的分工
 
-本课的[安全边界练习](../exercises/lesson-08-safety/README.md)分成三类：
+本课的[安全边界练习](../exercises/lesson-08-safety/README.md)区分了三层不同的掌握深度：
 
-- **必须亲手写一次**：Tool Policy、Approval、Elevated 的判断顺序；
-- **必须亲手运行一次**：`cwd` 越界、OS Permission 拒绝、Host 与 Seatbelt 的结果差异；
-- **只需读懂边界**：Seatbelt 规则转义、Bubblewrap 参数、容器编排和 microVM 实现。
+- **必须亲手实现**：Tool Policy、Approval、Backend 路由与 Elevated 的严密判定次序（应用层决策不变量）；
+- **必须亲手验证**：`cwd` 越界、操作系统 Permission 拦截、Host 与 Seatbelt 的行为差异（用失败用例检验边界）；
+- **理解机制即可**：Seatbelt Profile 规则转义、Bubblewrap 挂载参数、容器编排与 microVM 宿主实现。
 
-没有必要为了学习 Agent 重写一套操作系统 Sandbox。你需要能解释它保护什么、没有保护什么，并用一次真实失败证明命令确实进入了那个边界。
+没有必要为了构建 Agent 去重新发明一套操作系统沙箱。工程上的关键能力在于：精确定义每一层机制保护什么、放行什么，并能设计正交的失败用例，证明不可信命令在预期的边界被硬性拦截。
+
+下一课将进入阶段三“看见与改进”：当命令能够安全且可靠地运行后，系统需要回答“一次运行到底经历了什么”——通过 [第 9 课 Trace 练习](../exercises/lesson-09-tracing/README.md) 建立统一的 Span 树与端到端观测链路。
 
 ## 主动回忆
 

@@ -12,7 +12,20 @@ def append_span(
     status: str,
 ) -> None:
     """TODO: 检查点 A。校验 Span 身份和父节点，再追加到 Trace。"""
-    raise NotImplementedError("请实现 append_span")
+    if any(span["span_id"] == span_id for span in trace["spans"]):
+        raise ValueError(f"重复 span_id：{span_id}")
+    if parent_span_id is not None and not any(
+        span["span_id"] == parent_span_id for span in trace["spans"]
+    ):
+        raise ValueError(f"父 Span 不存在：{parent_span_id}")
+
+    trace["spans"].append({
+        "trace_id": trace["trace_id"],
+        "span_id": span_id,
+        "parent_span_id": parent_span_id,
+        "name": name,
+        "status": status,
+    })
 
 
 def checkpoint_a() -> None:

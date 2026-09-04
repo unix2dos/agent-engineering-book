@@ -71,8 +71,8 @@ JSONL 也能自己设计提交标记、锁和恢复流程。但当程序经常�
 现在两个 Worker 同时收到相同的 `idempotency_key`：
 
 ```text
-Worker A：SELECT -> 不存在
-Worker B：SELECT -> 不存在
+Worker A：SELECT → 不存在
+Worker B：SELECT → 不存在
 Worker A：准备 INSERT
 Worker B：也准备 INSERT
 ```
@@ -98,9 +98,9 @@ ON CONFLICT(idempotency_key) DO NOTHING
 SQLite 的 WAL 模式先把新事务追加到旁边的小账本。界面继续读取它开始查询时看到的旧快照：
 
 ```text
-Writer -> 把新事务追加到 WAL
-Reader -> 继续读取自己的旧快照
-Checkpoint -> 稍后把 WAL 合并回主库
+Writer → 把新事务追加到 WAL
+Reader → 继续读取自己的旧快照
+Checkpoint → 稍后把 WAL 合并回主库
 ```
 
 Writer 后来追加的内容不会突然混进 Reader 已经开始的查询，所以读写更少互相等待。[SQLite WAL](https://www.sqlite.org/wal.html)
@@ -134,9 +134,9 @@ Provider 托管 Conversation 可以少管理一份模型历史，但不会替 Ha
 真实项目的选择也落在同一张图上：
 
 ```text
-Pi Coding Agent：本地追加、分支、人工检查      -> 默认 JSONL
-OpenClaw / Hermes：列表、搜索、迁移、多入口访问 -> SQLite
-LangGraph / Agents SDK：面对不同部署方式       -> 可替换 Backend
+Pi Coding Agent：本地追加、分支、人工检查      → 默认 JSONL
+OpenClaw / Hermes：列表、搜索、迁移、多入口访问 → SQLite
+LangGraph / Agents SDK：面对不同部署方式       → 可替换 Backend
 ```
 
 Pi 的 Agent Core 也提供 SQLite Session Backend，但当前 Backend 明确不提供 FTS 或 Search Service，搜索属于单独的 Projection。[Pi Session Format](https://github.com/earendil-works/pi/blob/007c0be640789b8971db6ecacdc96e61107d849f/packages/coding-agent/docs/session-format.md)、[Pi SQLite Backend](https://github.com/earendil-works/pi/blob/007c0be640789b8971db6ecacdc96e61107d849f/packages/session-backends/sqlite-node/README.md)
@@ -164,7 +164,7 @@ checkpoint D passed
 
 四关分别让你看到：索引为什么出现、事务怎样撤回半次写入、当前状态为什么不能只搜历史、主键怎样挡住重复 Key。完整说明见[第 6 课 SQLite 练习](../exercises/lesson-06-sqlite/README.md)。
 
-事务边界、Upsert、条件查询和幂等冲突判断，值得亲手写一次。建库样板、Migration 框架、连接池和向量扩展接入，可以交给成熟库或 AI。没有真实并发和搜索需求时，不要提前搭它们。
+事务原子性、主键约束防重、条件查询与物化状态同步，是保证存储层可靠性的核心机制，值得亲手跑通一次验证。生产级连接池、Migration 框架与集群方案只需在面对真实并发或多写者需求时按需引入，避免在单机阶段过早陷入基础设施的过度设计。
 
 下一课会把“数据库里能保存状态”推进到更危险的一步：[Tool Reliability——幂等、Ledger 与故障恢复](07-工具可靠性.md)。
 
