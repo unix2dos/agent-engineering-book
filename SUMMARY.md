@@ -1,7 +1,6 @@
 # Summary
 
 * [导读](README.md)
-* [学习路线](docs/learning-roadmap.md)
 * [第 0 课：Agent 工程史——从工具循环到可靠运行时](chapters/00-Agent工程史.md)
 * [第 1 课：Agent 基础——从语言模型到行动系统](chapters/01-Agent基础.md)
 * [第 2 课：Agent Runtime——Model、Harness、Tool 与 Environment](chapters/02-Agent运行时.md)

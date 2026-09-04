@@ -13,7 +13,7 @@
 - 想把前两个阶段真正串起来：直接做[阶段一～二综合实践](exercises/phase-1-capstone/README.md)；
 - 想先知道整个领域是怎么走到今天的：阅读[第 0 课：Agent 工程史](chapters/00-Agent工程史.md)。
 
-完整目录见 [SUMMARY.md](SUMMARY.md)，后续能力顺序见[学习路线](docs/learning-roadmap.md)。
+完整目录见 [SUMMARY.md](SUMMARY.md)。
 
 📖 **在线阅读**：[https://levon.gitbook.io/agent-engineering/](https://levon.gitbook.io/agent-engineering/)
 
@@ -38,7 +38,7 @@
 | 可选分支 | RAG、MCP/A2A、Browser、Voice、多模态与专用 Sandbox | 按实际问题选择 |
 | 五：部署与持续运营 | 持久化、并发、密钥、成本、监控与回滚 | 后续阶段 |
 
-这张表只展示能力主干，不提前创建空章节。每个阶段完成后，再根据综合实践暴露的问题展开下一段。详细依据见[Agent 工程学习路线](docs/learning-roadmap.md)。
+这张表只展示能力主干，不提前创建空章节。每个阶段完成后，再根据综合实践暴露的问题展开下一段。
 
 ## 源码依据
 
