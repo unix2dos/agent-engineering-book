@@ -61,7 +61,7 @@
 
 [第 8 课 Trace 练习](exercises/lesson-08-tracing/README.md)先把一次 Agent Run 组织成具有共同 `trace_id` 和父子关系的 Span。
 
-[第 9 课 Evaluation](chapters/09-Agent评估.md)用配置修改和 CSV 汇总验证任务，比较两版真实成绩，再用最小门禁拦住“文件正确、运行却未完成”的候选版本。[配套练习](exercises/lesson-09-evaluation/README.md)包含可以离线验证的实测报告。
+[第 9 课 Evaluation](chapters/09-Agent评估.md)学习怎样选择代表性任务、设计可信评分、比较版本并制定回归门禁。[约 30 分钟综合实践](exercises/lesson-09-evaluation/README.md)复用 Workspace Agent 的运行时检查与真实模型报告，交付一张小题表和一份版本判断。
 
 后续课程继续扩展同一个综合 Agent：第 10 课加入编排和长任务，第 11 课再处理生产运行。RAG 与 MCP 只在这个项目确实需要知识检索或外部能力时加入。
 
