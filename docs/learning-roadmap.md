@@ -46,7 +46,7 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 阶段二：状态、可靠性与控制                 已完成，第 4～7 课
   |
   v
-阶段三：看见与验证                         第 8 课已完成，第 9 课下一步
+阶段三：看见与验证                         第 8 课已完成，第 9 课正文与实践已成稿
   |
   v
 第 10 课：Orchestration 与长任务
@@ -68,32 +68,15 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 
 第 8 课解决一次运行怎样被还原。它保留为支撑可靠工程的基础课，但不再扩展 Collector、完整 Tail Sampling 平台或可视化产品。
 
-按最终主线粗略估算：Runtime 基础约完成 90%，完整工程主线约完成 65%～70%，最终综合项目约完成一半。剩余差距集中在质量验证、长任务编排和生产运行。
+第 9 课已经有真实任务运行、独立评分、两版对比和最小门禁的证据，正文与实践已成稿。它验证的是一组固定任务，不代表整个 Agent 已具备生产质量。接下来把重心放到长任务编排和生产运行。
 
-## 第 9 课：Agent Evaluation——如何证明 Agent 真的变好了？
+## 第 9 课：Agent Evaluation——任务验收与回归门禁
 
-一次成功对话只能证明 Agent 这次没有失败。要比较旧版和新版，必须让它们使用相同的 Model、Tool 和初始环境，做同一套任务；每道题还要提前写清什么算通过，并重复运行，避免把一次运气当成能力。
+见[第 9 课正文](../chapters/09-Agent评估.md)和[实践说明](../exercises/lesson-09-evaluation/README.md)。概念解释、真实 CSV 实验和门禁规则统一维护在正文，这里只记录范围。
 
-这套“固定试卷 + 明确答案 + 重复运行 + 比较结果”，就叫 Agent Evaluation。第 9 课会建立这样一个可以重复运行的小考场：
+最小实践已经覆盖：按任务检查实际产物、区分任务失败与评分故障、在相同条件下比较两版，以及让固定回归检查返回明确的通过或拦截。读完正文并复现一次离线门禁后，本阶段即可收尾，不再追加题型和逐题考试。
 
-```text
-固定任务
--> 写清成功条件
--> 运行当前 Agent
--> 检查文件、数据库、Tool 和副作用
--> 与修改前比较
--> 把新失败加入回归集
-```
-
-普通代码能判断的事情，先用普通代码判断。文件内容、数据库状态、Tool 参数、安全拒绝和路径边界，都不需要另一个 Model 打分。只有“回答是否清楚”这类无法精确表达的质量，才使用人工评分规则（Rubric）或另一个负责评分的 Model（LLM Judge），并用人工样本校准。
-
-如果 Evaluation 是考试，Regression Gate 就是发布门口的门卫。候选版本提交前，必须重做几道以前已经通过、以后也绝不能失守的题：Workspace 外的路径必须拒绝，残缺的 Tool Call 不能执行，状态不明的副作用不能自动重试。
-
-只要其中一条旧保证被破坏，检查命令就返回失败，版本不能发布。这就是 Regression Gate：不负责证明新版处处更强，只负责拦住“以前能做到，现在反而坏了”的退步。自然语言是否更清楚会有波动，应该比较多次运行的趋势，不应因为一次评分变化就挡住全部发布。
-
-Recorded-session Replay 只作为进阶案例。它能固定过去的 Model 输出，便宜地重放 Harness，却不能证明当前 Model、Prompt 或 Provider 仍然有效。先使用手写的 Scripted/Fake Model 覆盖关键路径，等测试真的变慢、变贵或难复现时再录制回放。
-
-[Anthropic 的 Agent Eval 指南](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)把 Eval 拆成 Task、Trial、Transcript、Outcome 与 Grader；[OpenAI Agent Evals](https://developers.openai.com/api/docs/guides/agent-evals)也建议从单次失败记录走向可重复的 Dataset 和 Eval Run。课程只借用这套稳定关系，不绑定某个 Eval 平台。
+完整评测平台、LLM Judge 和 Recorded-session Replay 暂缓。只有现有检查无法回答真实质量问题，或测试确实变慢、变贵、难复现时，再补相应能力。
 
 ## 第 10 课：Agent Orchestration——Workflow、Routing 与长任务
 

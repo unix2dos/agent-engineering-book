@@ -73,12 +73,20 @@ The existing Workspace and Coding Agent that accumulates each stage's core mecha
 _Avoid_: Toy collection, new demo per concept, framework showcase
 
 **Agent Evaluation**:
-A repeatable task set with explicit success conditions that runs the current Agent and checks its real output or environment state. Deterministic checks come first; subjective graders are added only when code cannot express the required quality.
+A structured assessment of an Agent system against task-specific outcome, behavior, and resource criteria. Its evidence supports decisions about capabilities and changes; a passing example alone does not establish general reliability.
 _Avoid_: One successful chat, platform dashboard, judge-only score
 
+**Capability Evaluation**:
+An evaluation of tasks the Agent is expected to learn to handle better, used to identify limitations and measure improvement.
+_Avoid_: Mandatory all-pass suite, regression-only check
+
+**Regression Evaluation**:
+An evaluation of behavior the application already relies on, used to detect losses after a change. Its scope and acceptance criteria follow the application's actual commitments.
+_Avoid_: Proof of all capabilities, repeated runs of any arbitrary task
+
 **Regression Gate**:
-The release check that blocks a change when a previously guaranteed behavior or safety invariant fails. Quality signals that naturally vary are tracked across runs rather than treated as one-shot hard failures.
-_Avoid_: Generic CI, exact wording comparison, single judge score
+The project's pre-release decision rule that uses regression evidence to accept or block a candidate. Enforcing the decision requires a release process that checks evidence for the candidate actually being shipped; the rule is not a runtime permission boundary.
+_Avoid_: Runtime sandbox, metric alone, universal success threshold
 
 **Recorded-session Replay**:
 An optional Harness testing technique that feeds recorded Model or Tool outputs back through the current Runtime to reproduce Runtime behavior without paying for a live call. It does not prove that the current Model, Prompt, or external service still succeeds.

@@ -35,12 +35,12 @@
 |---|---|---|
 | 一：判断与行动 | 第 1～3 课：是否需要 Agent、Runtime 与 Tool Calling Loop；第 0 课选读 | 已完成 |
 | 二：状态、可靠性与控制 | 第 4～7 课：持久化、Context、故障恢复与 Sandbox | 已完成 |
-| 三：看见与验证 | 第 8～9 课：Trace，以及合并回归检查的 Agent Evaluation | 第 8 课已完成 |
+| 三：看见与验证 | 第 8～9 课：Trace，以及合并回归检查的 Agent Evaluation | 第 8 课已完成；第 9 课正文与实践已成稿 |
 | 四：编排与长任务 | 第 10 课：Workflow、Routing、Handoff、少量 Subagent、后台任务与恢复 | 待第 9 课验证后开始 |
 | 五：生产运行 | 第 11 课：并发、队列、限流、成本、部署、监控与回滚 | 待第 10 课验证后开始 |
 | 可选分支 | RAG、MCP/A2A、Browser、Voice、多模态与专用 Sandbox | 按实际问题选择 |
 
-第 9～11 课是当前唯一详细规划的未来主线，不提前创建空章节。Recorded-session Replay、完整 OpenTelemetry 平台和大规模 Multi-Agent 都在真实问题出现后再补。
+第 9 课收尾后，后续主线只详细规划第 10～11 课，不提前创建空章节。Recorded-session Replay、完整 OpenTelemetry 平台和大规模 Multi-Agent 都在真实问题出现后再补。
 
 完整目录见 [SUMMARY.md](SUMMARY.md)。
 
@@ -61,7 +61,9 @@
 
 [第 8 课 Trace 练习](exercises/lesson-08-tracing/README.md)先把一次 Agent Run 组织成具有共同 `trace_id` 和父子关系的 Span。
 
-后续课程继续扩展同一个综合 Agent：第 9 课加入固定任务与回归检查，第 10 课加入编排和长任务，第 11 课再处理生产运行。RAG 与 MCP 只在这个项目确实需要知识检索或外部能力时加入。
+[第 9 课 Evaluation](chapters/09-Agent评估.md)用配置修改和 CSV 汇总验证任务，比较两版真实成绩，再用最小门禁拦住“文件正确、运行却未完成”的候选版本。[配套练习](exercises/lesson-09-evaluation/README.md)包含可以离线验证的实测报告。
+
+后续课程继续扩展同一个综合 Agent：第 10 课加入编排和长任务，第 11 课再处理生产运行。RAG 与 MCP 只在这个项目确实需要知识检索或外部能力时加入。
 
 这些代码是教学实现，不宣称覆盖生产系统的并发、分布式事务、租户隔离和高可用要求。
 

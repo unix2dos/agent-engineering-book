@@ -14,3 +14,4 @@
 * [第 7 课：Agent Sandbox——审批、权限与执行边界](chapters/07-Agent沙盒.md)
 
 * [第 8 课：Agent Tracing——用 Trace 与 Span 还原一次运行](chapters/08-Agent可观测性.md)
+* [第 9 课：Agent Evaluation——任务验收与回归门禁](chapters/09-Agent评估.md)

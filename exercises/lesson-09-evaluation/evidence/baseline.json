@@ -1,0 +1,135 @@
+{
+  "evidence_note": "来自已完成的真实 CSV 实验；只移除本机文件路径，保留比较条件、原始成绩、异常类型和耗时。不是本次重新调用 Model 的结果。",
+  "task_id": "csv-total",
+  "comparison_context": {
+    "task_sha256": "0d0e39e3898e2cae5f4c5370522e4e5ac8442a7d6cac59d5db706ffe74642039",
+    "grader_sha256": "c0fec3bd8fa6957b52abb7caacd8179eecea28267e79d43f01ed92543533775e",
+    "runtime_sha256": "53b7bd198995723dd5d92b710687cf5f2ffcdd1854748343342d5e5a3e845d61",
+    "agent_variant": "baseline",
+    "agent_prompt": "你是文件任务 Agent。先读取输入，再完成任务，按实际结果回答。本次允许读取：items.csv, summary.json；允许写入：summary.json。",
+    "model": "mimo-v2.5",
+    "provider_sha256": "549f2f746873edae5d22e737b95b8f479c4735abb79e978b86ac2bd1bfad9658",
+    "environment": {
+      "python": "3.13.5",
+      "os": "Darwin",
+      "openai_sdk": "2.37.0"
+    },
+    "max_model_requests": 4,
+    "request_timeout": "30.0",
+    "sdk_max_retries": 0
+  },
+  "trial_count": 3,
+  "grade_summary": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "error": 0
+  },
+  "run_error_count": 0,
+  "successful_trials": 3,
+  "observed_success_rate": 1,
+  "reports": [
+    {
+      "task_id": "csv-total",
+      "trial_id": "batch/trial_1",
+      "model": "mimo-v2.5",
+      "grader": "grade_csv_total",
+      "comparison_context": {
+        "task_sha256": "0d0e39e3898e2cae5f4c5370522e4e5ac8442a7d6cac59d5db706ffe74642039",
+        "grader_sha256": "c0fec3bd8fa6957b52abb7caacd8179eecea28267e79d43f01ed92543533775e",
+        "runtime_sha256": "53b7bd198995723dd5d92b710687cf5f2ffcdd1854748343342d5e5a3e845d61",
+        "agent_variant": "baseline",
+        "agent_prompt": "你是文件任务 Agent。先读取输入，再完成任务，按实际结果回答。本次允许读取：items.csv, summary.json；允许写入：summary.json。",
+        "model": "mimo-v2.5",
+        "provider_sha256": "549f2f746873edae5d22e737b95b8f479c4735abb79e978b86ac2bd1bfad9658",
+        "environment": {
+          "python": "3.13.5",
+          "os": "Darwin",
+          "openai_sdk": "2.37.0"
+        },
+        "max_model_requests": 4,
+        "request_timeout": "30.0",
+        "sdk_max_retries": 0
+      },
+      "agent_run": {
+        "status": "completed",
+        "error_type": null,
+        "duration_ms": 27409,
+        "tool_call_count": 3,
+        "final_answer": "已读取 items.csv，其中 quantity 列的值为 2、3、7，均为非负整数。总和为 2 + 3 + 7 = 12。已将结果写入 summary.json，文件内容为 `{\"total_quantity\": 12}`，符合要求。items.csv 保持原样。"
+      },
+      "grade": {
+        "status": "passed",
+        "reason": "总数量 12 正确，原始 CSV 未改变"
+      }
+    },
+    {
+      "task_id": "csv-total",
+      "trial_id": "batch/trial_2",
+      "model": "mimo-v2.5",
+      "grader": "grade_csv_total",
+      "comparison_context": {
+        "task_sha256": "0d0e39e3898e2cae5f4c5370522e4e5ac8442a7d6cac59d5db706ffe74642039",
+        "grader_sha256": "c0fec3bd8fa6957b52abb7caacd8179eecea28267e79d43f01ed92543533775e",
+        "runtime_sha256": "53b7bd198995723dd5d92b710687cf5f2ffcdd1854748343342d5e5a3e845d61",
+        "agent_variant": "baseline",
+        "agent_prompt": "你是文件任务 Agent。先读取输入，再完成任务，按实际结果回答。本次允许读取：items.csv, summary.json；允许写入：summary.json。",
+        "model": "mimo-v2.5",
+        "provider_sha256": "549f2f746873edae5d22e737b95b8f479c4735abb79e978b86ac2bd1bfad9658",
+        "environment": {
+          "python": "3.13.5",
+          "os": "Darwin",
+          "openai_sdk": "2.37.0"
+        },
+        "max_model_requests": 4,
+        "request_timeout": "30.0",
+        "sdk_max_retries": 0
+      },
+      "agent_run": {
+        "status": "completed",
+        "error_type": null,
+        "duration_ms": 23023,
+        "tool_call_count": 3,
+        "final_answer": "已完成任务。我读取了 `items.csv` 文件，计算了 `quantity` 列中所有非负整数的总和（2 + 3 + 7 = 12），并将结果写入了 `summary.json`，格式为 `{\"total_quantity\": 12}`。`items.csv` 文件保持原样未做任何修改。"
+      },
+      "grade": {
+        "status": "passed",
+        "reason": "总数量 12 正确，原始 CSV 未改变"
+      }
+    },
+    {
+      "task_id": "csv-total",
+      "trial_id": "batch/trial_3",
+      "model": "mimo-v2.5",
+      "grader": "grade_csv_total",
+      "comparison_context": {
+        "task_sha256": "0d0e39e3898e2cae5f4c5370522e4e5ac8442a7d6cac59d5db706ffe74642039",
+        "grader_sha256": "c0fec3bd8fa6957b52abb7caacd8179eecea28267e79d43f01ed92543533775e",
+        "runtime_sha256": "53b7bd198995723dd5d92b710687cf5f2ffcdd1854748343342d5e5a3e845d61",
+        "agent_variant": "baseline",
+        "agent_prompt": "你是文件任务 Agent。先读取输入，再完成任务，按实际结果回答。本次允许读取：items.csv, summary.json；允许写入：summary.json。",
+        "model": "mimo-v2.5",
+        "provider_sha256": "549f2f746873edae5d22e737b95b8f479c4735abb79e978b86ac2bd1bfad9658",
+        "environment": {
+          "python": "3.13.5",
+          "os": "Darwin",
+          "openai_sdk": "2.37.0"
+        },
+        "max_model_requests": 4,
+        "request_timeout": "30.0",
+        "sdk_max_retries": 0
+      },
+      "agent_run": {
+        "status": "completed",
+        "error_type": null,
+        "duration_ms": 22290,
+        "tool_call_count": 3,
+        "final_answer": "我已读取 `items.csv` 文件并计算了 `quantity` 列中所有非负整数的总和。\n\n文件内容显示有三个数据行，数量分别为：2、3、7，总和为 12。\n\n计算结果已写入 `summary.json`，文件内容为：\n```json\n{\"total_quantity\": 12}\n```\n\n`items.csv` 文件保持原样未改动。"
+      },
+      "grade": {
+        "status": "passed",
+        "reason": "总数量 12 正确，原始 CSV 未改变"
+      }
+    }
+  ]
+}
