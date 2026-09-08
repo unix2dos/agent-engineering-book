@@ -26,6 +26,14 @@ Shell 从 `workspace/` 启动，再尝试读取相邻的 `outside-secret.txt`。
 4. **Sandbox Backend**：获准命令究竟在 Host 还是受限环境执行。
 5. **Elevated**：只能改变获准命令的执行边界，不能复活已被 Policy 禁止的 Tool。
 
+## 实践分工
+
+本练习区分三种掌握深度：
+
+- **必须亲手实现**：Tool Policy、Approval、Backend 路由与 Elevated 的严密判定次序（应用层决策不变量）；
+- **必须亲手验证**：`cwd` 越界、操作系统 Permission 拦截、Host 与 Seatbelt 的行为差异（用失败用例检验边界）；
+- **理解机制即可**：Seatbelt Profile 规则转义、Bubblewrap 挂载参数、容器编排与 microVM 宿主实现。
+
 ## 检查点 A：只改变工作目录，挡不住越界
 
 运行：
@@ -268,3 +276,34 @@ checkpoint F passed
 ```
 
 这套练习没有实现生产 Sandbox。它只验证每一层回答的问题不同，以及应用决策最终必须落到操作系统能够强制的执行 Backend。
+
+## 选做复习：审批、权限与隔离边界
+
+以下保留本章原有回忆题与答案，含选读项目对照，供完成练习后按需复习。
+
+1. 为什么 `cwd=workspace` 不能阻止 Shell 读取外部文件？
+2. 禁止 `write_file` 后，为什么 `run_bash` 仍可能写文件？
+3. Approval 与 Permission 分别是谁的决定？
+4. 为什么用户批准一次命令仍不等于安全？
+5. `host_read=true`、`sandbox_read=false` 证明了什么，又没有证明什么？
+6. Elevated 为什么不能复活被 Tool Policy 隐藏的 Tool？
+7. 域名 Allowlist 在什么条件下才能真正限制 `curl`？
+8. Hermes 的 Terminal Backend 为什么可能漏掉 MCP、插件和 Hook？
+9. E2B 与 OpenSandbox 分别帮助我们看懂 Sandbox 的哪个部分？Harness 仍要负责什么？
+10. Ledger 为什么不能代替 Sandbox？
+
+<details>
+<summary>检查简答</summary>
+
+1. `cwd` 只设置起始目录；`../`、绝对路径和子进程仍使用进程真实权限。
+2. Shell 内部可以用重定向、脚本等方式写文件，不经过名为 `write_file` 的 Tool。
+3. Approval 是 Harness 对单次调用的决定；Permission 是操作系统赋予进程的能力。
+4. 审批人可能误判，而且文件、网络和进程边界仍取决于实际 Backend 与 OS 规则。
+5. 它证明同一读取在最小 Seatbelt 规则下被 OS 拒绝；没有证明其他文件、网络和进程也已安全。
+6. Elevated 只改变已通过前置检查的执行 Backend，不能推翻上层 Policy。
+7. 命令网络必须被隔离，或所有流量都被强制送进实际执行规则的 Proxy/Firewall。
+8. 这些路径可能在 Agent Python 进程内执行，并不经过 Terminal Backend。
+9. E2B 展示远程 microVM；OpenSandbox 展示统一 API 怎样接到可替换 Backend。Harness 仍要负责 Tool Policy、Approval、最小凭据注入、业务 Ledger 和结果处理。
+10. Sandbox 限制执行能影响什么；Ledger 只记录执行前后发生了什么。
+
+</details>

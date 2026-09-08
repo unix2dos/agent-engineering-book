@@ -247,3 +247,34 @@ unknown_retained=true
 successful_sample_retained=false
 checkpoint E passed
 ```
+
+## 选做复习：Trace 的职责与边界
+
+以下保留本章原有的回忆题与答案，含核验资料中的项目对照，供完成练习后按需复习。
+
+1. Trace 和 Span 分别回答什么问题？
+2. 一个 Trace 为什么没有固定的 Span 数量？
+3. `parent_span_id` 解决了什么问题？
+4. 同一个 Tool Call 重试时，哪些 ID 保持不变，哪些应该变化？
+5. 为什么 HTTP 请求成功不等于 Agent 任务成功？
+6. Trace 为什么不能替代 Transcript 和 Ledger？
+7. 已经实现 Tracing 的项目为什么仍可能没有本地 Trace 文件？
+8. Pi 的 No-op Context 与 OpenClaw 的 OTLP Exporter 体现了哪两种选择？
+9. 为什么“错误全留、成功抽样”通常需要等任务结束后再决定？
+10. 哪些字段在导出前可能需要脱敏？
+
+<details>
+<summary>检查简答</summary>
+
+1. Trace 描述一次端到端任务，Span 描述其中一个步骤。
+2. 步骤数量由本次运行实际发生的 Model、Tool、重试和子任务决定。
+3. 它把平铺的 Span 接成调用树，说明当前步骤由谁触发或包含。
+4. `trace_id` 和 `tool_call_id` 不变；不同尝试使用新的 `execution_id` 和 `span_id`。
+5. 请求正常返回只证明调用过程完成，返回内容和业务目标仍可能失败。
+6. Transcript 负责模型上下文，Ledger 负责执行与恢复，Trace 负责诊断路径；Trace 不是外部副作用的权威回执。
+7. Span 通常经 Exporter 发往 Collector 或远端 Backend，而且许多项目默认关闭这条管道。
+8. Pi 让宿主自行选择是否记录和保存；OpenClaw 提供配置好即可发送的标准 Exporter。
+9. 任务开始时还不知道最终会不会失败；完成后采样才能按结果决定保留。
+10. Prompt、Response、Tool 参数与结果、Header、环境变量、文件和终端输出都可能含有秘密。
+
+</details>
