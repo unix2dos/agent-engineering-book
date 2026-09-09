@@ -914,3 +914,301 @@ checkpoint 5E passed
 ```
 
 此时 `repair_missing_tool_results()` 可以重放对账后的 `succeeded`，仍然不会再次执行 `write_file`。任意 Bash 保持 `unknown`，交给 Model 提醒用户核对。
+
+## 第 6 课选做：工具可靠性验收总览
+
+完整一体化参考实现是 [`lesson_06_tool_reliability.py`](../../examples/lesson_06_tool_reliability.py)。本章最新、最小的故障验证在[阶段一～二综合实践第 4～5 关](README.md#第四关ledger-与幂等)。
+
+先运行完整综合检查：
+
+```bash
+python -B exercises/phase-1-capstone/starter.py --checkpoint-5
+```
+
+预期最后依次出现：
+
+```text
+checkpoint 4A passed
+checkpoint 4B passed
+checkpoint 4C passed
+checkpoint 4D passed
+checkpoint 5A passed
+checkpoint 5B passed
+checkpoint 5C passed
+checkpoint 5D passed
+checkpoint 5E passed
+```
+
+这五个恢复检查会亲手制造并验证：文件已经改变但 Ledger 停在 `running`、重启追加 `unknown`、补写 Tool Result、不追加新 User、对账后完成旧 Turn。
+
+状态落盘的前置约束、三元标识体系（Tool Call / Execution / Idempotency）、孤立调用配对与 `unknown` 状态对账，构成了工具可靠性的核心闭环，必须在测试用例中严格验证。UUID 生成、SHA-256 规范化序列化与本地 Mock Client 等基础胶水代码，可在掌握机制后直接复用通用模块。面对支付、邮件等具有真实外部副作用的系统，必须依赖目标系统原生提供的幂等键协议与沙箱验收环境，切忌用内存假实现推导生产可用性。
+
+## 第 6 课选做：回忆题与参考答案
+
+1. Tool 已经执行、Tool Result 尚未保存时崩溃，为什么不能直接记为 `failed`？
+2. Transcript 与 Ledger 分别给谁使用？
+3. 为什么 `running` 必须先于副作用落盘？
+4. `tool_call_id`、`execution_id` 和 `idempotency_key` 分别标识什么？
+5. 为什么参数 Hash 不能代替幂等 Key？
+6. 为什么应用“先查再写”挡不住两个 Worker？
+7. `execution_events` 与 `execution_state` 为什么必须在同一事务中更新？
+8. 终态存在但没有 `result` 时，为什么不能自动补 Tool Result？
+9. 5C 补写 Tool Result 后，为什么还要让 Model 继续旧 Turn？
+10. 文件内容符合预期，能够证明什么，不能证明什么？
+11. 为什么 `run_bash` 的 `unknown` 不能自动重试？
+12. Runtime 的 `completed` 状态为什么不等于外部副作用 Exactly Once？
+
+<details>
+<summary>检查简答</summary>
+
+1. 工具可能已经产生副作用，只是回执没有保存；`failed` 表示已经确认执行失败。
+2. Transcript 让 Model 继续对话；Ledger 让 Harness 恢复和审计真实执行尝试。
+3. 否则副作用可能已经发生，磁盘却仍显示工具尚未开始，恢复程序会误重跑。
+4. Tool Call ID 配对 Model 申请和回执；Execution ID 区分尝试；Idempotency Key 标识同一逻辑调用。
+5. 相同参数可能来自两个独立请求；Hash 只证明参数是否变化，不定义调用身份。
+6. 两个 Worker 可能同时读到“尚不存在”；唯一约束必须在真正写入时裁决。
+7. 否则中途失败会让完整事件和当前状态互相矛盾。
+8. 恢复程序不知道该向 Model 重放什么，也不能为副作用编造结果。
+9. `role=tool` 只是把结果交回 Model；出现 Assistant Final 后，原子 Turn 才完整结束。
+10. 它证明请求要求的目标状态已经满足，不能证明旧进程实际写了几次或是谁写的。
+11. Bash 可以包含不可重复的外部动作，没有通用方法从命令文本证明安全。
+12. Runtime 状态只描述本地观察；Exactly Once 还需要执行端幂等、事务或权威外部回执。
+
+</details>
+
+## 第 5 课选做：上下文工程回忆题
+
+以下保留本章原有题目与答案，含选读实现对照，可在完成第三关后按需复习。
+
+1. Artifact、Transcript、Compaction Entry 与 Prompt View 分别保存什么？
+2. Model 会直接收到 Compaction JSON 外壳吗？
+3. Pruning 与 Compaction 分别改变什么？
+4. 为什么从 JSONL 换成 SQLite，不会改变 Transcript 与 Prompt View 的分工？
+5. Split Turn 的切点为什么不能落在 Tool Call 与 Result 之间？
+6. 第 4 课使用 JSON，第 5 课为什么改用 JSONL？
+7. Memory Flush 为什么不能复制整段 Transcript？
+8. Prompt 变短为什么可能因 Prompt Cache 失效而更贵？
+9. 第二次 Compaction 为什么必须继承旧 Summary？
+10. Compaction 写盘后，为什么还要重新构造 Prompt View？
+
+<details>
+<summary>检查简答</summary>
+
+1. Artifact 保存完整 Tool 产物；Transcript 保存会话事实；Compaction Entry 保存压缩恢复点；Prompt View 是本轮模型输入。
+2. 不会。Harness 展开为 Summary、保留原文和后续 Message。
+3. Pruning 只改请求视图；Compaction 写入持久 Summary，改变后续恢复视图。
+4. JSONL 和 SQLite 都只是保存方式。Transcript 仍负责保存会话记录，Prompt View 仍是本轮送给 Model 的有限内容。
+5. 否则一边只剩调用申请，另一边只剩无法配对的回执。
+6. 第 4 课只保存一份最新 Checkpoint，适合整体替换 JSON；第 5 课要保留有序事件，适合逐行追加 JSONL。
+7. Transcript 含临时、未经确认和敏感内容；Memory 只保存稳定且未来有用的事实。
+8. 改写早期历史会破坏稳定缓存前缀，增加重算、延迟和缓存写入成本。
+9. 新 Summary 必须覆盖旧 Summary 与新进入 Prefix 的消息，否则更早历史会丢失。
+10. 磁盘增加 Entry 不会自动修改进程内已有的 `messages`。
+
+</details>
+
+## 第 4 课选做：状态保存与重启实验
+
+本节使用 `examples/lesson_04_session_memory.py` 的完整实现，不是正文中的三个独立短例。
+
+完整教学代码：[`lesson_04_session_memory.py`](../../examples/lesson_04_session_memory.py)。
+
+```bash
+git clone https://github.com/unix2dos/agent-engineering-book.git
+cd agent-engineering-book
+python -B examples/lesson_04_session_memory.py --self-check
+```
+
+预期输出：
+
+```text
+self-check passed
+```
+
+然后做两组重启实验：
+
+1. 继续使用同一个 `SESSION_ID`。Agent 应恢复旧任务进度。
+2. 换一个新 `SESSION_ID`，但仍读取同一份项目 Memory。Agent 应忘记旧任务进度，却记得部署规则。
+
+不要用“同一会话继续成功”证明长期 Memory，也不要用“记得部署规则”证明 Checkpoint 已恢复。两类数据可以放在同一块磁盘，却回答不同的问题。
+
+亲手实现一次从磁盘恢复 state、提取 summary 与追加近期 turns 的组装逻辑，能彻底看清内存与 Context 的边界。外围的文件路径读写直接参考教学代码即可；持久化的关键不在于存储介质是 JSON 还是数据库，而在于严格区分“当前会话进度”与“跨会话长期事实”的生命周期。
+
+## 第 4 课选做：会话持久化回忆题
+
+1. Session 为什么不是某一种文件？
+2. Transcript 与 Checkpoint 分别回答什么问题？
+3. 只有 Transcript 和只有 Checkpoint，各自缺少什么？
+4. Checkpoint 为什么既能单独保存，也能成为 Transcript 的一条 Entry？
+5. Summary、项目 Memory 和用户 Memory 的作用范围有什么不同？
+6. 文件已经持久化，为什么 Model 仍可能不知道里面的内容？
+7. 第 4 课为什么使用 JSON？`session-demo.json` 为什么不是 Transcript？
+8. Checkpoint 没有当前 Turn，为什么不能断定 Tool 没执行？
+9. 决定从 JSONL 换成 SQLite 的关键为什么不是文件行数？
+10. 存储从 JSONL 换成 SQLite 后，Transcript 与 Checkpoint 的职责会改变吗？
+
+<details>
+<summary>检查简答</summary>
+
+1. Session 是把连续交互归到一起的逻辑容器，可以使用 JSON、JSONL、SQLite 或 Provider ID 保存。
+2. Transcript 回答“按顺序发生过什么”；Checkpoint 回答“截至某个位置，程序是什么状态”。
+3. 只有 Transcript 可能需要从头重放；只有 Checkpoint 无法还原完整过程。
+4. Checkpoint 描述数据的职责，不规定文件格式。它既可以放在单独文件中，也可以作为一条记录追加到 Transcript。
+5. Summary 服务当前 Session；项目 Memory 跨同一项目的 Session；用户 Memory 跨项目保存用户偏好。
+6. Harness 必须主动读取并把内容放进本次 Context，Model 不会自己访问磁盘。
+7. 它只保存一份最新状态，所以适合整体替换 JSON；它没有按顺序保留所有事件，因此不是 Transcript。
+8. Tool 可能已经产生副作用，只是新状态还没来得及写盘。
+9. 应该看读取、查询、并发和一致性需求；大文件偶尔顺序读取仍可能适合 JSONL。
+10. 不会。存储介质改变实现方式，不改变数据在 Agent 中回答的问题。
+
+</details>
+
+## 第 3 课选做：完整教学实现的运行与配置
+
+以下步骤使用 `examples/lesson_03_tool_calling_loop.py`，不是正文中按字典接口拼接的模拟器。
+
+先克隆仓库并运行本地自检：
+
+```bash
+git clone https://github.com/unix2dos/agent-engineering-book.git
+cd agent-engineering-book
+python -B examples/lesson_03_tool_calling_loop.py --self-check
+```
+
+预期输出：
+
+```text
+self-check passed
+```
+
+自检不调用真实 Model，而是让一个按固定剧本返回的假 Model 配合测试。这就是 Fake Model Response。它验证一次成功调用、额外参数被拒绝、Tool Result ID 配对，以及长度截断不会被当作 Final。
+
+自检通过，只说明本地消息和循环能工作。它没有检查 API Key、网络、真实 Model 或兼容 Provider 是否支持 Tool Calling。
+
+原章节在 2026-09-03 的核验记录中使用 [openai-python v3.7.0](https://github.com/openai/openai-python/releases/tag/v3.7.0)。下面保留运行步骤；安装命令没有锁定版本，实际运行应核对 SDK 与 Provider 的兼容性：
+
+```bash
+python -m pip install openai
+
+export OPENAI_API_KEY="your-api-key"
+export OPENAI_MODEL="your-model"
+# 第三方兼容端点才需要设置：
+export OPENAI_BASE_URL="https://provider.example/v1"
+
+python examples/lesson_03_tool_calling_loop.py
+```
+
+原核验所依据的 OpenAI 官方指南使用 Responses API 的 `function_call → function_call_output`。本章使用 Chat Completions 的 `assistant.tool_calls → role=tool`，是为了观察许多 OpenAI-compatible Provider 仍在使用的四条 Message。字段外形不同，责任链相同：Model 申请，应用执行，结果回传。[OpenAI Function Calling](https://developers.openai.com/api/docs/guides/function-calling)
+
+在线请求第一次就返回“模型不支持 tools”时，本地 `multiply()` 尚未执行。应先检查 Provider、模型能力、模型名和 API 路径，而不是修改乘法函数。
+
+最值得亲手实现的是 `run_agent_loop()` 的三个出口分支、Tool Result 的严格 ID 配对，以及请求次数硬上限这道刹车逻辑。样板代码和 Mock 结构可直接参考示例脚本；不同 API 规范的字段外形只需理解映射关系，核心是掌握“工具调用必须成对闭环”的控制流。
+
+完整代码不要抄完就算结束。进入[阶段一～二综合实践](README.md)，亲手完成第一关。它补充验证同批多个 Tool Call、Tool Call 与停止状态矛盾，以及达到模型请求上限。
+
+## 第 3 课选做：工具调用循环回忆题
+
+1. 完整 Tool Calling Turn 的四条 Message 按什么顺序出现？
+2. 为什么不能把 Model 生成的表达式交给 `eval()`？
+3. 有 Tool Schema，执行侧为什么仍要验证？
+4. 为什么必须先保存 Tool Call，再保存对应 Tool Result？
+5. `message.tool_calls` 与 `choice.finish_reason` 分别说明什么？
+6. 最大步骤数限制什么，又不能解决什么？
+7. 为什么 `multiply()` 要拒绝 `bool`？
+8. `--self-check` 能证明什么，不能证明什么？
+
+<details>
+<summary>检查简答</summary>
+
+1. `user -> assistant(tool_calls) -> tool(tool_call_id, result) -> assistant(final)`。
+2. `eval()` 会执行不可信 Python 代码；固定函数只接收数据并执行固定动作。
+3. Schema 描述期望形状，Provider 是否严格执行取决于能力和模式；Harness 仍要校验实际参数与业务边界。
+4. Tool Result 必须用 ID 回答已经存在的 Tool Call，否则请求与回执无法配对。
+5. 前者保存 Model 生成的调用，后者说明 Provider 为什么停止生成；两者矛盾时不能执行 Tool。
+6. 它限制模型请求次数、时间和费用；不能修复循环根因。
+7. Python 把 `bool` 当作 `int` 的子类。
+8. 它验证本地消息组织和控制流；不验证凭据、网络、Provider 或真实 Model。
+
+</details>
+
+## 第 2 课选做：给一次运行标责任
+
+画出下面这条最小链路，再给每一步标上负责人：
+
+```text
+用户要求读取文件
+-> 选择 read_file
+-> 检查路径和权限
+-> 打开文件
+-> 收到文件内容或错误
+-> 决定下一步
+```
+
+正确的标法是：Model 负责两端的选择，Harness 负责检查和推进，Tool 负责打开文件，Environment 提供真实文件与系统结果。
+
+## 第 2 课选做：运行时职责回忆题
+
+1. Model、Harness、Tool 与 Environment 分别负责什么？
+2. 为什么 Agent Runtime 不能等同于 Model？
+3. Harness 为什么不能只转发消息？
+4. `read_file` 与文件系统为什么不是同一个东西？
+5. 操作系统返回 `Permission denied` 时，应该先检查哪一层？
+6. 为什么源码中搜不到 `Harness`，仍可能存在完整的 Harness 职责？
+
+<details>
+<summary>检查简答</summary>
+
+1. Model 选择动作；Harness 组织并控制运行；Tool 执行具体动作；Environment 返回真实状态。
+2. Model 只负责推理和生成，Runtime 还包含控制程序、工具与真实环境。
+3. 它还要组装输入、校验申请、执行策略、控制循环并处理异常。
+4. `read_file` 是执行读取动作的代码；文件系统是它接触的真实环境。
+5. 先确认进程身份、文件权限、挂载或 Sandbox 等 Environment 边界。
+6. Harness 是职责集合，项目可以把这些职责拆进会话、工具注册、权限和执行模块。
+
+</details>
+
+## 第 1 课选做：Agent 与 Workflow 回忆题
+
+1. Model 为什么答应“会提醒”，第二天却可能什么都没有发生？
+2. Workflow 与 Agent 的分界为什么不是“有没有 LLM 或工具”？
+3. Agent Loop 与 ReAct 有什么区别？
+4. 固定日报为什么更适合 Workflow？
+5. 付款流程和开放式故障调查可以怎样组合？
+6. 一个任务具有什么特征时，才值得为它引入 Agent？
+
+<details>
+<summary>检查简答</summary>
+
+1. Model 只生成了文字；没有外部程序和工具，天气查询与日历提醒不会真实执行。
+2. Workflow 的路线由代码预设；Agent 的下一步由 Model 根据新结果决定。
+3. Agent Loop 是 Model 根据执行结果继续选择动作的外层循环；ReAct 是其中一种具体组织方法。
+4. 它的步骤可以提前写死，使用 Agent 只会增加成本和不确定性。
+5. Workflow 控制付款和审批，Agent 只负责无法提前列完步骤的调查部分。
+6. 外部环境不确定，而且新结果会反复改变下一步路线。
+
+</details>
+
+## 第 0 课选做：Agent 工程史回忆题
+
+先合上正文，口头回答：
+
+1. 为什么 Agent 工程史不适合只写成产品发布时间表？
+2. ReAct 与 Toolformer 分别研究什么？
+3. SWE-bench 与 SWE-agent 有什么区别？
+4. 为什么工具接口会改变同一个 Model 的表现？
+5. MCP 与 A2A 分别连接什么？
+6. 为什么 Checkpoint 不能证明邮件只发送了一次？
+7. Agent 获得行动能力后，为什么还需要可靠性、安全和评测？
+
+<details>
+<summary>检查简答</summary>
+
+1. 更稳定的主线是“新能力暴露新失败，下一层工程再补住它”，不是项目热度。
+2. ReAct 研究运行时怎样边做边看；Toolformer 研究训练时怎样学会选择工具。
+3. SWE-bench 是真实仓库任务的评测试卷；SWE-agent 是参加评测的 Agent 系统。
+4. 工具决定 Model 能采取哪些动作，也决定它能得到哪些环境证据。
+5. MCP 连接 Agent 应用与外部能力；A2A 连接不同系统中的远程 Agent。
+6. 外部动作可能已经成功，但进程在成功状态写盘前崩溃。
+7. 能行动只说明系统具备能力；可靠性、安全和评测分别约束动作怎样恢复、最多能做什么，以及改动是否有效。
+
+</details>

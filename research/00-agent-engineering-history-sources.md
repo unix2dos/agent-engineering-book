@@ -171,3 +171,27 @@ LangGraph 主包 1.2.11、OpenAI Agents SDK v0.22.0、SWE-agent v1.1.0 在本次
 - 必修错误：Auto-GPT 最早 Commit 的证据等级；MCP Stateless / Session / 握手 / Tasks 的术语边界。
 - 建议修订：ReAct 不直接称完整 Runtime；刷新 SWE-agent 与 Letta 当前状态。
 - 不必扩写：不需要增加更多产品年表，也不需要把当前 Release 列表塞入正文；Release / HEAD 快照留在研究报告。
+
+## 7. 选读背景：Agent 问题早于大模型
+
+以下保留原第 0 课的理论背景与出处，不作为入门主线的前置要求。
+
+在大语言模型出现以前，人们已经在研究能自己选择动作的软件：它认为外部世界现在是什么状态，想完成什么目标，又准备执行什么计划。
+
+研究者把这三个部分叫作 Belief、Desire 和 Intention，合起来简称 BDI。1990 年代的 Agent-Oriented Programming 与 BDI Agent 已经尝试把它们放进可执行系统。[Intelligent Agents: Theory and Practice](https://doi.org/10.1017/S0269888900008122)
+
+这些研究提出了今天仍会遇到的问题，却不是 LLM Agent 的直接代码祖先。经典系统主要依赖手工规则和计划，今天的 LLM Agent 主要依赖生成模型、Context 和工具调用。
+
+## 8. 2026-09-09 补充核验与正文修正
+
+本轮只核对精简稿采用的历史节点；前文 2026-09-01 的项目版本快照不因此成为本轮重新验证的“最新状态”。
+
+- GitHub API 返回根提交 b099adcb 的时间为 2023-03-16，文件列表只有 prompt.txt。因此正文区分最早 Prompt 与后续可运行循环，不再声称这是所有 Agent 的首个公开原型。
+- 固定提交 68640a58 的 AutonomousAI/main.py 显示：请求模型、展示命令参数、等待 Enter 授权、执行命令、回传结果。原正文的“按 y 批准”与此出处不符，已按源码修正为敲回车或人工授权。
+- 原正文“半小时花费数百美元”及“行业百亿美元学费”的说法没有对应的一手出处，本轮没有取得支持这些具体数字的证据，因此新版不采用；这不是对事件必然没有发生的证明。
+- 已打开 ReAct v3、Toolformer v1、SWE-bench v3、SWE-agent v3、MemGPT v2 的论文页面，核对摘要与首次提交年份。
+- 已核对 OpenAI 2023-06-13 Function Calling 公告、LangGraph 2024-08-07 v0.2 公告、MCP 2024-11-25 公告与 A2A 2025-04-09 公告。
+- 早期 Agent 理论 DOI 页面本轮未能获取正文，保留原引用作为延伸阅读，不新增 BDI 细节断言。
+- 责任地图是本书按工程问题整理的关系，不表示各项目按单一路线依次发展，也不把后续协议字段倒写进首发历史。
+
+新增核验的原始入口继续使用前文“固定证据”中的论文、公告和源码链接。LangGraph v0.2 官方旧地址现跳转到 [官方新页面](https://www.langchain.com/blog/langgraph-v0-2)。

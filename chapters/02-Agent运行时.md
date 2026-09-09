@@ -1,134 +1,107 @@
 # 第 2 课：Agent Runtime——Model、Harness、Tool 与 Environment
 
-你的 Agent 突然卡死了。控制台上最后一行字是模型自信满满的宣称：“正在读取 `config.json`……”
+假设 Agent 一直显示“正在读取 config.json”。你以为模型还在思考，排查后才发现：模型早已交出读取申请，程序却在等网络文件系统返回。
 
-你以为是模型在绞尽脑汁思考，焦急地等了十分钟按下 `Ctrl+C`，才发现真相让人哭笑不得：模型早在十分钟前就交出了函数调用申请，真正卡死的是底层的 Python 脚本，它在一个断网的 NFS 挂载点上陷入了死锁。
+模型已经交卷，锅还挂在它头上。要找对排查位置，先看清一次读取经过哪些部分。
 
-出事时，不能把所有账都算在模型头上。在真正的工程系统里，“出主意的人”和“拿扳手干活的人”从来就不是同一个实体。要判断一次读取到底卡在哪里，必须先把“提出动作”和“执行动作”的角色分开。
+上一课判断哪些任务需要 Agent。这一课沿着一次工具请求，拆开支撑它运行的系统。
 
-## 1. 同一次读取，实际有四个参与者
+## 1. 一次读取，四种职责
 
-先不看 API 字段，只看一次读取发生了什么：
+用户要求：“读取 config.json，告诉我当前主题。”
 
-```text
-用户要求读取 config.json
--> Model 提出 read_file("config.json")
--> Harness 判断这次申请能否执行
--> Tool 打开文件
--> Environment 返回文件内容或系统错误
--> Harness 把真实结果交还 Model
+模型可以提出这样的申请。这里先用简化对象表示，不绑定某个 API 的全部字段：
+
+```json
+{"name":"read_file","arguments":{"path":"config.json"}}
 ```
 
-这里的四个名字分别指向四种职责：
-
-| 核心组件 | 在读取案例中做什么 | 不负责什么 |
-| --- | --- | --- |
-| Model | 根据目标和已有结果选择下一步 | 不直接拥有本地文件权限 |
-| Harness | 组织输入、检查申请、调用工具并控制运行 | 不替 Model 决定开放任务的解法 |
-| Tool | 完成一个具体动作，例如读取文件 | 不决定自己何时出场 |
-| Environment | 文件系统、Shell、网页和 API 所在的真实世界 | 不保证返回内容正确或安全 |
-
-由这四部分组成的可运行整体，就是 **Agent Runtime**。Runtime 不是 Model 的另一个名字，也不是某个 SDK；它是这套系统真正运行起来后的整体。
-
-## 2. Harness 为什么不是一根转发线？
-
-假设 Model 提出 `read_file("../../secret.txt")`。如果 Harness 只负责转发，这条申请会直接碰到宿主文件系统。
-
-真正的 Harness 至少要在几个时刻作出判断：
+后面的事情由程序接着做：
 
 ```text
-发给 Model 之前   选择指令、历史和可见工具
-收到申请之后      检查工具是否存在、参数是否可用
-执行之前          检查策略、审批和运行边界
-执行之后          保存结果，并决定继续还是停止
-异常发生之后      决定报错、恢复还是等待人工处理
+Model 选择 read_file，并给出路径
+→ Harness 检查申请并找到工具
+→ Tool 调用文件读取
+→ Environment 返回文件内容或错误
+→ Harness 把真实结果交回 Model
 ```
 
-这些工作必须由能执行确定性代码的程序完成。Model 可以建议下一步，却不能同时负责批准自己的建议、声明执行成功并修改运行规则。
+四个名字各自对应一种职责：
 
-后面的课程会逐一展开这些判断。第 3 课先处理调用协议；第 4～6 课处理保存、Context 和故障恢复；第 7 课再处理审批、权限与 Sandbox。
+| 部分 | 在这个例子里负责什么 |
+| --- | --- |
+| Model | 根据目标和已有信息选择下一步 |
+| Harness | 组织输入、检查申请、调用工具并控制运行 |
+| Tool | 执行读取文件这一具体动作 |
+| Environment | 提供真实文件系统、进程权限和返回结果 |
 
-## 3. Tool 与 Environment 为什么要分开？
+这套可运行的整体叫 **Agent Runtime**。一个更强的模型不能自动补上未挂载的文件，也不能替应用保存执行结果。
 
-`read_file` 是 Tool，磁盘上的真实文件系统是 Environment。
+如果文件内容是 `{"theme":"dark"}`，模型才有读取结果作为回答依据。若实际返回无权限，Harness 必须传回失败，不能用模型预想的文件内容代替。
 
-这一区分在失败时很有用。Tool 代码可能把路径解析错，也可能正确调用操作系统后收到 `Permission denied`。前者是工具实现问题，后者是当前进程在真实环境中没有权限。
+## 2. Harness 在几个关键位置作决定
 
-同一个 Tool 换一个 Environment，结果也可能不同：
+收到请求不等于立刻执行。比如模型提出读取 `../../secret.txt`，应用必须判断这个路径是否在允许范围内。
+
+Harness 的控制点包括：
+
+| 时刻 | 要决定什么 |
+| --- | --- |
+| 请求模型前 | 这次发送哪些指令、历史和工具说明 |
+| 收到工具申请后 | 工具是否存在，参数能否交给它 |
+| 执行前 | 策略是否允许，是否需要审批，在哪个环境执行 |
+| 执行后 | 怎样记录结果，继续请求还是停止 |
+| 发生异常后 | 报错、等待、恢复，还是交给人处理 |
+
+模型可以建议下一步，但不能通过在回复里写“已批准”就修改这些规则。检查也不能只写在 Prompt 里；真正的执行入口必须遵守它们。
+
+这不意味着每个项目都要有一个叫 Harness 的大类。核验版本的 OpenCode 把会话处理、工具查找和权限判断放在不同模块中，仍然承担了这些职责。[1][2][3] 看源码时应追踪谁在做这些事，而不是只搜索一个名称。
+
+## 3. Tool 与 Environment 怎样区分？
+
+`read_file` 是读取动作的实现；文件系统是它接触的环境。同一段工具代码换个地方运行，可能得到不同结果：
 
 ```text
-同一个 read_file
--> 在开发机上读到文件
--> 在容器里找不到挂载
--> 在 Sandbox 里被系统拒绝
+开发机：文件存在且可读
+容器中：文件没有挂载
+沙盒中：路径存在，但读取被系统拒绝
 ```
 
-Tool 定义“准备做什么”，Environment 决定现实世界实际返回什么。Harness 必须保存真实结果，不能把 Model 预期的结果当成执行结果。
+如果工具把用户路径拼错了，要检查实现；如果它把正确路径交给系统后收到拒绝，要检查进程身份、权限和执行环境。
 
-## 4. 出错时，先判断是哪一层
+这种区分还能避免误修：网络盘迟迟没有响应时，不应先重写模型提示词；文件没挂载时，也不是换一个模型就能读出来。
 
-还是读取 `config.json`：
+职责边界帮助确定第一站，不保证一次就找到全部原因。例如错误参数可能来自不清楚的工具说明，权限失败也可能源于后端选择错误。继续沿调用链核对，而不是给故障贴完标签就结束。
 
-| 可见现象 | 优先检查的层 | 原因 |
-| --- | --- | --- |
-| Model 一直选择错误工具 | Model 或当前 Context | 决策本身不合适 |
-| `read_file` 根本没有注册 | Harness | 找不到对应工具实现 |
-| 路径参数结构不合法 | Harness / Tool 边界 | 申请不能安全地交给函数 |
-| 文件解码代码报错 | Tool | 具体实现失败 |
-| 操作系统返回无权限 | Environment / 进程权限 | 工具已经碰到真实边界 |
-| 工具成功后仍继续死循环 | Harness | 停止和预算没有生效 |
+## 4. 把开头的卡住逐步定位
 
-这张表不是说一类故障永远只有一个原因，而是给排查提供第一站。没有角色边界时，所有失败最后都会被含糊地叫成“Model 不行”。
-
-## 5. 开源项目里，这些职责不一定放在同一个文件
-
-OpenCode 没有创建一个叫 `Harness` 的大类，再把所有代码塞进去。它把职责拆在不同模块中：[Session Processor](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/session/processor.ts)处理会话运行，[Tool Registry](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/tool/registry.ts)寻找工具实现，[Permission Evaluation](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/permission/evaluate.ts)判断是否允许。
-
-所以，Harness 描述的是一组运行职责，不要求源码中存在同名文件或对象。读其他项目时，应寻找“谁在完成这些工作”，而不是只搜索 `harness` 这个单词。
-
-## 6. 自己给一次运行标责任
-
-画出下面这条最小链路，再给每一步标上负责人：
+对照这份假设中的排查记录：
 
 ```text
-用户要求读取文件
--> 选择 read_file
--> 检查路径和权限
--> 打开文件
--> 收到文件内容或错误
--> 决定下一步
+模型请求：已返回 read_file 申请
+工具查找：找到了实现
+参数检查：通过
+文件读取：已经发起，尚未返回
 ```
 
-正确的标法是：Model 负责两端的选择，Harness 负责检查和推进，Tool 负责打开文件，Environment 提供真实文件与系统结果。
+它把问题缩小到工具与文件环境之间。接下来检查读取调用、挂载和超时，才有机会解释为什么一直等待。仅凭“尚未返回”，还不能把阻塞直接说成死锁。
 
-这一课只建立职责地图，还没有规定 Tool Call 在 API 中长什么样。下一课会把申请、执行、回执和停止条件写成可运行的[Tool Calling Loop](03-工具调用循环.md)。
+其他现象也可以这样分：
 
-## 主动回忆
+| 看到什么 | 优先检查哪里 |
+| --- | --- |
+| 一直选错工具 | 当前输入、工具说明和模型决策 |
+| 申请的工具找不到 | 工具注册与路由 |
+| 参数形状不符合要求 | 模型输出与执行侧校验 |
+| 文件内容解码失败 | 工具实现及实际文件编码 |
+| 读取成功，却还在重复请求 | 循环的停止条件和预算 |
 
-1. Model、Harness、Tool 与 Environment 分别负责什么？
-2. 为什么 Agent Runtime 不能等同于 Model？
-3. Harness 为什么不能只转发消息？
-4. `read_file` 与文件系统为什么不是同一个东西？
-5. 操作系统返回 `Permission denied` 时，应该先检查哪一层？
-6. 为什么源码中搜不到 `Harness`，仍可能存在完整的 Harness 职责？
+下一课会把这条责任链写成 Tool Calling Loop：申请怎样表示，结果怎样回答原调用，以及什么情况下继续或停止。
 
-<details>
-<summary>检查简答</summary>
+## 资料与配套练习
 
-1. Model 选择动作；Harness 组织并控制运行；Tool 执行具体动作；Environment 返回真实状态。
-2. Model 只负责推理和生成，Runtime 还包含控制程序、工具与真实环境。
-3. 它还要组装输入、校验申请、执行策略、控制循环并处理异常。
-4. `read_file` 是执行读取动作的代码；文件系统是它接触的真实环境。
-5. 先确认进程身份、文件权限、挂载或 Sandbox 等 Environment 边界。
-6. Harness 是职责集合，项目可以把这些职责拆进会话、工具注册、权限和执行模块。
-
-</details>
-
-## 参考资料
-
-> 资料最后核验于 2026-09-03；会变化的源码锚点收录在下面的复核记录中。
-
-- [本批章节一手资料复核](../research/01-05-chapter-promotion-sources.md)
-- [OpenCode Session Processor](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/session/processor.ts)
-- [OpenCode Tool Registry](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/tool/registry.ts)
-- [OpenCode Permission Evaluation](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/permission/evaluate.ts)
+1. [OpenCode：会话处理](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/session/processor.ts)
+2. [OpenCode：工具注册](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/tool/registry.ts)
+3. [OpenCode：权限判断](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/permission/evaluate.ts)
+4. [固定源码与核验记录](../research/01-05-chapter-promotion-sources.md)
+5. [配套综合实践](../exercises/phase-1-capstone/README.md)
