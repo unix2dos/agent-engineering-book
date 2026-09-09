@@ -1,72 +1,47 @@
 # Agent 工程实践：从工具循环到可靠系统
 
-假设运维 Agent 收到指令给客户发送“系统维护完毕”通知。它成功把邮件推给了网关，却在本地写下“发送成功”的前一毫秒准时崩溃。
+假设 Agent 已经发出一封“系统维护完毕”的通知，却在保存成功记录前崩溃。重启后，程序把没有回执当成没有执行，又发了一遍。同一项任务，客户收到了双份报喜。
 
-重启后，Agent 睁开眼只看见一项未完成的任务。怀着对工作的极致敬业态度，它决定再发一次。在没有幂等与状态审计的系统里，**Agent 越勤奋，你的灾难就越壮观**——十分钟后，客户收件箱里整整齐齐躺着 300 封一模一样的通知，而 Agent 依然困惑为什么任务总是不算完。
-
-能调用工具只是演示的胜利。在带副作用的真实世界里，真正困难的是：历史越来越长时给 Model 看什么，程序中断后怎样继续，副作用不明时能不能重试，用户批准后命令又能碰到什么。这本书从一个最小 Tool Calling Loop 出发，一层层补上持久化、Context、故障恢复、Sandbox 和 Tracing，直到一次 Agent 运行可以被解释、限制和验证。
+这本书从最小工具调用循环出发，逐步搭起一个能读写工作区文件的 Agent。你会学习怎样保存任务进度、控制执行权限、处理崩溃，以及用实际结果判断一次改动有没有让系统变好。
 
 ## 适合谁，怎样学
 
-你只需要会一点 Python、Git 和命令行。Tool Calling、Context、JSONL、幂等、Trace、Sandbox 等术语，不要求提前懂；本书会等它们真正派上用场时再解释。
+适合会一点 Python、Git 和命令行，想理解 Agent 原理并亲手搭建系统的开发者。重点是 Agent Runtime / AI Systems：模型之外的程序怎样组织和控制一次运行，不以模型训练为主线。
 
-本书以 Agent Runtime / AI Systems 为主要技术深度，同时保留真实应用落地。本书不把框架名称或一次成功演示当作证据，每个关键结论都要经过实际材料检查：
-
-- 用官方文档和固定版本的源码确认真实实现；
-- 用最小代码跑通关键路径；
-- 主动制造截断、崩溃、重复执行和越界访问；
-- 通过主动回忆检查能否独立解释和迁移。
-
-📖 **在线阅读**：[https://levon.gitbook.io/agent-engineering/](https://levon.gitbook.io/agent-engineering/)
+先看具体问题、短代码和输出，再理解术语。想练手时，运行配套实验，故意制造截断、重启或越界访问；最后合上代码，试着解释为什么会出现这个结果。各课的机制会接进同一个工作区 Agent。
 
 ## 源码依据
 
-源码参考不追求把热门框架全部讲一遍，而是分成三组，让每组项目回答自己最擅长的问题：
+本书结合以下项目的源码与官方资料，核对教学实现中的关键选择：
 
-- **Coding Agent Runtime**：[Pi](https://github.com/earendil-works/pi)、[OpenClaw](https://github.com/openclaw/openclaw)、[Hermes](https://github.com/NousResearch/hermes-agent)、[Codex](https://github.com/openai/codex)、[OpenCode](https://github.com/anomalyco/opencode) 与 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，主要用于观察 Agent Loop、Session、Context、Tool、权限和安全边界。DeepSeek Harness 仍处于 Developer Preview，本书只针对核验过的固定版本讨论；
-- **Agent 框架与接口**：[OpenAI Agents SDK](https://github.com/openai/openai-agents-python)、[Claude Agent SDK Python](https://github.com/anthropics/claude-agent-sdk-python) 与 [LangGraph](https://github.com/langchain-ai/langgraph)，主要用于观察通用 Agent Loop、Session、Handoff、Guardrail、状态图和长任务恢复；
-- **可观测性与评估**：[Phoenix](https://github.com/Arize-ai/phoenix) 与 [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai)，主要用于观察 Trace、Span、Dataset、Solver、Scorer 和 Evaluation。
+- **运行时**：[Pi](https://github.com/earendil-works/pi)、[OpenClaw](https://github.com/openclaw/openclaw)、[Hermes](https://github.com/NousResearch/hermes-agent)、[Codex](https://github.com/openai/codex)、[OpenCode](https://github.com/anomalyco/opencode)、[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)——看真实 Agent 怎样组织运行、管理状态和限制工具。
+- **框架与接口**：[OpenAI Agents SDK](https://github.com/openai/openai-agents-python)、[Claude Agent SDK Python](https://github.com/anthropics/claude-agent-sdk-python)、[LangGraph](https://github.com/langchain-ai/langgraph)——看任务怎样编排、转交和恢复。
+- **观测与评估**：[Phoenix](https://github.com/Arize-ai/phoenix)、[Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai)——看怎样记录运行过程、检验任务结果。
 
-[Claude Code](https://github.com/anthropics/claude-code) 也会作为重要的产品行为参考，但其核心 Runtime 没有开源。书中只根据官方文档、设置、插件和示例研究它的权限、Hooks、Sandbox、Memory、Subagent 与 Workflow，不把这些外部行为说成已经核验过的内部实现。
+实现结论以各章核验的版本为准。对 [Claude Code](https://github.com/anthropics/claude-code)，本书讨论官方文档和可观察的产品行为，不把这些材料或 SDK 源码当成核心运行时的实现。链接供追溯，理解正文不要求同时打开仓库。
 
-## 阅读路线
+## 你会逐步做出什么
 
-| 阶段 | 课程 | 状态 |
-|---|---|---|
-| 一：判断与行动 | 第 1～3 课：是否需要 Agent、Runtime 与 Tool Calling Loop；第 0 课选读 | 已完成 |
-| 二：状态、可靠性与控制 | 第 4～7 课：持久化、Context、故障恢复与 Sandbox | 已完成 |
-| 三：看见与验证 | 第 8～9 课：Trace，以及合并回归检查的 Agent Evaluation | 第 8 课已完成；第 9 课正文与实践已成稿 |
-| 四：编排与长任务 | 第 10 课：Workflow、Routing、Handoff、少量 Subagent、后台任务与恢复 | 待第 9 课验证后开始 |
-| 五：生产运行 | 第 11 课：并发、队列、限流、成本、部署、监控与回滚 | 待第 10 课验证后开始 |
-| 可选分支 | RAG、MCP/A2A、Browser、Voice、多模态与专用 Sandbox | 按实际问题选择 |
+| 课程 | 要解决的问题 |
+|---|---|
+| 第 1～3 课：判断与行动 | 什么时候需要 Agent？怎样把模型申请、工具执行和最终回答接成一个循环？ |
+| 第 4～7 课：状态与控制 | 重启后怎样继续？历史太长给模型看什么？执行结果不明时怎么办？工具能碰哪些文件？ |
+| 第 8～9 课：观测与评估 | 运行卡在哪一步？换了模型或代码，怎样判断变好还是变坏？ |
 
-第 9 课收尾后，后续主线只详细规划第 10～11 课，不提前创建空章节。Recorded-session Replay、完整 OpenTelemetry 平台和大规模 Multi-Agent 都在真实问题出现后再补。
+后续计划在同一项目上加入长任务编排与生产运行。
 
-完整目录见 [SUMMARY.md](SUMMARY.md)。
+## 从哪里开始
 
-## 代码与综合实践
+- 第一次系统学习，从[第 1 课：Agent 基础](chapters/01-Agent基础.md)开始。
+- 已理解基本概念，想先看代码，从[第 3 课：工具调用循环](chapters/03-工具调用循环.md)开始。
+- 想了解这些工程问题怎样出现，选读[第 0 课：Agent 工程史](chapters/00-Agent工程史.md)。
 
-教学代码按对应课程放在 `examples/`：
+[在线阅读](https://levon.gitbook.io/agent-engineering/) · [完整目录](SUMMARY.md)
 
-- [`lesson_03_tool_calling_loop.py`](examples/lesson_03_tool_calling_loop.py)：最小 Tool Calling Loop；
-- [`lesson_04_session_memory.py`](examples/lesson_04_session_memory.py)：Session、Checkpoint 与长期记忆；
-- [`lesson_05_context_compaction.py`](examples/lesson_05_context_compaction.py)：JSONL Transcript、Compaction 与 Prompt View；
-- [`lesson_06_tool_reliability.py`](examples/lesson_06_tool_reliability.py)：Execution Ledger、幂等与故障恢复。
+## 配套实践
 
-[阶段一～二综合实践](exercises/phase-1-capstone/README.md)会把有停止条件的 Agent Loop、受限工作区工具、Transcript、Prompt View、Ledger 和故障恢复串成一个可以运行的小系统。
+- [最小工具循环](examples/lesson_03_tool_calling_loop.py)：运行一个完整的调用与回传过程。
+- [综合实践](exercises/phase-1-capstone/README.md)：把文件工具、会话记录和故障恢复接成一个小系统。
+- 按需练习：[SQLite 存储](exercises/session-storage-sqlite/README.md)、[安全边界](exercises/lesson-07-safety/README.md)、[运行追踪](exercises/lesson-08-tracing/README.md)、[任务评估](exercises/lesson-09-evaluation/README.md)。
 
-[SQLite 专项练习](exercises/session-storage-sqlite/README.md)连接第 4 课的存储选择与第 6 课的可靠执行，从状态查询开始，验证索引、事务和唯一约束什么时候比继续扩写 JSONL 代码更省事。
-
-[第 7 课安全边界练习](exercises/lesson-07-safety/README.md)先证明 `cwd=workspace` 不是 Sandbox，再逐层加入 Tool Policy、Approval、执行 Backend 与 Elevated。
-
-[第 8 课 Trace 练习](exercises/lesson-08-tracing/README.md)先把一次 Agent Run 组织成具有共同 `trace_id` 和父子关系的 Span。
-
-[第 9 课 Evaluation](chapters/09-Agent评估.md)学习怎样选择代表性任务、设计可信评分、比较版本并制定回归门禁。[约 30 分钟综合实践](exercises/lesson-09-evaluation/README.md)复用 Workspace Agent 的运行时检查与真实模型报告，交付一张小题表和一份版本判断。
-
-后续课程继续扩展同一个综合 Agent：第 10 课加入编排和长任务，第 11 课再处理生产运行。RAG 与 MCP 只在这个项目确实需要知识检索或外部能力时加入。
-
-这些代码是教学实现，不宣称覆盖生产系统的并发、分布式事务、租户隔离和高可用要求。
-
-## 单一真实源（SSOT）与发布规范
-
-本仓库是唯一持续维护的权威源（Single Source of Truth）。历史发布的 Blog 文章仅作为外部快照和引流入口保留，除修正失效链接和关键事实错误外，不再全量同步正文；新 Blog 仅在阶段收官或特定话题独立成篇时发布。GitBook 镜像仅用于排版展示，不作为并行写作来源。
+配套说明包含配置、完整代码和验收步骤。这些是教学实现；通过练习不等于已经满足生产系统的并发、隔离和高可用要求。
