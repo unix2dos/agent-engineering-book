@@ -4,7 +4,7 @@
 
 本轮沿用第 9 课的任务：把配置主题改成 dark，端口保持 3000。先看一次失败怎样进入修复，再看程序怎样停下来；不用从空白写函数。
 
-模型回复是固定剧本，文件读写、工具账本和评分器都真实运行。这个实验验证工作流接线，不证明真实模型会自己修好问题，也不执行模型生成的代码。
+默认模型回复是固定剧本，文件读写、工具账本和评分器都真实运行。这个模式验证工作流接线，不证明真实模型会自己修好问题，也不执行模型生成的代码。只有显式使用 `--live` 才会联网调用已配置的真实模型。
 
 ## 先跑完整流程
 
@@ -55,6 +55,20 @@ python -B exercises/lesson-10-orchestration/workflow_demo.py --model-budget 5
 
 每轮仍保留原 Agent Loop 的 4 次请求上限，外层预算跨轮共享。发生模型或工具运行异常时，本例停止；不会在副作用尚不明确时自动开启下一轮修改。评分器返回 `error` 时也停止，等待修正评分问题。
 
+## 小规模真实模型验证
+
+使用环境变量 `OPENAI_API_KEY`、`OPENAI_MODEL`，以及可选的 `OPENAI_BASE_URL`。真实调用可能产生费用；先限制为两轮修改、总共六次模型请求：
+
+```bash
+python -B exercises/lesson-10-orchestration/workflow_demo.py --live --max-attempts 2 --model-budget 6
+```
+
+客户端设置 30 秒超时、SDK 自动重试为 0。Provider 要求会话请求头时，再加 `--session-header 请求头名称`。该选项不用于传 API Key。
+
+真实模型不按剧本行动，可能第一次就通过，也可能超时或失败。报告记录实际模型、运行模式、请求设置和源文件指纹；不要把模拟模式的“两轮成功”当作真实模型的结果。一次通过也不足以推导稳定成功率。
+
+2026-09-10 的一次真实运行中，文件通过验收，但最后的模型回答超时，完整运行仍为 `run_error`。程序停止并保留成功的写入回执，没有自动重新写文件。实验过程见[真实验证记录](../../research/10-workflow-live-check.md)。
+
 ## 代码只看一段
 
 打开 [workflow_demo.py](workflow_demo.py)，先找 `run_workflow()` 最后那段循环：
@@ -80,4 +94,4 @@ python -B exercises/lesson-10-orchestration/handoff_demo.py --self-check
 python -B exercises/lesson-10-orchestration/recovery_demo.py --self-check
 ```
 
-没有网络调用或付费模型请求。自检临时目录自动清理，普通演示的目录保留供你检查。
+上述自检没有网络调用或付费模型请求。自检临时目录自动清理，普通演示及 `--live` 的目录保留供你检查。

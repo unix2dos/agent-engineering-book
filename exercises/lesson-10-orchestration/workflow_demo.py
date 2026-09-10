@@ -4,21 +4,26 @@ python -B exercises/lesson-10-orchestration/workflow_demo.py
 python -B exercises/lesson-10-orchestration/workflow_demo.py --scenario always-wrong
 python -B exercises/lesson-10-orchestration/workflow_demo.py --model-budget 5
 python -B exercises/lesson-10-orchestration/workflow_demo.py --self-check
+python -B exercises/lesson-10-orchestration/workflow_demo.py --live --max-attempts 2 --model-budget 6
 
-模型回复是固定剧本；真实复用综合实践的 Loop、文件工具、Ledger，以及第 9 课评分器。
-只修改临时工作区的 config.json，不联网，不执行生成的代码，不需要 API Key。
+默认模型回复是固定剧本；--live 才使用环境变量中的真实模型，需要 API Key 并可能产生费用。
+复用综合实践的 Loop、文件工具、Ledger，以及第 9 课评分器；只修改临时工作区的 config.json。
+不执行生成的代码。真实请求设置 30 秒超时、SDK 自动重试为 0。
 默认保留运行目录供检查；自检使用的临时目录自动清理。
 本例不实现自动重启续跑、后台调度或进程级 Sandbox。
 """
 
 import argparse
 import contextlib
+import hashlib
 import io
 import json
 from pathlib import Path
 import runpy
 import tempfile
+import time
 from types import SimpleNamespace
+from urllib.parse import urlsplit
 from unittest.mock import patch
 
 from recovery_demo import write_checkpoint
@@ -37,12 +42,15 @@ class ModelBudgetExhausted(RuntimeError):
     """用于区分预算停止与其他运行异常。"""
 
 
-def run_workflow(client, output: Path, max_attempts: int = 3, model_budget: int = 9) -> dict:
+def run_workflow(client, output: Path, max_attempts: int = 3, model_budget: int = 9,
+                 *, model: str = "scripted-workflow", live: bool = False) -> dict:
     """重点读本函数末尾的循环：Agent 回答后，程序始终自行验收。"""
     if type(max_attempts) is not int or not 1 <= max_attempts <= 3:
         raise ValueError("总修改轮数必须为 1～3，包括首次修改")
     if type(model_budget) is not int or not 1 <= model_budget <= 30:
         raise ValueError("模型请求总预算必须为 1～30")
+    if not isinstance(model, str) or not model.strip():
+        raise ValueError("模型名称不能为空")
     output.mkdir(parents=True, exist_ok=False)  # 不覆盖旧实验。
     workspace = output / "workspace"
     workspace.mkdir()
@@ -55,9 +63,18 @@ def run_workflow(client, output: Path, max_attempts: int = 3, model_budget: int 
     session = output / "session.jsonl"
     checkpoint = output / "checkpoint.json"
     state = {
-        "phase": "ready", "mode": "scripted", "attempt": 0,
+        "phase": "ready", "mode": "live" if live else "scripted", "model": model,
+        "provider_host": urlsplit(str(getattr(client, "base_url", ""))).hostname,
+        "sdk_max_retries": getattr(client, "max_retries", 0),
+        "request_timeout": str(getattr(client, "timeout", "scripted")),
+        "attempt": 0,
         "max_attempts": max_attempts, "model_budget": model_budget,
         "remaining_calls": model_budget, "attempts": [],
+        "source_sha256": {
+            str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in (Path(__file__).resolve(), ROOT / "exercises/phase-1-capstone/starter.py",
+                         ROOT / "exercises/lesson-09-evaluation/starter.py")
+        },
     }
     write_checkpoint(checkpoint, state)
     AGENT.persist_message(session, {"role": "system", "content": "只允许读写 config.json；根据真实工具结果回答。"})
@@ -101,9 +118,10 @@ def run_workflow(client, output: Path, max_attempts: int = 3, model_budget: int 
         write_checkpoint(checkpoint, state)
         print(f"第 {attempt} 轮修改（总上限 {max_attempts}），剩余请求 {state['remaining_calls']}")
         run_status, answer, error_type = "completed", None, None
+        started = time.perf_counter()
         try:
             answer = AGENT.run_agent_loop(
-                client=bounded_client, model="scripted-workflow", tools=TOOLS,
+                client=bounded_client, model=model, tools=TOOLS,
                 user_text=instruction, execute_tool=execute_tool, session_file=session,
             )
         except ModelBudgetExhausted:
@@ -120,6 +138,7 @@ def run_workflow(client, output: Path, max_attempts: int = 3, model_budget: int 
         record = {
             "attempt": attempt, "agent_run": run_status, "answer": answer,
             "error_type": error_type, "grade": grade, "artifact": snapshot.name,
+            "duration_ms": round((time.perf_counter() - started) * 1000),
             "remaining_calls": state["remaining_calls"],
         }
         state["attempts"].append(record)
@@ -176,6 +195,7 @@ def self_check() -> None:
         assert report["phase"] == "completed"
         assert [r["grade"]["status"] for r in report["attempts"]] == ["failed", "passed"]
         assert len(client.completions.requests) == 6 and report["remaining_calls"] == 3
+        assert report["mode"] == "scripted" and report["model"] == "scripted-workflow"
         feedback = client.completions.requests[3]["messages"][-1]["content"]
         assert "程序验收未通过" in feedback and "3000" in feedback
         assert json.loads((root / "repair/attempt_01_config.json").read_text())["port"] == 8080
@@ -184,6 +204,10 @@ def self_check() -> None:
         assert not AGENT.pending_tool_calls(entries)
         assert len(AGENT.latest_execution_states(entries)) == 2
         assert json.loads((root / "repair/report.json").read_text()) == report
+        named_client = scripted_client("repair")
+        named = run_workflow(named_client, root / "named", model="configured-model")
+        assert named["model"] == "configured-model"
+        assert all(request["model"] == "configured-model" for request in named_client.completions.requests)
 
         wrong = run_workflow(scripted_client("always-wrong"), root / "wrong")
         assert wrong["phase"] == "attempt_limit" and len(wrong["attempts"]) == 3
@@ -205,6 +229,29 @@ def self_check() -> None:
         interrupted = run_workflow(AGENT.FakeClient([]), root / "interrupted")
         assert interrupted["phase"] == "run_error" and len(interrupted["attempts"]) == 1
 
+        # 固化实测路径：文件已写好，等待最后回答时超时，不能重跑写入。
+        timeout_client = AGENT.FakeClient([
+            AGENT.fake_response("tool_calls", tool_calls=[AGENT.fake_tool_call(
+                "timeout_write", "write_file",
+                {"path": "config.json", "content": json.dumps(dict(INITIAL, theme="dark"))},
+            )]),
+        ])
+        create = timeout_client.completions.create
+
+        def timeout_after_write(**request):
+            if timeout_client.completions.requests:
+                raise TimeoutError("模拟最终回答超时")
+            return create(**request)
+
+        timeout_client.completions.create = timeout_after_write
+        timed_out = run_workflow(timeout_client, root / "timeout", model_budget=6)
+        assert timed_out["phase"] == "run_error" and len(timed_out["attempts"]) == 1
+        assert timed_out["attempts"][0]["grade"]["status"] == "passed"
+        assert timed_out["attempts"][0]["error_type"] == "TimeoutError"
+        assert timed_out["remaining_calls"] == 4
+        states = AGENT.latest_execution_states(AGENT.load_entries(root / "timeout/session.jsonl"))
+        assert len(states) == 1 and next(iter(states.values()))["status"] == "succeeded"
+
         denied = AGENT.FakeClient([
             AGENT.fake_response("tool_calls", tool_calls=[
                 AGENT.fake_tool_call("deny_path", "write_file", {"path": "../expected.json", "content": "changed"}),
@@ -225,16 +272,36 @@ def self_check() -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--self-check", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--self-check", action="store_true")
+    mode.add_argument("--live", action="store_true", help="调用环境变量配置的真实模型，可能产生费用")
+    parser.add_argument("--session-header", help="仅 live：Provider 要求的会话 ID 请求头名称")
     parser.add_argument("--scenario", choices=["repair", "always-wrong"], default="repair")
     parser.add_argument("--max-attempts", type=int, choices=range(1, 4), default=3)
     parser.add_argument("--model-budget", type=int, choices=range(1, 31), default=9)
     args = parser.parse_args()
+    if args.session_header and not args.live:
+        parser.error("--session-header 只用于 --live")
+    if args.live and args.scenario != "repair":
+        parser.error("--scenario 只控制模拟模型，不能用于真实模型")
     if args.self_check:
         self_check()
     else:
         output = Path(tempfile.mkdtemp(prefix="agent-workflow-")) / "run"
-        print("固定剧本模型；真实文件工具和验收。报告目录：", output)
-        result = run_workflow(scripted_client(args.scenario), output, args.max_attempts, args.model_budget)
+        if args.live:
+            client, model = REFERENCE["make_client"]()
+            headers = {"User-Agent": "agent-engineering-book/0.1"}
+            if args.session_header:
+                headers[args.session_header] = output.parent.name
+            client = client.with_options(timeout=30.0, max_retries=0, default_headers=headers)
+        else:
+            client, model = scripted_client(args.scenario), "scripted-workflow"
+        print("真实模型" if args.live else "固定剧本模型", "；报告目录：", output, flush=True)
+        try:
+            result = run_workflow(client, output, args.max_attempts, args.model_budget,
+                                  model=model, live=args.live)
+        finally:
+            if args.live:
+                client.close()
         print("完整报告：", output / "report.json")
         raise SystemExit(0 if result["phase"] == "completed" else 2)

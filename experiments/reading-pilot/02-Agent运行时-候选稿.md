@@ -93,7 +93,7 @@ Harness 可以处理失败，但处理方式要看证据和动作性质。返回
 
 LangChain 与 LangGraph 都是可以在 Python 程序中安装、调用的代码库。它们提供模型之外的程序部件，帮助开发者少写重复的运行代码。
 
-![小黑把 LangChain 的模型与工具循环装在 LangGraph 编排底座上，底座的抽屉表示可按配置保存的执行进度。](../assets/langchain-langgraph-illustrations/01-agent-loop-on-runtime.png)
+![小黑把 LangChain 的模型与工具循环装在 LangGraph 编排底座上，底座的抽屉表示可按配置保存的执行进度。](../../assets/langchain-langgraph-illustrations/01-agent-loop-on-runtime.png)
 
 图把软件关系画成了装配动作：上层是现成的模型与工具循环，下层提供编排和状态管理能力。它不表示两台独立设备。
 
@@ -136,7 +136,7 @@ LangGraph 帮你执行这些相互连接的步骤。每个步骤对应一个**�
 1. [OpenCode：会话处理](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/session/processor.ts)
 2. [OpenCode：工具注册](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/tool/registry.ts)
 3. [OpenCode：权限判断](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/permission/evaluate.ts)
-4. [固定源码与核验记录](../research/01-05-chapter-promotion-sources.md)
-5. [配套综合实践](../exercises/phase-1-capstone/README.md)
+4. [固定源码与核验记录](../../research/01-05-chapter-promotion-sources.md)
+5. [配套综合实践](../../exercises/phase-1-capstone/README.md)
 6. [LangChain：Agent 框架与模型接口](https://docs.langchain.com/oss/python/langchain/overview)
 7. [LangGraph：编排运行时与 LangChain 的关系](https://docs.langchain.com/oss/python/langgraph/overview)

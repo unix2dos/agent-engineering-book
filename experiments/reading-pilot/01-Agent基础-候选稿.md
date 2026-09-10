@@ -84,5 +84,5 @@ HTTP 500
 ## 参考与配套材料
 
 1. [Anthropic：Building Effective AI Agents](https://www.anthropic.com/research/building-effective-agents)，本章沿用其对预设流程与模型动态决策的架构区分。
-2. [第 1～5 课资料复核](../research/01-05-chapter-promotion-sources.md)。资料供追溯，理解正文不要求同时打开链接。
-3. [只读排查样例](../experiments/reading-pilot/README.md)。本章不要求先阅读实现文件；工具调用与回传将在第 3 课展开。
+2. [第 1～5 课资料复核](../../research/01-05-chapter-promotion-sources.md)。资料供追溯，理解正文不要求同时打开链接。
+3. [只读排查样例](README.md)。本章不要求先阅读实现文件；工具调用与回传将在第 3 课展开。
