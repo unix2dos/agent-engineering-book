@@ -27,8 +27,9 @@
 | 第 1～3 课：判断与行动 | 什么时候需要 Agent？怎样把模型申请、工具执行和最终回答接成一个循环？ |
 | 第 4～7 课：状态与控制 | 重启后怎样继续？历史太长给模型看什么？执行结果不明时怎么办？工具能碰哪些文件？ |
 | 第 8～9 课：观测与评估 | 运行卡在哪一步？换了模型或代码，怎样判断变好还是变坏？ |
+| [第 10 课：编排与长任务](chapters/10-Agent编排.md) | 哪些步骤应由程序固定？怎样交接任务、保留进度并控制总预算？ |
 
-后续计划在同一项目上加入长任务编排与生产运行。
+后续计划在同一项目上继续处理并发、限流与生产运行。
 
 ## 从哪里开始
 
@@ -42,6 +43,7 @@
 
 - [最小工具循环](examples/lesson_03_tool_calling_loop.py)：运行一个完整的调用与回传过程。
 - [综合实践](exercises/phase-1-capstone/README.md)：把文件工具、会话记录和故障恢复接成一个小系统。
+- [工作流实践](exercises/lesson-10-orchestration/README.md)：复用现有 Agent，接上程序验收、有限次修复和共享预算。
 - 按需练习：[SQLite 存储](exercises/session-storage-sqlite/README.md)、[安全边界](exercises/lesson-07-safety/README.md)、[运行追踪](exercises/lesson-08-tracing/README.md)、[任务评估](exercises/lesson-09-evaluation/README.md)。
 
 配套说明包含配置、完整代码和验收步骤。这些是教学实现；通过练习不等于已经满足生产系统的并发、隔离和高可用要求。
