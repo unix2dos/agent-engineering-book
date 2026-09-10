@@ -57,6 +57,10 @@ Harness 的控制点包括：
 
 这不意味着每个项目都要有一个叫 Harness 的大类。核验版本的 OpenCode 把会话处理、工具查找和权限判断放在不同模块中，仍然承担了这些职责。[1][2][3] 看源码时应追踪谁在做这些事，而不是只搜索一个名称。
 
+LangChain、LangGraph 是帮助实现这些职责的框架，不是模型。LangChain 提供模型与工具的统一接口，以及常见的 Agent 循环；LangGraph 则让开发者组织具体步骤、分支和共享状态，并配置暂停与恢复。当前 LangChain 的 Agent 基于 LangGraph，LangGraph 也可以独立使用。[6][7]
+
+回到读取文件的例子，框架能帮你组织调用，但读取函数、路径规则和实际文件环境仍要由应用提供。本课先认清它们的位置；下一课手写一次工具循环，第 10 课再对照框架怎样组织同一个任务。
+
 ## 3. Tool 与 Environment 怎样区分？
 
 `read_file` 是读取动作的实现；文件系统是它接触的环境。同一段工具代码换个地方运行，可能得到不同结果：
@@ -105,3 +109,5 @@ Harness 的控制点包括：
 3. [OpenCode：权限判断](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/permission/evaluate.ts)
 4. [固定源码与核验记录](../research/01-05-chapter-promotion-sources.md)
 5. [配套综合实践](../exercises/phase-1-capstone/README.md)
+6. [LangChain：Agent 框架与模型接口](https://docs.langchain.com/oss/python/langchain/overview)
+7. [LangGraph：编排运行时与 LangChain 的关系](https://docs.langchain.com/oss/python/langgraph/overview)

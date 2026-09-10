@@ -53,6 +53,29 @@ print(next_step)
 
 验收规则本身要受保护。模型可以指出测试与需求冲突，并提供证据；不能自己删掉断言，再宣布通过。运行发生异常时也不盲目开启下一轮，第 6 课里“副作用可能已经发生”的问题仍然存在。
 
+### 用这条流程理解 LangChain 与 LangGraph
+
+现有程序包含两层：里面是模型与工具来回交互的 Agent Loop，外面是“修改后验收、失败再修、预算用完停止”的工作流。先区分这两层，再看框架能省掉哪部分代码。
+
+**LangChain 提供常见 Agent 循环的现成入口。** 你把模型、工具和指令交给它，不必每次重新组织工具调用与结果回传。在这个任务里，可以用它承担“让 Agent 修改配置”这一步；怎样读写文件、哪些路径允许访问，仍由应用定义。[4]
+
+**LangGraph 让你直接组织任务的步骤和连接。** 把修改与验收分别作为节点，再按验收结果选择回到修改还是结束。“图”指的就是这些步骤及其连接，节点可以调用模型，也可以只是普通 Python 函数。[5]
+
+对照同一个配置任务：
+
+| 要做的事 | 现有 Python 实现 | 用 LangGraph 表达时 |
+|---|---|---|
+| 修改配置 | 调用已有 Agent Loop | 修改节点调用同一个 Loop，或调用 LangChain 的现成 Agent |
+| 验收产物 | 调用配置评分器 | 验收节点继续调用同一个评分器 |
+| 决定是否修复 | 循环里的条件判断 | 按运行、评分和预算状态选择下一条连接 |
+| 记录进度 | 保存阶段、轮次与剩余额度 | 将这些字段放入图状态，需要恢复时配置合适的 Checkpointer |
+
+采用 LangGraph 不要求把现有 Agent Loop 一起重写。它也能直接组织模型与工具循环；当前 LangChain 的 Agent 就建立在 LangGraph 之上。两者的差别是使用现成的 Agent 组织方式，还是更直接地控制步骤，不是“单 Agent 对多 Agent”。[4][5]
+
+框架不会自动知道“端口必须保持 3000”，也不会替你决定可以修复几次。这些规则仍要写进评分器、分支和执行检查。配置了 Checkpointer，还需选择能满足恢复要求的存储，并处理副作用边界。
+
+这个对照解释实现职责；配套工作流目前仍使用现有 Python 代码。若之后迁移到 LangGraph，应保留相同输入、评分器和停止规则重跑，才能判断两种实现是否符合相同要求。当前这条短流程已经能用普通代码表达，理解框架不要求立刻替换它。
+
 ## 2. 先选处理分支，再决定是否需要另一个 Agent
 
 用户也可能只是要求“解释配置”。这时进入读取分支就够了，没有理由开放写入。按请求选择处理分支、工具或模型，叫 **Routing（路由）**。规则明确时可以由普通代码选；需要理解自然语言时可以让模型提出选择，但权限仍由程序检查。
@@ -173,3 +196,5 @@ editor 获准请求，剩余 0
 1. [LangChain：Handoffs 与上下文传递](https://docs.langchain.com/oss/python/langchain/multi-agent/handoffs)
 2. [LangGraph：持久化与 Checkpoint](https://docs.langchain.com/oss/python/langgraph/durable-execution)
 3. [第 10 课配套实践](../exercises/lesson-10-orchestration/README.md)
+4. [LangChain：Agent 框架与模型接口](https://docs.langchain.com/oss/python/langchain/overview)
+5. [LangGraph：编排运行时与 LangChain 的关系](https://docs.langchain.com/oss/python/langgraph/overview)
