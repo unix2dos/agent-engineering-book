@@ -192,6 +192,6 @@ else:
 6. [SWE-bench：评分实现](https://www.swebench.com/SWE-bench/api/harness/#swebench.harness.grading.get_resolution_status)
 7. [Promptfoo：CI/CD 与质量门禁](https://www.promptfoo.dev/docs/integrations/ci-cd/)
 8. [LangSmith：结果、单步与过程评估](https://docs.langchain.com/langsmith/evaluation-approaches)
-9. [本章配套实验](../exercises/lesson-09-evaluation/README.md)
-10. [实测条件、报告与实现边界](../research/09-evaluation-source-verification.md)
-11. [正文代码检查](../experiments/reading-pilot/check_lesson_09.py)：`python -B experiments/reading-pilot/check_lesson_09.py`，复用离线自检并只读比较历史报告，不调用模型或发布。
+9. [本章配套实验](../../exercises/lesson-09-evaluation/README.md)
+10. [实测条件、报告与实现边界](../../research/09-evaluation-source-verification.md)
+11. [候选代码检查](check_lesson_09.py)：`python -B experiments/reading-pilot/check_lesson_09.py`，复用离线自检并只读比较历史报告，不调用模型或发布。

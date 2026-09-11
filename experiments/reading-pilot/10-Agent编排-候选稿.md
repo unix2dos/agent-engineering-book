@@ -209,8 +209,8 @@ LangChain 的 Agent 建立在 LangGraph 之上。直接使用 LangGraph 也可�
 
 1. [LangChain：Handoffs 与上下文传递](https://docs.langchain.com/oss/python/langchain/multi-agent/handoffs)
 2. [LangGraph：持久执行与 Checkpoint](https://docs.langchain.com/oss/python/langgraph/durable-execution)
-3. [第 10 课配套实践](../exercises/lesson-10-orchestration/README.md)
+3. [第 10 课配套实践](../../exercises/lesson-10-orchestration/README.md)
 4. [LangChain：Agent 框架与模型接口](https://docs.langchain.com/oss/python/langchain/overview)
 5. [LangGraph：编排运行时与 LangChain 的关系](https://docs.langchain.com/oss/python/langgraph/overview)
-6. [已有真实运行的条件、结果与边界](../research/10-workflow-live-check.md)
-7. [正文代码检查](../experiments/reading-pilot/check_lesson_10.py)：`python -B experiments/reading-pilot/check_lesson_10.py`，执行正文片段与离线自检，不调用真实模型、不启动远端任务。
+6. [已有真实运行的条件、结果与边界](../../research/10-workflow-live-check.md)
+7. [候选代码检查](check_lesson_10.py)：`python -B experiments/reading-pilot/check_lesson_10.py`，执行正文片段与离线自检，不调用真实模型、不启动远端任务。

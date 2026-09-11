@@ -106,5 +106,5 @@ Context 管理：本轮让模型看到哪些信息？
 8. [LangGraph v0.2 公告](https://www.langchain.com/blog/langgraph-v0-2)
 9. [MCP 发布公告](https://www.anthropic.com/news/model-context-protocol)
 10. [A2A 发布公告](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/)
-11. [历史资料核验与后续版本索引](../research/00-agent-engineering-history-sources.md)
+11. [历史资料核验与后续版本索引](../../research/00-agent-engineering-history-sources.md)
 12. 早期 Agent 理论背景：[Intelligent Agents: Theory and Practice](https://doi.org/10.1017/S0269888900008122)

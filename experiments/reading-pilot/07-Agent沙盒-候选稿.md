@@ -209,7 +209,7 @@ host
 1. [Hermes：已核验版本的进程与工具隔离边界](https://github.com/NousResearch/hermes-agent/blob/63279301bcbdc185c1b07b98a9312eb0c862f26d/SECURITY.md)
 2. [OpenSandbox：已核验版本的架构](https://github.com/opensandbox-group/OpenSandbox/blob/a8ad18fa741f9c50a552116c16d09ba4be385468/docs/architecture/index.md)
 3. [OpenSandbox：隔离后端配置](https://github.com/opensandbox-group/OpenSandbox/blob/a8ad18fa741f9c50a552116c16d09ba4be385468/docs/guides/secure-container.md)
-4. [配套实验与完整运行说明](../exercises/lesson-07-safety/README.md)
-5. [项目对照、固定源码与核验记录](../research/07-safety-source-verification.md)
-6. [正文代码检查](../experiments/reading-pilot/check_lesson_07.py)：`python -B experiments/reading-pilot/check_lesson_07.py`，本机系统拒读部分需要支持 sandbox-exec 的 macOS。所有文件为临时假材料，不调用模型。
+4. [配套实验与完整运行说明](../../exercises/lesson-07-safety/README.md)
+5. [项目对照、固定源码与核验记录](../../research/07-safety-source-verification.md)
+6. [候选代码检查](check_lesson_07.py)：`python -B experiments/reading-pilot/check_lesson_07.py`，本机系统拒读部分需要支持 sandbox-exec 的 macOS。所有文件为临时假材料，不调用模型。
 7. 本机命令手册：`man sandbox-exec`。本轮核验了 `-p` 用法与弃用标记；该实验不替代生产沙盒的选型和安全验证。

@@ -38,17 +38,17 @@
 
 ## 从哪里开始
 
-- 第一次系统学习，从[第 1 课：Agent 基础](chapters/01-Agent基础.md)开始。
-- 已理解基本概念，想先看运行过程，从[第 3 课：工具调用循环](chapters/03-工具调用循环.md)开始。
-- 想了解这些工程问题怎样出现，选读[第 0 课：Agent 工程史](chapters/00-Agent工程史.md)。
+- 第一次系统学习，从[第 1 课：Agent 基础](../../chapters/01-Agent基础.md)开始。
+- 已理解基本概念，想先看运行过程，从[第 3 课：工具调用循环](../../chapters/03-工具调用循环.md)开始。
+- 想了解这些工程问题怎样出现，选读[第 0 课：Agent 工程史](../../chapters/00-Agent工程史.md)。
 
-[在线阅读](https://levon.gitbook.io/agent-engineering/) · [完整目录](SUMMARY.md)
+[在线阅读](https://levon.gitbook.io/agent-engineering/) · [完整目录](../../SUMMARY.md)
 
 ## 配套实践
 
-- [只读排查实验](chapters/03-工具调用循环.md)：复现订单接口 500，观察日志与源码怎样进入工具循环；该模式不需要模型 Key。
-- [综合实践](exercises/phase-1-capstone/README.md)：连接文件工具、会话记录、执行账本与故障恢复。
-- [工作流实践](exercises/lesson-10-orchestration/README.md)：接上程序验收、有限次修复和共享预算。
-- 按需练习：[独立的最小工具循环](examples/lesson_03_tool_calling_loop.py)、[SQLite 存储](exercises/session-storage-sqlite/README.md)、[安全边界](exercises/lesson-07-safety/README.md)、[运行追踪](exercises/lesson-08-tracing/README.md)、[任务评估](exercises/lesson-09-evaluation/README.md)。
+- [只读排查实验](../../chapters/03-工具调用循环.md)：复现订单接口 500，观察日志与源码怎样进入工具循环；该模式不需要模型 Key。
+- [综合实践](../../exercises/phase-1-capstone/README.md)：连接文件工具、会话记录、执行账本与故障恢复。
+- [工作流实践](../../exercises/lesson-10-orchestration/README.md)：接上程序验收、有限次修复和共享预算。
+- 按需练习：[独立的最小工具循环](../../examples/lesson_03_tool_calling_loop.py)、[SQLite 存储](../../exercises/session-storage-sqlite/README.md)、[安全边界](../../exercises/lesson-07-safety/README.md)、[运行追踪](../../exercises/lesson-08-tracing/README.md)、[任务评估](../../exercises/lesson-09-evaluation/README.md)。
 
 配套说明列出运行配置和验证步骤。真实模型调用可能产生费用，按实验说明显式开启。教学检查通过，不等于已经满足生产系统的并发、隔离和高可用要求。

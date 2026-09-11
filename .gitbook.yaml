@@ -11,6 +11,3 @@ redirects:
   03-first-tool-calling-loop: chapters/03-工具调用循环.md
   04-session-checkpoint-memory: chapters/04-会话持久化.md
   05-context-engineering: chapters/05-上下文工程.md
-  06-agent-storage-jsonl-sqlite-database: chapters/06-Agent存储.md
-  07-agent-tool-reliability: chapters/07-工具可靠性.md
-  08-agent-safety-boundaries: chapters/08-Agent沙盒.md

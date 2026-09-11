@@ -220,6 +220,6 @@ print(should_keep(True, spans, False))
 
 1. [OpenTelemetry：Traces](https://opentelemetry.io/docs/concepts/signals/traces/)
 2. [OpenClaw：已核验版本的 OpenTelemetry 配置](https://github.com/openclaw/openclaw/blob/64da06a78ffa98c5bb425cc79059d992260a4c76/docs/gateway/opentelemetry.md)
-3. [配套实验与完整实现](../exercises/lesson-08-tracing/README.md)
-4. [固定源码、导出去向及项目对照](../research/08-tracing-source-verification.md)
-5. [正文代码检查](../experiments/reading-pilot/check_lesson_08.py)：`python -B experiments/reading-pilot/check_lesson_08.py`，检查教学片段和临时文件读取，不调用模型、不发送遥测。
+3. [配套实验与完整实现](../../exercises/lesson-08-tracing/README.md)
+4. [固定源码、导出去向及项目对照](../../research/08-tracing-source-verification.md)
+5. [候选代码检查](check_lesson_08.py)：`python -B experiments/reading-pilot/check_lesson_08.py`，检查教学片段和临时文件读取，不调用模型、不发送遥测。
