@@ -216,10 +216,12 @@ print(should_keep(True, spans, False))
 
 现在能沿同一 Trace 找到第二次模型请求，并进一步调查超时原因。下一课的 Evaluation 换一个问题：让不同版本做同一组任务，怎样判断它们是否真正完成要求、有没有退步？
 
-## 资料与配套实验
+## 本课实践
+
+[进入第 8 课实践](../practice/lesson-08/README.md)：还原一次运行，区分操作状态、业务结果和保留策略。说明中列出必做步骤、完成标准和选做内容。
+
+## 资料
 
 1. [OpenTelemetry：Traces](https://opentelemetry.io/docs/concepts/signals/traces/)
 2. [OpenClaw：已核验版本的 OpenTelemetry 配置](https://github.com/openclaw/openclaw/blob/64da06a78ffa98c5bb425cc79059d992260a4c76/docs/gateway/opentelemetry.md)
-3. [配套实验与完整实现](../exercises/lesson-08-tracing/README.md)
-4. [固定源码、导出去向及项目对照](../research/08-tracing-source-verification.md)
-5. [正文代码检查](../experiments/reading-pilot/check_lesson_08.py)：`python -B experiments/reading-pilot/check_lesson_08.py`，检查教学片段和临时文件读取，不调用模型、不发送遥测。
+3. [固定源码、导出去向及项目对照](../research/08-tracing-source-verification.md)

@@ -21,9 +21,9 @@
 ## 本地实现与证据
 
 - `run_trial.py` 复用综合实践的有界 Agent Loop、文件 Tool 与 Ledger。
-- `starter.py` 的配置评分和 CSV 评分使用不同规则，返回相同三类状态。
+- `grader.py` 的配置评分和 CSV 评分使用不同规则，返回相同三类状态。
 - `compare_runs.py` 比较保存的报告；`--gate` 再检查固定回归题是否全部完整通过。
-- [baseline.json](../exercises/lesson-09-evaluation/evidence/baseline.json) 与 [candidate.json](../exercises/lesson-09-evaluation/evidence/candidate.json) 来自先前的真实模型实验。本轮只移除了本机路径，保留比较条件、成绩、异常类型、最终回答和耗时，没有重新请求模型或修改结果。
+- [baseline.json](../practice/lesson-09/evidence/baseline.json) 与 [candidate.json](../practice/lesson-09/evidence/candidate.json) 来自先前的真实模型实验。本轮只移除了本机路径，保留比较条件、成绩、异常类型、最终回答和耗时，没有重新请求模型或修改结果。
 
 两批使用同一 `mimo-v2.5`、CSV 输入、工具范围与评分器，每次最多四次模型请求。基础版完整成功 `3/3`，候选版完整成功 `0/3`。候选前两次有四条 Assistant 工具调用响应，最后停在 Tool Result，文件评分通过但没有 Final；第三次记录 `APIConnectionError`，不能仅凭这次失败断言提示词有问题。
 
@@ -50,8 +50,8 @@
 正例与反例由自检覆盖；真实候选报告应得到 `blocked` 和退出码 `2`。本轮另外用预设的四次工具调用重现请求预算耗尽，验证“文件正确但没有 Final”会保留为运行失败。自检只证明代码行为，模型表现仍以真实报告为准。
 
 ```bash
-python -B exercises/lesson-09-evaluation/starter.py --checkpoint-b
-python -B exercises/lesson-09-evaluation/starter.py --check-csv
-python -B exercises/lesson-09-evaluation/run_trial.py --self-check
-python -B exercises/lesson-09-evaluation/compare_runs.py --self-check
+python -B practice/lesson-09/grader.py --checkpoint-b
+python -B practice/lesson-09/grader.py --check-csv
+python -B practice/lesson-09/run_trial.py --self-check
+python -B practice/lesson-09/compare_runs.py --self-check
 ```

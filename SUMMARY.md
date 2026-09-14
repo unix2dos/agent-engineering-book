@@ -17,3 +17,16 @@
 * [第 9 课：Agent Evaluation——任务验收与回归门禁](chapters/09-Agent评估.md)
 
 * [第 10 课：Agent Orchestration——Workflow、Routing 与长任务](chapters/10-Agent编排.md)
+
+* [配套实践](practice/README.md)
+  * [第 3 课实践：订单排查](practice/lesson-03/README.md)
+  * [第 4 课实践：会话保存](practice/lesson-04/README.md)
+  * [第 5 课实践：上下文压缩](practice/lesson-05/README.md)
+  * [第 6 课实践：写后恢复](practice/lesson-06/README.md)
+  * [第 7 课实践：安全边界](practice/lesson-07/README.md)
+  * [第 8 课实践：运行追踪](practice/lesson-08/README.md)
+  * [第 9 课实践：任务评估](practice/lesson-09/README.md)
+  * [第 10 课实践：工作流](practice/lesson-10/README.md)
+  * [综合项目：Workspace Agent](practice/workspace-agent/README.md)
+  * [选做：目录工具](practice/lesson-03/directory/README.md)
+  * [选做：SQLite 存储](practice/optional/sqlite/README.md)

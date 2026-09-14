@@ -107,7 +107,7 @@ LangChain 与 LangGraph 都是可以在 Python 程序中安装、调用的代码
 模型给出诊断
 ```
 
-这些请求模型、执行工具、回传结果的循环代码，本来需要自己写；LangChain 提供了现成入口。**它省掉的是组织循环的工作。** 模型选择什么材料，仍由模型判断；文件具体怎样读取，仍由你提供的工具完成。[6] 上面是流程示意，不是一次真实模型运行记录。
+这些请求模型、执行工具、回传结果的循环代码，本来需要自己写；LangChain 提供了现成入口。**它省掉的是组织循环的工作。** 模型选择什么材料，仍由模型判断；文件具体怎样读取，仍由你提供的工具完成。[5] 上面是流程示意，不是一次真实模型运行记录。
 
 ### 5.2 LangGraph：任务编排与状态管理
 
@@ -123,20 +123,21 @@ LangChain 与 LangGraph 都是可以在 Python 程序中安装、调用的代码
 
 LangGraph 帮你执行这些相互连接的步骤。每个步骤对应一个**节点（Node）**，步骤间的连接决定接下来去哪。节点可以调用 LangChain Agent，也可以只是普通 Python 函数，例如运行测试。
 
-需要暂停或重启后继续时，还可以配置状态保存与恢复。图中的“进度”抽屉表示这项能力；它不会自动替你设计全部恢复规则。修改次数上限、异常处理和访问权限仍要由应用明确设置。[7]
+需要暂停或重启后继续时，还可以配置状态保存与恢复。图中的“进度”抽屉表示这项能力；它不会自动替你设计全部恢复规则。修改次数上限、异常处理和访问权限仍要由应用明确设置。[6]
 
-**LangChain 的 Agent 建立在 LangGraph 之上**，所以图里是上下两层。使用 LangChain 不要求先手写 LangGraph 流程；直接使用 LangGraph，也不必依赖 LangChain。LangChain 同样支持定制和持久化，“现成”不等于“不能改”。[6][7]
+**LangChain 的 Agent 建立在 LangGraph 之上**，所以图里是上下两层。使用 LangChain 不要求先手写 LangGraph 流程；直接使用 LangGraph，也不必依赖 LangChain。LangChain 同样支持定制和持久化，“现成”不等于“不能改”。[5][6]
 
 开源 Agent 不一定使用这些框架，模块名称也未必叫 Harness。本书核验的 OpenCode 版本把会话处理、工具查找和权限判断放在不同模块中，合起来承担运行控制的职责。[1][2][3] 阅读源码时，应追踪谁接住请求、谁执行动作、谁处理结果，而不是只找一个同名文件。
 
 下一课把这些职责接成一个最小 **Tool Calling Loop**：保存调用申请，执行工具，带着对应编号回传结果，再决定继续或结束。第 10 课再对照框架怎样组织更长的任务。
 
-## 资料与配套材料
+本课不要求额外写程序。工具申请、执行和回传将在[第 3 课](03-工具调用循环.md)展开。
+
+## 资料
 
 1. [OpenCode：会话处理](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/session/processor.ts)
 2. [OpenCode：工具注册](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/tool/registry.ts)
 3. [OpenCode：权限判断](https://github.com/anomalyco/opencode/blob/50efc055de282e0e54a87ccebb8e2054cc45efd2/packages/opencode/src/permission/evaluate.ts)
 4. [固定源码与核验记录](../research/01-05-chapter-promotion-sources.md)
-5. [配套综合实践](../exercises/phase-1-capstone/README.md)
-6. [LangChain：Agent 框架与模型接口](https://docs.langchain.com/oss/python/langchain/overview)
-7. [LangGraph：编排运行时与 LangChain 的关系](https://docs.langchain.com/oss/python/langgraph/overview)
+5. [LangChain：Agent 框架与模型接口](https://docs.langchain.com/oss/python/langchain/overview)
+6. [LangGraph：编排运行时与 LangChain 的关系](https://docs.langchain.com/oss/python/langgraph/overview)

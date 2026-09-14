@@ -81,8 +81,9 @@ HTTP 500
 
 下一课从一次读取卡住开始：模型已经提出申请，为什么日志迟迟没有回来？我们沿着这次请求，拆清 Model、Harness、Tool 与 Environment 的职责。
 
-## 参考与配套材料
+本课不要求额外写程序。工具申请、执行和回传将在[第 3 课](03-工具调用循环.md)展开。
+
+## 资料
 
 1. [Anthropic：Building Effective AI Agents](https://www.anthropic.com/research/building-effective-agents)，本章沿用其对预设流程与模型动态决策的架构区分。
 2. [第 1～5 课资料复核](../research/01-05-chapter-promotion-sources.md)。资料供追溯，理解正文不要求同时打开链接。
-3. [只读排查样例](../experiments/reading-pilot/README.md)。本章不要求先阅读实现文件；工具调用与回传将在第 3 课展开。

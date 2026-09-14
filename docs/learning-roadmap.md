@@ -72,7 +72,7 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 
 ## 第 9 课：Agent Evaluation——任务验收与回归门禁
 
-见[第 9 课正文](../chapters/09-Agent评估.md)和[实践说明](../exercises/lesson-09-evaluation/README.md)。概念解释、真实 CSV 实验和门禁规则统一维护在正文，这里只记录范围。
+见[第 9 课正文](../chapters/09-Agent评估.md)和[实践说明](../practice/lesson-09/README.md)。概念解释、真实 CSV 实验和门禁规则统一维护在正文，这里只记录范围。
 
 学习目标是为现有 Workspace Agent 设计小型评测，并判断模型、Prompt 或 Runtime 改动是否有收益、是否破坏已有能力，以及证据是否足够支持放行。约 30 分钟综合实践交付一张代表性题表和一份版本判断；确定性的运行时检查与真实模型 Trial 分开解释，不再以逐题考试或重复实现基础设施推进。
 
@@ -107,7 +107,9 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 
 ## 一个项目贯穿后续课程
 
-后续不再创建互不相关的练习项目。现有[阶段一～二综合实践](../exercises/phase-1-capstone/README.md)会逐步变成最终的 Workspace/Coding Agent：
+每章只通过一个[实践入口](../practice/README.md)交付运行、改动与验证步骤；最小演示直接可运行，综合能力积累在同一个项目中。第 0～2 课不硬配代码。SQLite 和复杂交接可选，安全、观测与评估能力仍属于主线。
+
+后续不再创建互不相关的练习项目。现有[综合项目](../practice/workspace-agent/README.md)会逐步变成最终的 Workspace/Coding Agent：
 
 ```text
 现有 Tool Loop、Session、Ledger 与 Sandbox

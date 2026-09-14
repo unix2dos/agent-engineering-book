@@ -69,8 +69,16 @@ A short, darkly humorous opening scenario derived strictly from realistic Agent 
 _Avoid_: Soap operas, personal relationship metaphors, joke variables in code, meme-heavy pop culture banter
 
 **Practice Contract**:
-The learning agreement attached to each lesson that requires at least one visible piece of evidence and separates code the learner must write once, code AI may generate, behavior that must be verified, and infrastructure that only needs boundary-level understanding. Major curriculum milestones require integrated practice, and adjacent early stages may share one capstone.
-_Avoid_: Homework list, code-generation rule, mandatory opening table
+The learning agreement that identifies the required action, observable evidence, completion criteria, and optional extensions for a lesson. Learning is demonstrated by explaining the control flow, changing a small requirement, and checking success and failure boundaries; selected core decisions are written by the learner, while general scaffolding may be supplied.
+_Avoid_: Code completion alone, mandatory Python fill-in exercises, running every available demo
+
+**Lesson Practice**:
+The single practical entry associated with a lesson, bringing together its runnable demonstration, focused modification, checks, and optional extensions. Readers can run it using the completed materials without first rebuilding all preceding lessons.
+_Avoid_: Competing exercise entries, a separate complete Agent for every lesson
+
+**Minimal Demonstration**:
+A runnable example that makes one lesson's mechanism and its limits observable with as little prerequisite reading as possible. It may reuse the completed integrated project without requiring the learner to understand all of that project first.
+_Avoid_: Full reference application, proof of general model reliability
 
 **Application Proof Project**:
 The existing Workspace and Coding Agent that accumulates each stage's core mechanisms and provides one end-to-end portfolio artifact. New lessons extend this project unless a genuinely different environment is required.

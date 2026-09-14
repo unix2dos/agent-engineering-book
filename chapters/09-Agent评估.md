@@ -182,7 +182,11 @@ else:
 
 以后调整 Context、工具或模型，先选出会受影响的任务，再运行、检查、比较。真实使用中新发现的故障进入回归集。下一课讨论 Workflow 与编排时，这些验收条件会继续用来判断：流程该结束、返工，还是交给人处理？
 
-## 资料与配套实验
+## 本课实践
+
+[进入第 9 课实践](../practice/lesson-09/README.md)：补一项评测设计，根据已有报告作出有证据、有边界的版本判断。说明中列出必做步骤、完成标准和选做内容。
+
+## 资料
 
 1. [Anthropic：Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)
 2. [Inspect：Scorers](https://inspect.aisi.org.uk/scorers.html)
@@ -192,6 +196,4 @@ else:
 6. [SWE-bench：评分实现](https://www.swebench.com/SWE-bench/api/harness/#swebench.harness.grading.get_resolution_status)
 7. [Promptfoo：CI/CD 与质量门禁](https://www.promptfoo.dev/docs/integrations/ci-cd/)
 8. [LangSmith：结果、单步与过程评估](https://docs.langchain.com/langsmith/evaluation-approaches)
-9. [本章配套实验](../exercises/lesson-09-evaluation/README.md)
-10. [实测条件、报告与实现边界](../research/09-evaluation-source-verification.md)
-11. [正文代码检查](../experiments/reading-pilot/check_lesson_09.py)：`python -B experiments/reading-pilot/check_lesson_09.py`，复用离线自检并只读比较历史报告，不调用模型或发布。
+9. [实测条件、报告与实现边界](../research/09-evaluation-source-verification.md)

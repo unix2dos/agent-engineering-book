@@ -1,6 +1,6 @@
 # LangChain 与 LangGraph：配图记录
 
-用途：单张解释图，用“现成循环模块装在编排底座上”的动作，说明 LangChain Agent 建立在 LangGraph 之上。小黑承担装配动作，图不作为两者完整功能清单。图文经用户确认，已应用到[正式第 2 课](../../chapters/02-Agent运行时.md)第 5 节；[候选稿](../../experiments/reading-pilot/02-Agent运行时-候选稿.md)作为审阅记录保留。尚未提交或发布。
+用途：单张解释图，用“现成循环模块装在编排底座上”的动作，说明 LangChain Agent 建立在 LangGraph 之上。小黑承担装配动作，图不作为两者完整功能清单。图文经用户确认，已应用到[正式第 2 课](../../chapters/02-Agent运行时.md)第 5 节。旧候选稿由 Git 保存；当时的应用与发布核验见[历史记录](../../docs/rewrite-verification.md)。
 
 输出：`01-agent-loop-on-runtime.png`。生成方式：内置 image_gen，按 ian-xiaohei-illustrations 的白底手绘、少量标注和动作主体规则生成；保留工具保存的原始文件。
 

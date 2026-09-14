@@ -97,7 +97,7 @@ editor 获准请求，剩余 0
 
 扣减与请求发出之间仍有故障窗口；单进程计数不保证并发原子扣减，写了 Checkpoint 也不等于已经实现自动续跑。
 
-已有一次真实运行验证了另一条停止路径：模型读写完成，文件评分 passed，最后的模型回答却出现 `APITimeoutError`。程序保存成功写入的 Ledger，整体停为 run_error，没有自动开始下一轮。这是一次历史观察，不是成功率评测，也没有验证模型收到错误反馈后会修复。[6]
+已有一次真实运行验证了另一条停止路径：模型读写完成，文件评分 passed，最后的模型回答却出现 `APITimeoutError`。程序保存成功写入的 Ledger，整体停为 run_error，没有自动开始下一轮。这是一次历史观察，不是成功率评测，也没有验证模型收到错误反馈后会修复。[5]
 
 ## 3. Routing 与 Handoff：分支和处理权
 
@@ -186,9 +186,9 @@ print(choose_next_step(["succeeded", "succeeded"]))
 
 前面的 Python 流程已有两层：内部 Agent Loop 组织模型与工具交互，外部 Workflow 决定验收、返工和停止。第 2 课的框架关系图，在这里可以对应到具体代码职责。
 
-**LangChain 提供常见 Agent 循环的现成入口。** 把模型、工具和指令交给它，可以少写工具调用与结果回传的组织代码；在本例中，它能承担“让 Agent 修改配置”这一步。文件怎样读写、哪些路径允许访问，仍由应用定义。[4]
+**LangChain 提供常见 Agent 循环的现成入口。** 把模型、工具和指令交给它，可以少写工具调用与结果回传的组织代码；在本例中，它能承担“让 Agent 修改配置”这一步。文件怎样读写、哪些路径允许访问，仍由应用定义。[3]
 
-**LangGraph 用节点、连接与状态组织运行。** 修改是一个节点，验收是另一个节点，评分结果决定回去修复还是结束。节点可以调用现有 Agent，也可以只是普通 Python 函数。[5]
+**LangGraph 用节点、连接与状态组织运行。** 修改是一个节点，验收是另一个节点，评分结果决定回去修复还是结束。节点可以调用现有 Agent，也可以只是普通 Python 函数。[4]
 
 | 任务职责 | 当前 Python 实现 | 用 LangGraph 表达时 |
 | --- | --- | --- |
@@ -197,7 +197,7 @@ print(choose_next_step(["succeeded", "succeeded"]))
 | 继续或停止 | 条件判断与循环 | 按运行、评分和预算状态选择连接 |
 | 保存进度 | 保存阶段、轮次与余额 | 存入图状态，按恢复要求配置 Checkpointer |
 
-LangChain 的 Agent 建立在 LangGraph 之上。直接使用 LangGraph 也可以组织模型与工具循环，不要求先使用 LangChain。区别在于采用现成的 Agent 组织方式，还是直接控制步骤；不是“单 Agent 对多 Agent”。[4][5]
+LangChain 的 Agent 建立在 LangGraph 之上。直接使用 LangGraph 也可以组织模型与工具循环，不要求先使用 LangChain。区别在于采用现成的 Agent 组织方式，还是直接控制步骤；不是“单 Agent 对多 Agent”。[3][4]
 
 框架不会自己知道“端口必须保持 3000”，也不会替应用决定可以修几轮。这些规则仍在评分器、分支和执行边界里。
 
@@ -205,12 +205,14 @@ LangChain 的 Agent 建立在 LangGraph 之上。直接使用 LangGraph 也可�
 
 当前配置工作流已接通，交接与恢复则仍是独立机制实验。能解释一次任务为什么继续、等待或停止，比先给它安排几个 Agent 更重要。
 
-## 资料与配套实践
+## 本课实践
+
+[进入第 10 课实践](../practice/lesson-10/README.md)：缩小修改次数或请求预算，观察验收失败怎样反馈、程序何时停止。说明中列出必做步骤、完成标准和选做内容。
+
+## 资料
 
 1. [LangChain：Handoffs 与上下文传递](https://docs.langchain.com/oss/python/langchain/multi-agent/handoffs)
 2. [LangGraph：持久执行与 Checkpoint](https://docs.langchain.com/oss/python/langgraph/durable-execution)
-3. [第 10 课配套实践](../exercises/lesson-10-orchestration/README.md)
-4. [LangChain：Agent 框架与模型接口](https://docs.langchain.com/oss/python/langchain/overview)
-5. [LangGraph：编排运行时与 LangChain 的关系](https://docs.langchain.com/oss/python/langgraph/overview)
-6. [已有真实运行的条件、结果与边界](../research/10-workflow-live-check.md)
-7. [正文代码检查](../experiments/reading-pilot/check_lesson_10.py)：`python -B experiments/reading-pilot/check_lesson_10.py`，执行正文片段与离线自检，不调用真实模型、不启动远端任务。
+3. [LangChain：Agent 框架与模型接口](https://docs.langchain.com/oss/python/langchain/overview)
+4. [LangGraph：编排运行时与 LangChain 的关系](https://docs.langchain.com/oss/python/langgraph/overview)
+5. [已有真实运行的条件、结果与边界](../research/10-workflow-live-check.md)
