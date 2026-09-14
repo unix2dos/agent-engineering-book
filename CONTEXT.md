@@ -44,6 +44,10 @@ _Avoid_: Canonical chapter, synchronized copy, abandoned page
 A short Blog publication created when a curriculum phase completes, or when one reader problem deserves an independent entry, and directs readers to the Canonical Chapters; it is a discovery surface, not a mirrored lesson.
 _Avoid_: Duplicate chapter, release log, second source of truth
 
+**Agent Progress Analysis**:
+An independently readable article that teaches readers to connect claimed Agent product behavior to engineering responsibilities and identify what the available evidence establishes or leaves unresolved. It explains the concepts needed for that reasoning and links to Canonical Chapters for deeper study, without requiring readers to have completed them.
+_Avoid_: Product feature roundup, proof of a vendor's general reliability, prerequisite-heavy chapter recap
+
 **Chapter Promotion**:
 The one-chapter-at-a-time process that turns a Published Blog Snapshot into a Canonical Chapter only after active recall, current-source verification, practical evidence, and beginner-level review.
 _Avoid_: File copy, bulk migration
