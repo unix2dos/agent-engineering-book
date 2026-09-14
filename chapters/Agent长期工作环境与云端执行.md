@@ -60,7 +60,7 @@ OpenAI 的 Sandbox Agents 文档就明确区分了运行状态 `RunState`、沙�
 
 这个实验也有清楚的边界：旧执行者已退出，只有一个恢复进程，文件仍在同一块可访问的磁盘上。它没有验证断电、容器丢失、并发接管或厂商服务的恢复质量。内容匹配只能说明当前目标满足，不能证明历史动作是谁做的、做了几次；发送邮件之类的操作还需要查询对应服务的结果。
 
-可在仓库根目录运行 `python3 -B research/agent-runtime-progress-demo.py`，查看[完整实验](agent-runtime-progress-demo.py)。脚本还检查了重复恢复不会重复补回执，并核对恢复前后的文件内容、文件标识和修改时间。
+可在仓库根目录运行 `python3 -B research/agent-runtime-progress-demo.py`，查看[完整实验](../research/agent-runtime-progress-demo.py)。脚本还检查了重复恢复不会重复补回执，并核对恢复前后的文件内容、文件标识和修改时间。
 
 ## 换一台执行机器，需要带走什么？
 
@@ -102,4 +102,4 @@ Amp 的 Runner 文档给出了直接例子：在自己的机器上启动 Runner�
 
 ---
 
-延伸阅读：[Runtime 的职责](../chapters/02-Agent运行时.md)、[会话与恢复状态](../chapters/04-会话持久化.md)、[执行账本与对账](../chapters/06-工具可靠性.md)、[编排与长任务](../chapters/10-Agent编排.md)。本文为独立文章。
+延伸阅读：[Runtime 的职责](02-Agent运行时.md)、[会话与恢复状态](04-会话持久化.md)、[执行账本与对账](06-工具可靠性.md)、[编排与长任务](10-Agent编排.md)。本文为独立文章。

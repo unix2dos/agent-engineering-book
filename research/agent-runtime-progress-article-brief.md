@@ -1,6 +1,6 @@
 # Agent 最新进展解读：写作简报
 
-状态：用户已阅读并确认定稿、提交。[正式稿](agent-runtime-progress-article.md)与[跨进程实验](agent-runtime-progress-demo.py)作为独立文章保存在本仓库；未接入课程目录，尚未发布到外部平台。
+状态：用户已阅读并确认定稿、提交。[正式稿](../chapters/Agent长期工作环境与云端执行.md)放在 `chapters`，作为不编号的独立文章；本目录保留写作简报与[跨进程实验](agent-runtime-progress-demo.py)。未接入课程目录，尚未发布到外部平台。
 
 ## 已确认的定位
 
