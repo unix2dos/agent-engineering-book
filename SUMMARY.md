@@ -17,6 +17,7 @@
 * [第 9 课：Agent Evaluation——任务验收与回归门禁](chapters/09-Agent评估.md)
 
 * [第 10 课：Agent Orchestration——Workflow、Routing 与长任务](chapters/10-Agent编排.md)
+* [第 11 课：Agent Runtime——持久状态与云端执行](chapters/11-Agent长期工作环境与云端执行.md)
 
 * [配套实践](practice/README.md)
   * [第 3 课实践：订单排查](practice/lesson-03/README.md)

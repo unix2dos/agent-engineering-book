@@ -52,7 +52,10 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 第 10 课：Orchestration 与长任务
   |
   v
-第 11 课：Production Runtime
+第 11 课：持久状态与云端执行（可独立阅读）
+  |
+  v
+后续方向：Production Runtime
   |
   v
 综合项目：可验证、可恢复、可部署的 Workspace Agent
@@ -91,9 +94,13 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 
 这一课不会把 Multi-Agent 当成单 Agent 的升级版。只有 Evaluation 已经证明单 Agent 的失败来自职责过多、需要并行或任务持续时间太长，才增加另一个 Agent。
 
-## 第 11 课：Production Runtime——并发、队列与持续运行
+## 第 11 课：Agent Runtime——持久状态与云端执行
 
-本机运行成功之后，还要面对同时到来的 Session、Provider 限流、进程重启和版本发布。第 11 课只保留上线最常遇到的系统问题：
+见[第 11 课正文](../chapters/11-Agent长期工作环境与云端执行.md)。从 Grok Bot、Amp 与托管 Agent 的公开能力出发，区分产品承诺、可验证机制和趋势判断；配套跨进程实验说明写入后丢失回执时的恢复边界。本课可独立阅读。
+
+## 后续方向：Production Runtime——并发、队列与持续运行
+
+本机运行成功之后，还要面对同时到来的 Session、Provider 限流、进程重启和版本发布。原规划的 Production Runtime 保留为后续方向，暂不分配课次，只保留上线最常遇到的系统问题：
 
 - 多 Session 并发与隔离；
 - 队列、积压时减慢或拒绝新任务的 Backpressure，以及取消；
@@ -115,7 +122,8 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 现有 Tool Loop、Session、Ledger 与 Sandbox
 + 第 9 课的任务集和回归检查
 + 第 10 课的 Workflow、后台任务与取消
-+ 第 11 课的并发、配置、健康检查和部署
++ 第 11 课的执行位置判断与跨进程恢复验证
++ 后续 Production Runtime 的并发、配置、健康检查和部署
 = 一份可以演示、解释和继续维护的项目
 ```
 
