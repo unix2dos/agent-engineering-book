@@ -41,11 +41,9 @@ def recover(workspace):
     session = workspace / "session.jsonl"
     target = workspace / "config.json"
     before = target.read_bytes(), target.stat().st_ino, target.stat().st_mtime_ns
-    assert len(CORE["mark_interrupted_executions_unknown"](session)) == 1
+    CORE["mark_interrupted_executions_unknown"](session)
     reconciled = CORE["reconcile_unknown_write_files"](workspace, session)
-    assert CORE["repair_missing_tool_results"](session) == [CALL_ID]
-    assert CORE["reconcile_unknown_write_files"](workspace, session) == []
-    assert CORE["repair_missing_tool_results"](session) == []
+    CORE["repair_missing_tool_results"](session)
     assert (target.read_bytes(), target.stat().st_ino, target.stat().st_mtime_ns) == before
     entries = CORE["load_entries"](session)
     state = CORE["latest_execution_by_tool_call"](entries)[CALL_ID]
@@ -80,9 +78,27 @@ def run_demo():
                 "status": expected_status, "reconciled": not changed,
             }
             assert target.read_text(encoding="utf-8") == (CHANGED if changed else EXPECTED)
+            entries = CORE["load_entries"](session)
+            receipts = [entry["message"] for entry in entries if entry.get("type") == "message"
+                        and entry["message"].get("role") == "tool"]
+            assert len(receipts) == 1 and receipts[0]["tool_call_id"] == CALL_ID
+            before_repeat = {
+                path: (path.read_bytes(), path.stat().st_ino, path.stat().st_mtime_ns)
+                for path in (target, session)
+            }
+            repeated = subprocess.run(
+                command + ["--recover", str(workspace)],
+                capture_output=True, text=True, check=True, timeout=10,
+            )
+            assert json.loads(repeated.stdout) == {
+                "status": expected_status, "reconciled": False,
+            }
+            for path, original in before_repeat.items():
+                assert (path.read_bytes(), path.stat().st_ino, path.stat().st_mtime_ns) == original
             label = "文件被人修改" if changed else "文件符合原请求"
             print(f"{label}：进程退出码 23；running -> unknown -> {expected_status}；恢复未改写文件")
-    print("PASS：两个独立恢复进程通过；未调用模型、未验证断电或容器丢失。")
+            print(f"再次启动恢复进程：{expected_status}；文件和账本均未变化，未重复补回执。")
+    print("PASS：两个场景各启动两次独立恢复进程；未调用模型、未验证断电或容器丢失。")
 
 
 if __name__ == "__main__":
