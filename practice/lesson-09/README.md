@@ -109,7 +109,7 @@ python -B practice/lesson-09/compare_runs.py \
 python -B practice/lesson-09/check.py
 ```
 
-真实模型调用的配置见[运行约定](../README.md#运行约定)。以下命令是选做，需要显式开启，可能产生费用：
+真实模型调用的配置见[实践总览](../README.md)中的“运行约定”。以下命令是选做，需要显式开启，可能产生费用：
 
 ```bash
 python -B practice/lesson-09/run_trial.py --live --task csv-total --trials 3 --variant baseline

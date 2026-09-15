@@ -24,4 +24,4 @@ python -B practice/lesson-04/check.py
 
 ## 接到综合项目
 
-[综合项目第三关](../workspace-agent/README.md#第三关transcript-与-prompt-view)提供真实 JSONL 追加与消息恢复。完成本课不要求再实现一套 Agent，跨进程副作用恢复在第 6 课验证。
+[综合项目](../workspace-agent/README.md)的“第三关：Transcript 与 Prompt View”提供真实 JSONL 追加与消息恢复。完成本课不要求再实现一套 Agent，跨进程副作用恢复在第 6 课验证。

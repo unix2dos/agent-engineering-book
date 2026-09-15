@@ -24,7 +24,7 @@ python -B practice/lesson-06/demo.py
 python -B practice/lesson-06/check.py
 ```
 
-检查覆盖正文代码、写后中断、核对、回执修复、冲突拒绝和事务回滚。[综合项目第五关](../workspace-agent/README.md#第五关故障恢复)保留更完整的恢复检查。
+检查覆盖正文代码、写后中断、核对、回执修复、冲突拒绝和事务回滚。[综合项目](../workspace-agent/README.md)的“第五关：故障恢复”保留更完整的恢复检查。
 
 这个例子验证可核对的文件覆盖写入，不提供任意 Shell 命令或外部副作用的自动重试保证。
 
