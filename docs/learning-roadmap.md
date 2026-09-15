@@ -98,6 +98,12 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 
 见[第 11 课正文](../chapters/11-Agent长期工作环境与云端执行.md)。以 OpenAI、Anthropic 的官方运行架构为主，对照 Cursor、GitHub、Google 等产品的执行方式，区分产品承诺、可验证机制和趋势判断；配套跨进程实验说明写入后丢失回执时的恢复边界。本课可独立阅读。
 
+## 第 12 课：RAG 检索增强生成——从资料入库到有据可查的回答
+
+见[第 12 课正文](../chapters/12-RAG检索增强生成.md)。以套餐客服为例，串起分块、索引、检索、原文取回与回答，区分关键词检索、向量检索和混合检索。配套实践使用正文给出的资料做纸面排查，代码只验证取回与输入组装，不代表已实现或实测端到端向量 RAG。
+
+本课是可独立阅读的知识检索专题，不是所有 Runtime 的前置条件。基础讲解已经收尾，学习者在提示后能补齐“问题和原文交给模型”的步骤；后续需要实际检索时再接入综合项目，不继续扩展零散术语关卡。
+
 ## 后续方向：Production Runtime——并发、队列与持续运行
 
 本机运行成功之后，还要面对同时到来的 Session、Provider 限流、进程重启和版本发布。原规划的 Production Runtime 保留为后续方向，暂不分配课次，只保留上线最常遇到的系统问题：
@@ -145,7 +151,7 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 
 下面这些内容有价值，但不阻塞主线：
 
-- 知识与数据：Retrieval、RAG、引用和长期 Memory 检索；
+- 知识与数据：[第 12 课 RAG 基础](../chapters/12-RAG检索增强生成.md)，后续按需补充引用和长期 Memory 检索；
 - 连接与协作：MCP、A2A 和远程 Tool；
 - 测试加速：Recorded-session Replay；
 - 观测平台：完整 OpenTelemetry、Collector、生产 Tail Sampling 和 Trace UI；
@@ -156,7 +162,7 @@ RAG 与 MCP 可以在 Workspace Agent 真正需要知识检索或外部能力时
 
 ## 路线怎样维护
 
-README 展示完整主线，`SUMMARY.md` 只列已经存在的课程。当前只详细规划第 9～11 课，不创建空章节。
+README 展示现有课程，`SUMMARY.md` 只列已经存在的正文。当前正文到第 12 课；RAG 保留知识检索专题定位，Production Runtime 尚未分配课次，不创建空章节。
 
 旧章节只在出现真实读者卡点、示例失败、主要源码变化，或后续课程暴露矛盾时重新打开。一个新框架或醒目的产品功能，不会单独触发全书重写。
 

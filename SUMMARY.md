@@ -18,6 +18,7 @@
 
 * [第 10 课：Agent Orchestration——Workflow、Routing 与长任务](chapters/10-Agent编排.md)
 * [第 11 课：Agent Runtime——持久状态与云端执行](chapters/11-Agent长期工作环境与云端执行.md)
+* [第 12 课：RAG 检索增强生成——从资料入库到有据可查的回答](chapters/12-RAG检索增强生成.md)
 
 * [配套实践](practice/README.md)
   * [第 3 课实践：订单排查](practice/lesson-03/README.md)
