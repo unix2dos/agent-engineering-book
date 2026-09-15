@@ -237,6 +237,107 @@ ReAct 将推理与行动交替组织：模型判断下一步，提出动作，�
 
 同一块被两路找到，不需要重复塞进上下文。两路分数的量纲可能不同，也不宜直接相加；可以按排名融合，例如 RRF，具体算法留到需要实现时再展开。融合后的资料仍要满足用户权限、产品和时间等条件。混合检索不是“只有两路都命中才保留”的简单取交集，也不能保证排第一的就是正确答案。
 
+## MCP 与 Skills
+
+### 19. “现在 mcp 还流行吗？是不是都被 skill 取代了，他们的关系是什么”
+
+截至 2026 年 9 月 15 日核对，MCP 仍在维护：官方 8 月 22 日路线图回顾了 2026-07-28 规范发布，并说明后续方向。[7] Claude Code 当前同时提供 MCP 与 Skills 功能。[8][9] 这支持“两者仍在使用且并存”，不等于获得了全行业使用率或热度排名。
+
+MCP 是 AI 应用与工具服务交换工具说明、调用请求和结果等信息的协议；Skill 是包含任务说明、可选脚本和参考材料的能力包，指导 Agent 怎样完成某类工作。[8][10] Skill 的文字进入上下文，并不会自动执行工具或赋予访问权限；执行与约束仍依赖宿主程序及实际工具服务。
+
+例如一个客服 Skill 说明“先查订单，再核对适用政策，证据不足就询问”。订单查询能力可以由 MCP Server 提供，也可以是已有 CLI、HTTP API 或本地函数。Skill 告诉 Agent 怎样使用这些能力，MCP 统一其中一种接入方式，两者可以配合。
+
+![小黑模型参照 Skill 手册提交查询，Harness 检查后经 MCP 请求工具服务，6 个账号的结果返回模型](../assets/mcp-skills-illustrations/01-guidance-call-result.png)
+
+图中用套餐查询表示同一协作关系：Skill 提供方法，模型提出申请；Harness 检查并组织执行，MCP 承载与工具服务的通信，结果再回到模型。管道是消息往返的隐喻，不表示 MCP 必须通过网络。Host 与 MCP Client 的位置由后续文字解释，不额外塞进这张主图。
+
+“Skill + CLI”在已有合适命令行工具时，可以替换某个原先采用 MCP 的实现；接入、认证和执行工作仍由 CLI/API 等承担。反过来，有了 MCP 工具也不意味着已经有完整业务流程。选择时先看任务需要复用操作方法，还是需要标准化工具接入，而不是把它们当成新旧版本。
+
+本条保留实际提问与来源依据，相关解释已融入[第 13 课正文](../chapters/13-MCP与Skills.md)，不把教师解释当作学习者已掌握。
+
+### 20. “mcp 和 function tool calll 的定义函数结构有什么区别呢？”
+
+工具定义、工具调用和函数实现要分开。工具定义说明名称、用途与参数；工具调用带本次实际参数；函数实现才是真正执行搜索的代码。下面用同一个 search_docs 工具比较，均为单个工具定义，不是完整请求。
+
+本项目使用的 Chat Completions Function Tool 格式，与 client.py 中现有 TOOLS 的结构一致：
+
+```json
+{
+  "type": "function",
+  "function": {
+    "name": "search_docs",
+    "description": "查询产品资料",
+    "parameters": {
+      "type": "object",
+      "properties": {"query": {"type": "string"}},
+      "required": ["query"],
+      "additionalProperties": false
+    }
+  }
+}
+```
+
+MCP tools/list 返回列表中的一个工具定义：[11]
+
+```json
+{
+  "name": "search_docs",
+  "description": "查询产品资料",
+  "inputSchema": {
+    "type": "object",
+    "properties": {"query": {"type": "string"}},
+    "required": ["query"],
+    "additionalProperties": false
+  }
+}
+```
+
+两者都用 JSON Schema 描述参数，本例 parameters 与 inputSchema 内部内容相同。Function Calling 是模型接口表达工具选择与参数的方式；MCP 则规范宿主应用与工具服务之间的发现、调用和结果交换。[11][12] 前者不要求工具只在本地执行，后者的 Server 也可以就在本机。
+
+在自行接线的应用中，宿主通过 MCP Client 获取工具定义，转换成所用模型接口的工具格式。模型提出调用后，宿主校验参数和执行权限，再通过 MCP tools/call 发送工具名与参数对象；Server 调用实际函数，结果经宿主整理后进入下一次模型请求。两者可以在同一条链路中共存。
+
+定义格式相像，不代表 MCP 只是改了字段名。发现、传输、错误与结果格式等还需要按协议实现。模型接口的格式也不完全统一：上面的 function 包装层是本项目的 Chat Completions 形式，不适用于所有厂商或 OpenAI Responses 的函数定义。
+
+这些 JSON 都不包含 Python 函数体。可以复用同一个搜索实现，分别接到本地 Router 或 MCP Server 上；SDK 也可能帮助生成描述和转换格式，不能把定义本身当作已执行的函数。
+
+### 21. “server.run(transport="stdio") 是什么意思，为什么能和 get_plan 关联起来？”
+
+关联由 `@server.tool()` 提前建立。Python 加载函数定义时，装饰器把函数交给同一个 server 对象登记；这一步记录工具名称、函数对象和参数说明，不执行套餐查询。随后 `server.run(transport="stdio")` 启动服务的请求处理循环，通过标准输入接收客户端消息，通过标准输出发送协议结果。
+
+去掉装饰器后，本例也可以在函数定义完成后明确写 `server.add_tool(get_plan)`，再调用 `server.run(transport="stdio")`。`get_plan` 不带括号，表示交出函数本身；`get_plan("family")` 才表示现在执行它。两种登记写法选一种即可，不要重复注册。
+
+```text
+加载代码：定义 get_plan -> 登记到 server 的工具表 -> 启动 server
+收到调用：tools/call 指定 get_plan -> 查工具表 -> 校验参数
+          -> 执行 get_plan("family") -> 经 stdout 返回结果
+```
+
+这里启动服务不会自动查询所有套餐，客户端没有发起工具调用时，get_plan 不会因为 run 被调用而执行。仅有函数定义而未注册，Server 也不会自动扫描并暴露它。STDIO 描述通信通道，不负责决定调用哪个函数；注册与 run 必须对应同一个 server 实例。
+
+已核对本机 mcp 1.26.0：FastMCP.tool 的装饰器调用 add_tool 并返回原函数，ToolManager 按名称保存工具，run 的 stdio 分支进入 run_stdio_async。学习模式按用户要求改为助手提供代码与讲解，不要求学习者手写；原跨进程实验的结构化输出检查仍待修复，不把简化讲解示例当作它已通过。
+
+### 22. “模型是怎么收到工具说明的？谁给的模型呢？”
+
+宿主程序通过模型请求中的 tools 字段提供。前面的实现由开发者在 client.py 中维护 TOOLS，agent.py 的模型调用传入 tools=tools。模型不会因为本地定义了 Python 函数就自动知道它，也不会因为 MCP Server 启动就自动收到工具清单。
+
+接入 MCP 时，宿主中的 MCP Client 先获取 tools/list，宿主筛选允许暴露的工具，并适配成模型接口所需的格式，再通过同一个 tools 字段发送。改变的是说明的来源与工具执行通道，不是模型无须输入就能发现外部函数。工具说明用于引导模型提出申请，不能替代执行时的权限检查。
+
+### 23. “允许使用 get_plan 是 MCP 权限，还是 Agent 沙盒权限？”
+
+前述 if call.function.name != "get_plan" 检查写在宿主侧，属于应用的工具允许名单，不是操作系统沙盒。它只限制可以路由到哪个工具，还要检查参数及具体资源的访问权限。
+
+工具服务本身也应检查调用身份与访问范围，例如是否可以读取这个用户的订单；不能只信宿主传来的任意用户编号。MCP 可以承载相关通信与授权机制，但接通协议不会自动替应用定义业务权限。
+
+沙盒限制的是执行进程能访问哪些文件、网络或系统资源。允许调用 get_plan，不代表允许它读取整台机器；只在 Server 注册 get_plan，也不等于完成了用户授权或进程隔离。登记可调用工具、检查调用权限、限制执行环境，是不同动作。
+
+### 24. “之前没有 MCP 也能运行，为什么中间又插入 MCP？”
+
+前面的 Agent 并不缺一层。原路径是“模型申请 -> Harness 检查 -> 直接调用函数 -> 结果送回模型”；接入 MCP 后，执行段可以改成“通过 MCP Client 请求 Server 执行函数”。模型决策、工具实现、权限与停止控制仍然存在。
+
+本地函数已经满足需求时，不必迁移成 MCP。普通 HTTP API 或 CLI 也能访问外部服务；MCP 的用途是统一应用与工具服务之间的发现、调用和结果交换，便于复用接入方式。它不等于远程调用本身，Server 也可以在本机。
+
+教学上应先解释具体接入需求，再引入协议。本次作为外部工具接入的选做专题，不改写此前 Tool Calling Loop，不把 MCP 当成所有 Agent 的必修运行层。前一轮未先说明这项前提就展示 MCP 代码，造成了学习者对必要性的疑问，应在成文时补上。
+
 ## 已观察到的学习证据
 
 学习者原话：
@@ -325,6 +426,8 @@ ReAct 将推理与行动交替组织：模型判断下一步，提出动作，�
 
 成文安排：作者已确认[第 12 课 RAG 正文](../chapters/12-RAG检索增强生成.md)，采用现有章节的专业标题、编号小节、案例、配套实践与资料结构，已加入本地正式目录。后续以正文中的完整案例巩固，不继续扩展零散术语问答；本地应用与远端发布分开验证。
 
+MCP 成文安排：作者已确认[第 13 课 MCP 与 Skills](../chapters/13-MCP与Skills.md)，沿一次查询组织正文，保留小黑主图，并将稳定术语录入 CONTEXT.md。对照实验的返回格式检查仍未修复，正文如实保留验证范围。当前为本地应用，远端发布另行验证。
+
 ## 补充来源
 
 1. [RAG 原始论文](https://arxiv.org/abs/2005.11401)
@@ -333,5 +436,11 @@ ReAct 将推理与行动交替组织：模型判断下一步，提出动作，�
 4. [信息检索教材：倒排索引示例](https://nlp.stanford.edu/IR-book/html/htmledition/an-example-information-retrieval-problem-1.html)
 5. [ReAct 原始论文](https://arxiv.org/abs/2210.03629)
 6. [Elastic：Hybrid search](https://www.elastic.co/docs/solutions/search/hybrid-search)
+7. [MCP：2026 年 8 月更新的路线图](https://blog.modelcontextprotocol.io/posts/mcp-roadmap/)
+8. [Claude Code：通过 MCP 连接工具](https://code.claude.com/docs/en/mcp)
+9. [Claude Code：Skills](https://code.claude.com/docs/en/skills)
+10. [Agent Skills：格式与工作方式](https://agentskills.io/home)
+11. [MCP：Tools 定义、发现与调用](https://modelcontextprotocol.io/specification/2026-07-28/server/tools)
+12. [OpenAI：Function Calling](https://developers.openai.com/api/docs/guides/function-calling)
 
-来源 1～4 已在前面的讲解中读取；解释 ReAct 时另行读取了来源 5 的摘要；补充混合检索时核对了来源 6 的结果融合说明。这里维护的是学习卡点，没有进行产品选型比较。
+来源 1～4 已在前面的讲解中读取；解释 ReAct 时另行读取了来源 5 的摘要；补充混合检索时核对了来源 6 的结果融合说明。来源 7～10 于 2026 年 9 月 15 日核对，用于区分 MCP 与 Skills 的职责和当前维护状态，不作全行业流行度排名。比较工具定义时另核对来源 11～12 及本项目 practice/workspace-agent/client.py 的实际格式。

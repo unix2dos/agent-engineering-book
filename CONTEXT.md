@@ -135,3 +135,37 @@ _Avoid_: Open-source Runtime, source implementation
 **Topic Reference**:
 An additional repository consulted only when a chapter needs its distinct implementation, rather than becoming another project studied end to end.
 _Avoid_: Core reference, required framework
+
+### Agent Tool Integration
+
+**Agent Host**:
+The Agent application as a whole, encompassing user interaction, model access, and tool integration. In this book, Host names the application scope rather than a separate deployment tier.
+_Avoid_: Model, MCP Client alone, mandatory extra service
+
+**Harness**:
+The runtime control portion of an Agent system that coordinates model interaction and constrained action execution. It is a responsibility within the Host's operation, not a synonym for the model or a claim that all components share one process.
+_Avoid_: Model reasoning, MCP transport, sandbox
+
+**MCP**:
+The protocol contract between an Agent application's MCP Client and an MCP Server for exchanging capabilities, invocation requests, and results. It is an optional integration route, not a prerequisite for Agent behavior or a grant of business permission.
+_Avoid_: Agent loop, model Function Calling format, automatic authorization
+
+**MCP Client**:
+The Host-side component that communicates with an MCP Server. It is distinct from both the end user and the component used to access the model service.
+_Avoid_: User, model, whole Host
+
+**MCP Server**:
+A service program that exposes capabilities through MCP, whether it runs locally or remotely. A server's exposed capabilities do not by themselves establish which business operations a particular caller is authorized to perform.
+_Avoid_: Necessarily remote machine, model, automatic permission boundary
+
+**Tool Definition**:
+The description of an available capability, including its name, purpose, and input contract. It is neither the tool's executable implementation nor a request to execute it.
+_Avoid_: Function body, Model Tool Call, execution result
+
+**Model Tool Call**:
+A model-produced request to use a described tool with particular arguments. It expresses proposed action, not proof of execution or permission to perform it.
+_Avoid_: Executed action, approval record, MCP message interchangeably
+
+**Agent Skill**:
+A reusable package of task instructions and optional supporting code or materials that an Agent can consult for a class of work. Its instructional content guides behavior but is not itself authorization to bypass execution constraints.
+_Avoid_: MCP replacement, guaranteed workflow execution, permission grant

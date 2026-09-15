@@ -104,6 +104,12 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 
 本课是可独立阅读的知识检索专题，不是所有 Runtime 的前置条件。基础讲解已经收尾，学习者在提示后能补齐“问题和原文交给模型”的步骤；后续需要实际检索时再接入综合项目，不继续扩展零散术语关卡。
 
+## 第 13 课：MCP 与 Skills——工具接入、任务方法与权限边界
+
+见[第 13 课正文](../chapters/13-MCP与Skills.md)。沿一次套餐查询理解 Host、Harness 与 MCP Client/Server 的分工，区分工具说明、模型申请、执行结果，以及 Skill 方法与实际授权。主图和代码由助手提供，学习者以口头复述路径和判断权限边界为主，不要求手写 SDK 连接代码。
+
+本课保留工具接入专题定位，不要求原有本地工具迁移到 MCP。对照实验已取得部分真实通信结果，但结构化结果检查尚未修复，不能标记为整套实践通过；原有 Production Runtime 方向不变。
+
 ## 后续方向：Production Runtime——并发、队列与持续运行
 
 本机运行成功之后，还要面对同时到来的 Session、Provider 限流、进程重启和版本发布。原规划的 Production Runtime 保留为后续方向，暂不分配课次，只保留上线最常遇到的系统问题：
@@ -152,7 +158,7 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 下面这些内容有价值，但不阻塞主线：
 
 - 知识与数据：[第 12 课 RAG 基础](../chapters/12-RAG检索增强生成.md)，后续按需补充引用和长期 Memory 检索；
-- 连接与协作：MCP、A2A 和远程 Tool；
+- 连接与协作：[第 13 课 MCP 与 Skills](../chapters/13-MCP与Skills.md)，后续按需补充 A2A 和远程 Tool；
 - 测试加速：Recorded-session Replay；
 - 观测平台：完整 OpenTelemetry、Collector、生产 Tail Sampling 和 Trace UI；
 - 复杂协作：大规模 Multi-Agent 与插件平台；
@@ -162,7 +168,7 @@ RAG 与 MCP 可以在 Workspace Agent 真正需要知识检索或外部能力时
 
 ## 路线怎样维护
 
-README 展示现有课程，`SUMMARY.md` 只列已经存在的正文。当前正文到第 12 课；RAG 保留知识检索专题定位，Production Runtime 尚未分配课次，不创建空章节。
+README 展示现有课程，`SUMMARY.md` 只列已经存在的正文。当前正文到第 13 课；RAG 与 MCP 分别保留知识检索和工具接入专题定位，Production Runtime 尚未分配课次，不创建空章节。
 
 旧章节只在出现真实读者卡点、示例失败、主要源码变化，或后续课程暴露矛盾时重新打开。一个新框架或醒目的产品功能，不会单独触发全书重写。
 
