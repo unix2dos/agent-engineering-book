@@ -96,7 +96,7 @@ Runtime 深度包括 Harness、Session、可靠性、Sandbox、Evaluation、编�
 
 ## 第 11 课：Agent Runtime——持久状态与云端执行
 
-见[第 11 课正文](../chapters/11-Agent长期工作环境与云端执行.md)。从 Grok Bot、Amp 与托管 Agent 的公开能力出发，区分产品承诺、可验证机制和趋势判断；配套跨进程实验说明写入后丢失回执时的恢复边界。本课可独立阅读。
+见[第 11 课正文](../chapters/11-Agent长期工作环境与云端执行.md)。以 OpenAI、Anthropic 的官方运行架构为主，对照 Cursor、GitHub、Google 等产品的执行方式，区分产品承诺、可验证机制和趋势判断；配套跨进程实验说明写入后丢失回执时的恢复边界。本课可独立阅读。
 
 ## 后续方向：Production Runtime——并发、队列与持续运行
 
