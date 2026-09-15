@@ -21,6 +21,7 @@ def main():
         ("practice/lesson-04/demo.py",),
         ("practice/lesson-05/demo.py",),
         ("practice/lesson-06/demo.py",),
+        ("practice/lesson-06/recovery_process_demo.py",),
         ("practice/optional/sqlite/demo.py", "--checkpoint-d"),
     ]
     for script, *args in checks:

@@ -97,7 +97,7 @@ editor 获准请求，剩余 0
 
 扣减与请求发出之间仍有故障窗口；单进程计数不保证并发原子扣减，写了 Checkpoint 也不等于已经实现自动续跑。
 
-已有一次真实运行验证了另一条停止路径：模型读写完成，文件评分 passed，最后的模型回答却出现 `APITimeoutError`。程序保存成功写入的 Ledger，整体停为 run_error，没有自动开始下一轮。这是一次历史观察，不是成功率评测，也没有验证模型收到错误反馈后会修复。[5]
+已有一次真实运行验证了另一条停止路径：模型读写完成，文件评分 passed，最后的模型回答却出现 `APITimeoutError`。程序保存成功写入的 Ledger，整体停为 run_error，没有自动开始下一轮。这是一次历史观察，不是成功率评测，也没有验证模型收到错误反馈后会修复。实测条件、结果与源码指纹保存在本课实践说明所链接的历史记录中。
 
 ## 3. Routing 与 Handoff：分支和处理权
 
@@ -215,4 +215,3 @@ LangChain 的 Agent 建立在 LangGraph 之上。直接使用 LangGraph 也可�
 2. [LangGraph：持久执行与 Checkpoint](https://docs.langchain.com/oss/python/langgraph/durable-execution)
 3. [LangChain：Agent 框架与模型接口](https://docs.langchain.com/oss/python/langchain/overview)
 4. [LangGraph：编排运行时与 LangChain 的关系](https://docs.langchain.com/oss/python/langgraph/overview)
-5. [已有真实运行的条件、结果与边界](../research/10-workflow-live-check.md)

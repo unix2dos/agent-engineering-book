@@ -10,9 +10,7 @@ import tempfile
 
 
 SCRIPT = Path(__file__).resolve()
-core_path = SCRIPT.parents[1] / "practice/workspace-agent/agent.py"
-if not core_path.is_file():
-    core_path = SCRIPT.parents[1] / "exercises/phase-1-capstone/starter.py"
+core_path = SCRIPT.parents[1] / "workspace-agent/agent.py"
 CORE = runpy.run_path(str(core_path))
 EXPECTED = '{"theme":"dark","port":3000}'
 CHANGED = '{"theme":"dark","port":8081}'
@@ -96,4 +94,4 @@ if __name__ == "__main__":
             raise ValueError("实验工作区必须是目录")
         (crash_after_write if sys.argv[1] == "--crash" else recover)(workspace)
     else:
-        raise SystemExit("运行方式：python -B research/agent-runtime-progress-demo.py")
+        raise SystemExit("运行方式：python -B practice/lesson-06/recovery_process_demo.py")

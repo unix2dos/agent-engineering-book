@@ -104,6 +104,14 @@ _Avoid_: Runtime sandbox, metric alone, universal success threshold
 An optional Harness testing technique that feeds recorded Model or Tool outputs back through the current Runtime to reproduce Runtime behavior without paying for a live call. It does not prove that the current Model, Prompt, or external service still succeeds.
 _Avoid_: Session recovery, live-model rerun, Agent evaluation
 
+**Source Verification Record**:
+The dated evidence behind a chapter's claims, identifying the sources or fixed versions examined and the limits of the conclusions they support. It remains a historical verification snapshot until its external facts are checked again.
+_Avoid_: Second chapter, current learning plan, permanently current product facts
+
+**Practice Evidence**:
+A record of an actual experiment's conditions, observed results, version identity, and unverified boundaries. It supports the specific tested behavior without substituting for current-version validation or learner understanding.
+_Avoid_: Run instructions, general reliability proof, a passing script without conditions
+
 **Book Repository**:
 The `agent-engineering-book` GitHub repository containing both Canonical Chapters and executable examples.
 _Avoid_: Blog repository, generated GitBook site

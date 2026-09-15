@@ -1,6 +1,6 @@
 # 第 9 课：资料与实测核验
 
-核验日期：2026-09-08。本章支持从任务集设计、可信评分到改动判断与回归门禁的完整学习路径，保持约 30 分钟综合实践的规模。
+核验日期：2026-09-08。这里保存来源和历史实验边界；当前运行说明与完成标准统一放在[第 9 课实践](../practice/lesson-09/README.md)。
 
 ## 一手资料
 
@@ -16,14 +16,11 @@
 | [Promptfoo CI/CD](https://www.promptfoo.dev/docs/integrations/ci-cd/) | Quality Gate 消费评测成绩并让流水线失败；退出码只是信号，仍需发布过程实际执行该检查。 |
 | [NIST 两组比例比较](https://www.itl.nist.gov/div898/software/dataplot/refman2/auxillar/diffprop.htm) | 两组样本量可以不同；等量 Trial 是本练习的简化限制，不是通用统计要求。未把大样本近似直接套到各三个 Trial。 |
 
-这些官方页面已在本轮打开并核对正文。开源项目不作为名单铺陈，本课的实现证据来自仓库自己的 Agent、阅卷器和真实运行。
+这些官方页面在上述核验日期已打开并核对正文；本次目录整理未重新联网核验。开源项目不作为名单铺陈，本课的实现证据来自仓库自己的 Agent、阅卷器和真实运行。
 
-## 本地实现与证据
+## 历史模型证据
 
-- `run_trial.py` 复用综合实践的有界 Agent Loop、文件 Tool 与 Ledger。
-- `grader.py` 的配置评分和 CSV 评分使用不同规则，返回相同三类状态。
-- `compare_runs.py` 比较保存的报告；`--gate` 再检查固定回归题是否全部完整通过。
-- [baseline.json](../practice/lesson-09/evidence/baseline.json) 与 [candidate.json](../practice/lesson-09/evidence/candidate.json) 来自先前的真实模型实验。本轮只移除了本机路径，保留比较条件、成绩、异常类型、最终回答和耗时，没有重新请求模型或修改结果。
+- [baseline.json](../practice/lesson-09/evidence/baseline.json) 与 [candidate.json](../practice/lesson-09/evidence/candidate.json) 来自先前的真实模型实验。归档时只移除了本机路径，保留比较条件、成绩、异常类型、最终回答和耗时，没有重新请求模型或修改结果。
 
 两批使用同一 `mimo-v2.5`、CSV 输入、工具范围与评分器，每次最多四次模型请求。基础版完整成功 `3/3`，候选版完整成功 `0/3`。候选前两次有四条 Assistant 工具调用响应，最后停在 Tool Result，文件评分通过但没有 Final；第三次记录 `APIConnectionError`，不能仅凭这次失败断言提示词有问题。
 
@@ -31,7 +28,7 @@
 
 归档用于重现比较和门禁决定，不承诺重现实时模型输出。实验时练习尚未提交，源码指纹不能被当作可直接 Git checkout 的版本号。也不能拿这些历史报告替后来修改过的工作树提供发布证明。
 
-## 章节重构后的概念与实现对应
+## 已验证与未验证的范围
 
 - 正文中的能力评估用于识别改进空间，回归评估保护已依赖的行为；当前三次 CSV 对照只覆盖一项小任务，不能代表整个能力集。
 - 当前比较器只支持固定模型和预算等条件、同一任务、等量 Trial 的 Prompt/Runtime 对照。正文讨论的一般评估方法不意味着代码已支持任意模型或方案比较。
@@ -41,17 +38,4 @@
 - `release_gate()` 读取旧报告并执行本例全通过规则。没有当前工作树身份核对、自动发布、通用统计检验或完整系统安全验收。
 - 评分器自检、综合实践的 Context/恢复检查与真实模型 Trial 分别解释；不能混加得到“模型成功率”。综合实践中的 Scripted Model 只控制测试路径，不构成新的真实模型实验。
 
-正文保持方法，README 的主入口承载约 30 分钟实践，旧 A～H 细节折叠供查阅。共识是让学习者交付一张有理由的小题表和一份基于证据的版本判断，复用现有代码；不是继续扩建评测平台或重做基础设施。
-
-## 本轮最小验收
-
-门禁规则是为这组固定回归题新增的教学规则：比较条件有效，候选没有运行或评分异常，每个 Trial 都完整通过。旧成绩用于测试门禁能否拒绝已知问题，不是按新规则重新开展的模型实验。
-
-正例与反例由自检覆盖；真实候选报告应得到 `blocked` 和退出码 `2`。本轮另外用预设的四次工具调用重现请求预算耗尽，验证“文件正确但没有 Final”会保留为运行失败。自检只证明代码行为，模型表现仍以真实报告为准。
-
-```bash
-python -B practice/lesson-09/grader.py --checkpoint-b
-python -B practice/lesson-09/grader.py --check-csv
-python -B practice/lesson-09/run_trial.py --self-check
-python -B practice/lesson-09/compare_runs.py --self-check
-```
+门禁是为这组固定回归题新增的教学规则。历史成绩用于验证门禁能否拒绝已知问题，不是按新规则重新开展的模型实验；正反例和运行命令在实践入口维护。

@@ -102,13 +102,7 @@ Amp 的 Runner 文档给出了直接例子：在自己的机器上启动 Runner�
 
 ## 配套实践
 
-[写入后丢失回执的跨进程恢复实验](../research/agent-runtime-progress-demo.py)。在仓库根目录运行：
-
-```bash
-python3 -B research/agent-runtime-progress-demo.py
-```
-
-确认两个场景都通过，再解释为什么文件被人修改后应保留 unknown。实验不调用模型，故障范围见第 3 节。
+[跨进程恢复实践](../practice/lesson-06/README.md#选做跨进程恢复)复用第 6 课的选做实验，提供运行命令、完整代码和历史验证记录。确认两个场景都通过，再解释为什么文件被人修改后应保留 unknown。实验不调用模型，故障范围见第 3 节。
 
 ## 资料
 
@@ -124,3 +118,5 @@ python3 -B research/agent-runtime-progress-demo.py
 8. [Amp：Runners](https://ampcode.com/docs/cli/runners)
 
 相关基础：[Runtime 的职责](02-Agent运行时.md)、[会话与恢复状态](04-会话持久化.md)、[执行账本与对账](06-工具可靠性.md)、[编排与长任务](10-Agent编排.md)。
+
+来源适用范围与核验日期见[资料核验记录](../research/agent-runtime-progress-sources.md)。

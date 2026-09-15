@@ -28,6 +28,28 @@ python -B practice/lesson-06/check.py
 
 这个例子验证可核对的文件覆盖写入，不提供任意 Shell 命令或外部副作用的自动重试保证。
 
-## 选做
+## 选做：跨进程恢复
+
+前面的演示在同一个进程内注入异常；[recovery_process_demo.py](recovery_process_demo.py)会让写入进程真正退出，再启动独立进程读取账本和核对文件。
+
+```bash
+python -B practice/lesson-06/recovery_process_demo.py
+```
+
+检查两个场景：文件仍符合原请求时补写成功回执；文件被人改动时保持 `unknown`。重复恢复不能改写文件或追加第二份回执。先确认旧进程已经退出再接管；它不验证并发接管、断电持久性或容器丢失，也不能证明厂商的恢复能力。
+
+这也是[第 11 课：持久状态与云端执行](../../chapters/11-Agent长期工作环境与云端执行.md)的配套实验，不新增必做关卡。
+
+### 历史验证记录
+
+2026-09-14 在 Python 3.14.7、Darwin arm64 下运行通过，未调用模型。当次复用的 Workspace Agent SHA-256 为 `3f43d75beff584937ec28536978fce325844d795a5300c4a192ae05d2b0dde5e`；它描述当时版本，不是当前文件校验值。每个场景使用新的临时目录，结束后清理。
+
+```text
+文件符合原请求：进程退出码 23；running -> unknown -> succeeded；恢复未改写文件
+文件被人修改：进程退出码 23；running -> unknown -> unknown；恢复未改写文件
+PASS：两个独立恢复进程通过；未调用模型、未验证断电或容器丢失。
+```
+
+## 选做：SQLite
 
 [SQLite 事务与唯一约束](../optional/sqlite/README.md)演示什么时候数据库能减少查询和一致性负担。完成主线不要求把整个 Agent 改成 SQLite 存储。
