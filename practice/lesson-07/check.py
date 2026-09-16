@@ -9,7 +9,7 @@ import runpy
 
 def self_check():
     here = Path(__file__).resolve().parent
-    chapter = here.parents[1] / "chapters/07-Agent沙盒.md"
+    chapter = here.parents[1] / "chapters/07-Agent执行安全.md"
     blocks = re.findall(r"```python\n(.*?)\n```", chapter.read_text(encoding="utf-8"), re.S)
     expected = [
         "denied_by_policy\nrejected\nready\n",

@@ -8,7 +8,7 @@
 * [第 4 课：Session 持久化——Transcript、Checkpoint 与 Memory](chapters/04-会话持久化.md)
 * [第 5 课：Context Engineering——Compaction 与 Prompt View](chapters/05-上下文工程.md)
 * [第 6 课：Tool Reliability——幂等、Ledger 与故障恢复](chapters/06-工具可靠性.md)
-* [第 7 课：Agent Sandbox——审批、权限与执行边界](chapters/07-Agent沙盒.md)
+* [第 7 课：Agent 执行安全——审批、权限与 Sandbox](chapters/07-Agent执行安全.md)
 * [第 8 课：Agent Tracing——用 Trace 与 Span 还原一次运行](chapters/08-Agent可观测性.md)
 * [第 9 课：Agent Evaluation——任务验收与回归门禁](chapters/09-Agent评估.md)
 * [第 10 课：Agent Orchestration——Workflow、Routing 与长任务](chapters/10-Agent编排.md)

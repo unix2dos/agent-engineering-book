@@ -29,7 +29,7 @@ A focused exercise that supports one or more Core Lessons without claiming a sep
 _Avoid_: Core Lesson, standalone course, toy demo
 
 **Target Reader**:
-A reader who can use basic Python, Git, and the command line but has not studied Agent engineering systematically; the book does not assume prior knowledge of tool protocols, context management, persistence, evaluation, or sandboxing.
+A reader who can use basic Python, Git, and the command line but has not studied Agent engineering systematically, primarily building understanding by reading the book in sequence; independent chapter lookup is secondary. Prior knowledge of tool protocols, context management, persistence, evaluation, or sandboxing is not assumed.
 _Avoid_: Non-programmer, experienced Agent engineer
 
 **Canonical Chapter**:
@@ -57,12 +57,20 @@ The shared evidence a chapter must contain before promotion, without forcing eve
 _Avoid_: Fixed chapter template, formatting checklist
 
 **Triggered Chapter Maintenance**:
-Reopening a Canonical Chapter only after a concrete reader block, failing example, changed primary source, or contradiction with a later lesson is found.
+Reopening a Canonical Chapter in response to a specific reader block, failing example, changed primary source, or identified gap in explanation, terminology, repetition, or prerequisites across chapters. A newer chapter's more appealing prose alone is not a reason for a full rewrite of an older one.
 _Avoid_: Scheduled rewrite, polish cycle, frozen forever
 
 **Plain-language Entry**:
 The first explanation of a load-bearing term: a visible action or failure comes first, a short everyday explanation gives it meaning, and only then does the technical name enter. It preserves technical precision without making the reader decode unexplained vocabulary.
 _Avoid_: Glossary dump, analogy-only definition, simplified terminology
+
+**Primary Explanation**:
+The chapter section that owns a concept's complete foundational treatment within the sequential reading path. Later chapters use brief reminders and add new applications, constraints, or evidence rather than repeat that treatment in full.
+_Avoid_: Independent redefinition in every chapter, prohibition on progressive deepening
+
+**Concept Illustration**:
+An in-chapter visual anchor for one specific relationship that the Target Reader needs to understand and recall. Its learning value is the reader's ability to explain that relationship and its limits without relying on the surrounding prose, rather than visual appeal alone.
+_Avoid_: Decorative mascot, image quota, substitute for execution evidence
 
 **Narrative Failure Hook**:
 A short, darkly humorous opening scenario derived strictly from realistic Agent engineering accidents (e.g. self-deleting tests, infinite approval spam, uncommitted runaway writes) designed to break reading monotony and provide an emotional memory anchor. It is strictly localized to the chapter opening or post-lesson postmortem, leaving core mechanisms, diagrams, code implementations, and terminal traces rigorously technical.
