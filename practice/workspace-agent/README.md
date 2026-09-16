@@ -84,6 +84,6 @@ python -B practice/workspace-agent/agent.py --checkpoint-5
 
 ## 后续能力的入口
 
-[第 9 课](../lesson-09/README.md)组织真实任务与独立评分；[第 10 课](../lesson-10/README.md)在这个 Agent 外加入有限次修复和共享预算。安全、Tracing、交接和子任务恢复仍有独立机制实验，尚未集成完整后台调度、自动重启续跑或生产隔离系统。
+[第 9 课](../lesson-09/README.md)组织真实任务与独立评分；[第 10 课](../lesson-10/README.md)在这个 Agent 外加入有限次修复和共享预算；[第 14 课](../lesson-14/README.md)复用同一工作流，验证工具次数限制与无工具的收尾请求。安全、Tracing、交接和子任务恢复仍有独立机制实验，尚未集成完整后台调度、自动重启续跑或生产隔离系统。
 
 整个项目的离线验收可运行 `python -B practice/check.py`。普通演示、历史报告和真实模型运行分别标明证据范围；不要把教学检查通过写成生产可靠性或学习者已掌握。

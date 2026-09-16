@@ -19,7 +19,7 @@ server = FastMCP("plan-rules", log_level="CRITICAL")
 
 
 @server.tool()
-def get_plan(plan: Literal["family", "personal"]) -> dict:
+def get_plan(plan: Literal["family", "personal"]) -> dict[str, str | int]:
     """查询给定教学套餐的账号上限；只读，不提供修改功能。"""
     limits = {"family": 6, "personal": 3}
     if not isinstance(plan, str) or plan not in limits:
@@ -51,6 +51,7 @@ async def compare(plan: str):
             listed = await session.list_tools()
             assert len(listed.tools) == 1 and listed.tools[0].name == "get_plan"
             tool = listed.tools[0]
+            assert tool.outputSchema is not None, "本实验约定返回结构化结果"
             assert tool.inputSchema["required"] == ["plan"]
             assert set(tool.inputSchema["properties"]["plan"]["enum"]) == {"family", "personal"}
             print("3. tools/list：", tool.name)

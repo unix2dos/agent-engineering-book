@@ -1,6 +1,9 @@
 # Summary
 
 * [导读](README.md)
+
+## 行动、状态与验证
+
 * [第 0 课——Agent 工程史](chapters/00-Agent工程史.md)
 * [第 1 课：Agent 基础——从语言模型到行动系统](chapters/01-Agent基础.md)
 * [第 2 课：Agent Runtime——Model、Harness、Tool 与 Environment](chapters/02-Agent运行时.md)
@@ -11,7 +14,17 @@
 * [第 7 课：Agent 执行安全——审批、权限与 Sandbox](chapters/07-Agent执行安全.md)
 * [第 8 课：Agent Tracing——用 Trace 与 Span 还原一次运行](chapters/08-Agent可观测性.md)
 * [第 9 课：Agent Evaluation——任务验收与回归门禁](chapters/09-Agent评估.md)
+
+## 任务组织与执行位置
+
 * [第 10 课：Agent Orchestration——Workflow、Routing 与长任务](chapters/10-Agent编排.md)
 * [第 11 课：Agent Runtime——持久状态与云端执行](chapters/11-Agent长期工作环境与云端执行.md)
+
+## 知识与工具扩展（按需）
+
 * [第 12 课：RAG 检索增强生成——从资料入库到有据可查的回答](chapters/12-RAG检索增强生成.md)
 * [第 13 课：MCP 与 Skills——工具接入、任务方法与权限边界](chapters/13-MCP与Skills.md)
+
+## 持续运行与资源控制
+
+* [第 14 课：Agent 运行控制——并发、预算与资源释放](chapters/14-Agent运行控制.md)

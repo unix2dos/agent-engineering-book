@@ -21,8 +21,16 @@ A transferable capability that changes how most Agent systems are designed, veri
 _Avoid_: Framework tour, feature catalogue, default-enabled feature
 
 **Curriculum Spine**:
-The Pareto-filtered path from deciding whether an Agent is needed through Runtime ownership, Tool Calling, persistence, Context, reliability, safety, minimal observability, evaluation, orchestration, long-running work, and production operation. The history chapter is an optional map, each main lesson owns one reader question, and only the next three lessons are planned in detail.
+The prerequisite-driven path from deciding whether an Agent is needed through Runtime ownership, Tool Calling, persistence, Context, reliability, safety, observability, evaluation, orchestration, and controlled operation. Each main lesson owns one reader question; optional topics may have chapter numbers without becoming prerequisites, and only the next three lessons are planned in detail.
 _Avoid_: Framework catalogue, fixed encyclopedia, personal learning chronology
+
+**Lesson Ownership**:
+The reader question and capability for which a lesson provides the primary explanation and completion criteria. Reusing another lesson's implementation does not transfer ownership of the new lesson's explanation or practice contract.
+_Avoid_: Code directory determines course scope, adding every related mechanism to an existing chapter
+
+**Learner Progress**:
+The understanding and independent decisions demonstrated by a learner against a Practice Contract. It is distinct from a chapter being written, an assistant running checks, or a site being published.
+_Avoid_: Material readiness, assistant test results, publication status
 
 **Topic Practice**:
 A focused exercise that supports one or more Core Lessons without claiming a separate place in the Curriculum Spine. The SQLite storage exercise is the current example: it connects persistence choices with reliability guarantees.
@@ -153,6 +161,14 @@ _Avoid_: Model, MCP Client alone, mandatory extra service
 **Harness**:
 The runtime control portion of an Agent system that coordinates model interaction and constrained action execution. It is a responsibility within the Host's operation, not a synonym for the model or a claim that all components share one process.
 _Avoid_: Model reasoning, MCP transport, sandbox
+
+**Orchestration**:
+The book's treatment of arranging task steps, selecting handlers, collecting results, and deciding which workflow branch follows. It introduces waiting and stopping decisions while leaving enforcement of shared resource limits to Runtime Control.
+_Avoid_: Adding multiple agents by default, comprehensive resource management
+
+**Runtime Control**:
+The book's treatment of how the Harness enforces concurrency, rate, attempt and time limits, responds to cancellation, and accounts for resources until work actually ends. These controls apply within both a single Agent loop and an orchestrated workflow.
+_Avoid_: Workflow routing, execution-location selection, permission policy alone
 
 **MCP**:
 The protocol contract between an Agent application's MCP Client and an MCP Server for exchanging capabilities, invocation requests, and results. It is an optional integration route, not a prerequisite for Agent behavior or a grant of business permission.

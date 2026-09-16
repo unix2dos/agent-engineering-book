@@ -209,6 +209,8 @@ LangChain 的 Agent 建立在 LangGraph 之上。直接使用 LangGraph 也可�
 
 [进入第 10 课实践](../practice/lesson-10/README.md)：缩小修改次数或请求预算，观察验收失败怎样反馈、程序何时停止。说明中列出必做步骤、完成标准和选做内容。
 
+本课负责安排步骤、交接与验收。共享并发、模型与工具分别计数、截止时间和取消后的资源释放，继续到[第 14 课：Agent 运行控制](14-Agent运行控制.md)；新课复用这里的工作流代码。
+
 ## 资料
 
 1. [LangChain：Handoffs 与上下文传递](https://docs.langchain.com/oss/python/langchain/multi-agent/handoffs)

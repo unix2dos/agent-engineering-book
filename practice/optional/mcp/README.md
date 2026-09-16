@@ -4,7 +4,9 @@
 
 资料固定为教学数据：family 支持 6 个账号，personal 支持 3 个。实验不调用模型、不需要密钥、不连接业务数据库，也不提供修改套餐的工具。函数返回的 `process_id` 只用于辨认执行进程，不是套餐业务字段。
 
-当前验证状态：初始化、工具发现和 family 查询已实际发生，Server 返回账号上限 6、`isError=false`。但本版 SDK 将裸 `dict` 返回值编码为 `content` 中的 JSON 文本，脚本却要求存在 `structuredContent`，因此结果检查失败。按作者“遇到问题先讨论”的约定暂停；无效参数与未知写工具两个后续检查尚未执行，暂不把本实验标为通过。
+验证记录（2026-09-16）：family 和 personal 两次完整运行均通过，分别返回账号上限 6 和 3；无效套餐与不存在的写工具均返回 `isError=true`。这些结果验证了本地跨进程 MCP 调用，没有接入真实模型。
+
+此前脚本要求 `structuredContent`，但裸 `dict` 返回标注只产生了文本结果。修复将返回类型补为 `dict[str, str | int]`，让本版 SDK 生成输出 Schema 和结构化结果；原有结果断言保留，并增加输出 Schema 检查。这是本实验的输出约定，不代表所有 MCP 工具都必须返回结构化内容。
 
 ## 1. 运行
 
@@ -66,4 +68,4 @@ MCP 调用：
 - [MCP 2025-11-25：Tools](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)
 - [MCP 2026-07-28：架构与发现流程](https://modelcontextprotocol.io/docs/2026-07-28/learn/architecture)
 
-本目录是[第 13 课](../../../chapters/13-MCP与Skills.md)的选做实验，不加入全书默认离线检查；默认检查仍只依赖标准库，这里需要 MCP SDK。当前未通过的检查见文首说明。
+本目录是[第 13 课](../../../chapters/13-MCP与Skills.md)的选做实验，不加入全书默认离线检查；默认检查仍只依赖标准库，这里需要 MCP SDK。

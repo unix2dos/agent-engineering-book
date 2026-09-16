@@ -3,6 +3,8 @@
 python -B practice/lesson-10/workflow_demo.py
 python -B practice/lesson-10/workflow_demo.py --scenario always-wrong
 python -B practice/lesson-10/workflow_demo.py --model-budget 5
+python -B practice/lesson-10/workflow_demo.py --tool-budget 3
+python -B practice/lesson-10/workflow_demo.py --model-budget 5 --reserve-summary
 python -B practice/lesson-10/workflow_demo.py --self-check
 python -B practice/lesson-10/workflow_demo.py --live --max-attempts 2 --model-budget 6
 
@@ -43,12 +45,15 @@ class ModelBudgetExhausted(RuntimeError):
 
 
 def run_workflow(client, output: Path, max_attempts: int = 3, model_budget: int = 9,
-                 *, model: str = "scripted-workflow", live: bool = False) -> dict:
+                 *, model: str = "scripted-workflow", live: bool = False,
+                 tool_budget: int | None = None, reserve_summary: bool = False) -> dict:
     """重点读本函数末尾的循环：Agent 回答后，程序始终自行验收。"""
     if type(max_attempts) is not int or not 1 <= max_attempts <= 3:
         raise ValueError("总修改轮数必须为 1～3，包括首次修改")
     if type(model_budget) is not int or not 1 <= model_budget <= 30:
         raise ValueError("模型请求总预算必须为 1～30")
+    if tool_budget is not None and (type(tool_budget) is not int or not 1 <= tool_budget <= 30):
+        raise ValueError("工具执行总预算必须为 1～30")
     if not isinstance(model, str) or not model.strip():
         raise ValueError("模型名称不能为空")
     output.mkdir(parents=True, exist_ok=False)  # 不覆盖旧实验。
@@ -70,6 +75,9 @@ def run_workflow(client, output: Path, max_attempts: int = 3, model_budget: int 
         "attempt": 0,
         "max_attempts": max_attempts, "model_budget": model_budget,
         "remaining_calls": model_budget, "attempts": [],
+        "tool_budget": tool_budget, "remaining_tool_calls": tool_budget,
+        "tool_budget_blocked": False,
+        "reserve_summary": reserve_summary, "summary_status": "not_requested", "summary": None,
         "source_sha256": {
             str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
             for path in (Path(__file__).resolve(), ROOT / "practice/workspace-agent/agent.py",
@@ -79,9 +87,11 @@ def run_workflow(client, output: Path, max_attempts: int = 3, model_budget: int 
     write_checkpoint(checkpoint, state)
     AGENT.persist_message(session, {"role": "system", "content": "只允许读写 config.json；根据真实工具结果回答。"})
 
-    def request(**kwargs):
-        if state["remaining_calls"] == 0:
-            raise ModelBudgetExhausted("共享模型请求预算已用完")
+    def request(*, for_summary=False, **kwargs):
+        if state["remaining_calls"] == 0 or (
+            reserve_summary and not for_summary and state["remaining_calls"] == 1
+        ):
+            raise ModelBudgetExhausted("执行阶段模型请求预算已用完")
         state["remaining_calls"] -= 1
         # 先保存再发起请求；保存失败则不调用模型，失败请求也消耗额度。
         # ponytail: 单写者整体替换；不宣称并发、断电或分布式事务保证。
@@ -107,6 +117,17 @@ def run_workflow(client, output: Path, max_attempts: int = 3, model_budget: int 
                 raise ValueError("只开放读取和写入工具")
         except (ValueError, TypeError) as error:
             return json.dumps({"status": "rejected", "reason": str(error)}, ensure_ascii=False)
+        if state["remaining_tool_calls"] is not None:
+            if state["remaining_tool_calls"] == 0:
+                state["tool_budget_blocked"] = True
+                write_checkpoint(checkpoint, state)
+                print(f"  拒绝 Tool: {name} config.json — 工具执行预算已用完")
+                return json.dumps(
+                    {"status": "rejected", "reason": "tool_budget_exhausted"}, ensure_ascii=False,
+                )
+            # 校验通过后，先扣减并保存再执行；执行失败也不退回额度。
+            state["remaining_tool_calls"] -= 1
+            write_checkpoint(checkpoint, state)
         print(f"  Tool: {name} config.json")
         return AGENT.execute_workspace_tool_with_ledger(
             workspace, session, call, approve=lambda *_: True,
@@ -128,6 +149,8 @@ def run_workflow(client, output: Path, max_attempts: int = 3, model_budget: int 
             run_status = "model_budget_exhausted"
         except Exception as error:
             run_status, error_type = "run_error", type(error).__name__
+        if run_status == "completed" and state["tool_budget_blocked"]:
+            run_status = "tool_budget_exhausted"
 
         state["phase"] = "verifying"
         write_checkpoint(checkpoint, state)
@@ -140,6 +163,7 @@ def run_workflow(client, output: Path, max_attempts: int = 3, model_budget: int 
             "error_type": error_type, "grade": grade, "artifact": snapshot.name,
             "duration_ms": round((time.perf_counter() - started) * 1000),
             "remaining_calls": state["remaining_calls"],
+            "remaining_tool_calls": state["remaining_tool_calls"],
         }
         state["attempts"].append(record)
         write_checkpoint(output / f"attempt_{attempt:02d}_report.json", record)
@@ -151,6 +175,8 @@ def run_workflow(client, output: Path, max_attempts: int = 3, model_budget: int 
             state["phase"] = "grader_error"
         elif grade["status"] == "passed":
             state["phase"] = "completed"
+        elif state["remaining_tool_calls"] == 0:
+            state["phase"] = "tool_budget_exhausted"
         elif attempt == max_attempts:
             state["phase"] = "attempt_limit"
         elif state["remaining_calls"] == 0:
@@ -164,6 +190,29 @@ def run_workflow(client, output: Path, max_attempts: int = 3, model_budget: int 
             "程序验收未通过：" + grade["reason"] + "。请修复 config.json。"
             "原始配置是 " + json.dumps(INITIAL, ensure_ascii=False) + "。" + TASK
         )
+
+    if reserve_summary and state["phase"] != "completed" and state["remaining_calls"] > 0:
+        last = state["attempts"][-1]
+        evidence = {"phase": state["phase"], "grade": last["grade"], "artifact": last["artifact"],
+                    "remaining_tool_calls": state["remaining_tool_calls"]}
+        fallback = f"任务未完成，停止原因：{state['phase']}；产物验收：{last['grade']['status']}。已有证据已保存。"
+        state.update(summary_status="running", summary=fallback)
+        try:
+            # 独立的收尾请求不提供工具，也不进入执行 Tool Call 的循环。
+            response = request(for_summary=True, model=model, messages=[
+                {"role": "system", "content": "仅根据程序证据总结停止原因和未完成事项，不申请工具。产物通过不代表整个任务完成。"},
+                {"role": "user", "content": json.dumps(evidence, ensure_ascii=False)},
+            ])
+            choice = response.choices[0]
+            message = choice.message
+            if choice.finish_reason != "stop" or message.tool_calls or not isinstance(message.content, str) or not message.content.strip():
+                raise ValueError("总结必须是正常结束的非空文本，不能包含工具调用")
+            state.update(summary_status="completed", summary=message.content)
+        except Exception as error:
+            # 最后一次总结也计费计数；失败后由程序报告，不追加模型请求。
+            state.update(summary_status="error", summary_error_type=type(error).__name__)
+        write_checkpoint(checkpoint, state)
+        print("收尾报告：", state["summary"])
 
     write_checkpoint(output / "report.json", state)
     print("工作流结果：", state["phase"])
@@ -184,7 +233,20 @@ def scripted_client(scenario: str):
             )]),
             AGENT.fake_response("stop", content="已修改主题。"),
         ])
-    return AGENT.FakeClient(responses)
+    client = AGENT.FakeClient(responses)
+    create = client.completions.create
+
+    def respond(**request):
+        if "tools" not in request:
+            # 固定剧本只验证接线；这段文字不证明真实模型会准确总结。
+            evidence = json.loads(request["messages"][-1]["content"])
+            client.completions.responses.insert(0, AGENT.fake_response(
+                "stop", content=f"任务未完成；停止原因：{evidence['phase']}；产物验收：{evidence['grade']['status']}。",
+            ))
+        return create(**request)
+
+    client.completions.create = respond
+    return client
 
 
 def self_check() -> None:
@@ -219,6 +281,68 @@ def self_check() -> None:
         assert exhausted["attempts"][-1]["grade"]["status"] == "passed"
         assert exhausted["attempts"][-1]["agent_run"] != "completed"
         assert len(budget_client.completions.requests) == 5
+
+        tool_client = scripted_client("repair")
+        with patch.object(AGENT, "execute_workspace_tool_with_ledger",
+                          wraps=AGENT.execute_workspace_tool_with_ledger) as execute:
+            tool_limited = run_workflow(tool_client, root / "tool-budget", tool_budget=3)
+        assert [call.args[2].id for call in execute.call_args_list] == ["read_1", "write_1", "read_2"]
+        assert tool_limited["phase"] == "tool_budget_exhausted"
+        assert [r["remaining_tool_calls"] for r in tool_limited["attempts"]] == [1, 0]
+        assert tool_limited["attempts"][-1]["grade"]["status"] == "failed"
+        assert json.loads((root / "tool-budget/workspace/config.json").read_text()) == {"theme": "dark", "port": 8080}
+        rejection = tool_client.completions.requests[-1]["messages"][-1]
+        assert rejection["role"] == "tool" and rejection["tool_call_id"] == "write_2"
+        assert json.loads(rejection["content"]) == {"status": "rejected", "reason": "tool_budget_exhausted"}
+        assert not AGENT.pending_tool_calls(AGENT.load_entries(root / "tool-budget/session.jsonl"))
+        exact = run_workflow(scripted_client("repair"), root / "exact-tool-budget", tool_budget=4)
+        assert exact["phase"] == "completed" and exact["remaining_tool_calls"] == 0
+
+        batch = AGENT.FakeClient([
+            AGENT.fake_response("tool_calls", tool_calls=[
+                AGENT.fake_tool_call("batch_read", "read_file", {"path": "config.json"}),
+                AGENT.fake_tool_call("batch_write", "write_file", {"path": "config.json", "content": "changed"}),
+            ]), AGENT.fake_response("stop", content="额度不足"),
+        ])
+        batch_limited = run_workflow(batch, root / "batch-budget", tool_budget=1)
+        assert batch_limited["phase"] == "tool_budget_exhausted"
+        assert json.loads((root / "batch-budget/workspace/config.json").read_text()) == INITIAL
+        assert [m["tool_call_id"] for m in batch.completions.requests[-1]["messages"][-2:]] == ["batch_read", "batch_write"]
+
+        summary_client = scripted_client("repair")
+        summarized = run_workflow(summary_client, root / "summary", model_budget=5, reserve_summary=True)
+        assert summarized["phase"] == "model_budget_exhausted" and summarized["summary_status"] == "completed"
+        assert summarized["remaining_calls"] == 0 and len(summary_client.completions.requests) == 5
+        assert ["tools" in request for request in summary_client.completions.requests] == [True] * 4 + [False]
+        assert json.loads((root / "summary/workspace/config.json").read_text())["port"] == 8080
+        assert summarized["attempts"][-1]["grade"]["status"] == "failed"
+        assert "任务未完成" in summarized["summary"]
+        assert json.loads((root / "summary/checkpoint.json").read_text()) == summarized
+        finished_client = scripted_client("repair")
+        finished = run_workflow(finished_client, root / "finished-with-reserve", reserve_summary=True)
+        assert finished["phase"] == "completed" and finished["summary_status"] == "not_requested"
+        assert len(finished_client.completions.requests) == 6
+
+        for failure in ("tool_call", "timeout"):
+            bad_summary_client = scripted_client("repair")
+            normal_create = bad_summary_client.completions.create
+
+            def bad_summary(**request):
+                response = normal_create(**request)
+                if "tools" in request:
+                    return response
+                if failure == "timeout":
+                    raise TimeoutError("模拟总结超时")
+                return AGENT.fake_response("tool_calls", tool_calls=[AGENT.fake_tool_call(
+                    "summary_write", "write_file", {"path": "config.json", "content": "unexpected"},
+                )])
+
+            bad_summary_client.completions.create = bad_summary
+            failed_summary = run_workflow(bad_summary_client, root / f"summary-{failure}", model_budget=5, reserve_summary=True)
+            assert failed_summary["summary_status"] == "error" and failed_summary["remaining_calls"] == 0
+            assert len(bad_summary_client.completions.requests) == 5
+            assert failed_summary["phase"] == "model_budget_exhausted" and "任务未完成" in failed_summary["summary"]
+            assert json.loads((root / f"summary-{failure}" / "workspace/config.json").read_text())["port"] == 8080
 
         with patch.object(GRADER, "safe_grade_config", return_value={"status": "error", "reason": "模拟评分失败"}):
             failed_grader = run_workflow(scripted_client("repair"), root / "grader")
@@ -279,6 +403,9 @@ if __name__ == "__main__":
     parser.add_argument("--scenario", choices=["repair", "always-wrong"], default="repair")
     parser.add_argument("--max-attempts", type=int, choices=range(1, 4), default=3)
     parser.add_argument("--model-budget", type=int, choices=range(1, 31), default=9)
+    parser.add_argument("--tool-budget", type=int, choices=range(1, 31),
+                        help="跨修改轮次共享的工具执行额度；省略时不另设工具次数上限")
+    parser.add_argument("--reserve-summary", action="store_true", help="在模型总预算内预留一次无工具的收尾请求")
     args = parser.parse_args()
     if args.session_header and not args.live:
         parser.error("--session-header 只用于 --live")
@@ -299,7 +426,8 @@ if __name__ == "__main__":
         print("真实模型" if args.live else "固定剧本模型", "；报告目录：", output, flush=True)
         try:
             result = run_workflow(client, output, args.max_attempts, args.model_budget,
-                                  model=model, live=args.live)
+                                  model=model, live=args.live, tool_budget=args.tool_budget,
+                                  reserve_summary=args.reserve_summary)
         finally:
             if args.live:
                 client.close()
