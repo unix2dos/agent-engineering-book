@@ -1,0 +1,570 @@
+{
+  "recorded_at": "2026-09-16T18:15:26.106588+08:00",
+  "real_model_requests_total": 8,
+  "status": "paused_summary_semantics_unresolved",
+  "runs": [
+    {
+      "case": "before_fix",
+      "real_model_requests": 4,
+      "report": {
+        "phase": "model_budget_exhausted",
+        "mode": "live",
+        "model": "mimo-v2.5",
+        "provider_host": "opencode.ai",
+        "sdk_max_retries": 0,
+        "request_timeout": "30.0",
+        "attempt": 1,
+        "max_attempts": 1,
+        "model_budget": 4,
+        "remaining_calls": 0,
+        "attempts": [
+          {
+            "attempt": 1,
+            "agent_run": "model_budget_exhausted",
+            "answer": null,
+            "error_type": null,
+            "grade": {
+              "status": "passed",
+              "reason": "主题正确，其他配置保持不变"
+            },
+            "artifact": "attempt_01_config.json",
+            "duration_ms": 16038,
+            "remaining_calls": 1,
+            "remaining_tool_calls": 0
+          }
+        ],
+        "tool_budget": 2,
+        "remaining_tool_calls": 0,
+        "tool_budget_blocked": true,
+        "reserve_summary": true,
+        "summary_status": "completed",
+        "summary": "根据提供的程序证据，当前任务阶段的总结如下：\n\n**停止原因：** 系统资源限制。\n*   程序证据明确指出阶段为 `model_budget_exhausted`，且 `remaining_tool_calls` 为 `0`。这表明用于执行任务的工具调用预算已完全耗尽，系统无法再发起任何新的工具调用，因此任务必须在此处停止。\n\n**未完成事项：**\n*   无新的工具操作或分析步骤需要完成。\n*   当前产物 `attempt_01_config.json` 的状态已由评估系统确认（`grade` 中 `status: passed`），这标志着对该特定配置项的测试或验证已结束。\n*   然而，`grade` 中的理由“主题正确，其他配置保持不变”暗示了这是一个验证步骤。如果整个任务流程还包含后续的配置部署、系统集成或其他依赖于后续工具调用的步骤，那么这些步骤将因预算耗尽而**未执行**。\n\n**总结：**\n本次操作周期已因工具调用预算耗尽而终止。当前产物（配置文件）已通过其预定的验证检查。是否启动新的任务周期以处理后续工作（如果有），需要由外部流程或用户决策，而非当前模型可以自主决定。",
+        "source_sha256": {
+          "practice/lesson-10/workflow_demo.py": "d29696c62e32ced92c0892aacec38a2988e64dc114f064f6322220656f82a3c5",
+          "practice/workspace-agent/agent.py": "3f43d75beff584937ec28536978fce325844d795a5300c4a192ae05d2b0dde5e",
+          "practice/lesson-09/grader.py": "2d6fd59d183896faf123e2af7bc57bacbc45dbfec9fa45ee5956ae354ebcd79b"
+        }
+      },
+      "config": {
+        "theme": "dark",
+        "port": 3000
+      },
+      "session_entries": [
+        {
+          "type": "message",
+          "message": {
+            "role": "system",
+            "content": "只允许读写 config.json；根据真实工具结果回答。"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "user",
+            "content": "读取 config.json，把 theme 改成 dark，其他配置保持不变。"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+              {
+                "id": "call_d5b8e99febb74abebc5948d8",
+                "type": "function",
+                "function": {
+                  "name": "read_file",
+                  "arguments": "{\"path\": \"config.json\"}"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "tool",
+            "content": "{\"path\": \"config.json\", \"content\": \"{\\\"theme\\\": \\\"light\\\", \\\"port\\\": 3000}\\n\", \"truncated\": false, \"next_offset\": null}",
+            "tool_call_id": "call_d5b8e99febb74abebc5948d8"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+              {
+                "id": "call_f917bb678f954feca7f634f4",
+                "type": "function",
+                "function": {
+                  "name": "write_file",
+                  "arguments": "{\"path\": \"config.json\", \"content\": \"{\\\"theme\\\": \\\"dark\\\", \\\"port\\\": 3000}\"}"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "tool_execution",
+          "execution_id": "exec_0f18e2f8f9474f03b49a97c36185ca9d",
+          "tool_call_id": "call_f917bb678f954feca7f634f4",
+          "status": "approved",
+          "tool_name": "write_file",
+          "idempotency_key": "write_file:call_f917bb678f954feca7f634f4",
+          "arguments_sha256": "93775026cb2a8c0641f805a0d3f8d2ee2a221312d5f7f3f2e45e4329041634e1"
+        },
+        {
+          "type": "tool_execution",
+          "execution_id": "exec_0f18e2f8f9474f03b49a97c36185ca9d",
+          "tool_call_id": "call_f917bb678f954feca7f634f4",
+          "status": "running",
+          "tool_name": "write_file",
+          "idempotency_key": "write_file:call_f917bb678f954feca7f634f4",
+          "arguments_sha256": "93775026cb2a8c0641f805a0d3f8d2ee2a221312d5f7f3f2e45e4329041634e1"
+        },
+        {
+          "type": "tool_execution",
+          "execution_id": "exec_0f18e2f8f9474f03b49a97c36185ca9d",
+          "tool_call_id": "call_f917bb678f954feca7f634f4",
+          "status": "succeeded",
+          "tool_name": "write_file",
+          "idempotency_key": "write_file:call_f917bb678f954feca7f634f4",
+          "arguments_sha256": "93775026cb2a8c0641f805a0d3f8d2ee2a221312d5f7f3f2e45e4329041634e1",
+          "result": {
+            "status": "succeeded",
+            "path": "config.json",
+            "bytes_written": 31,
+            "overwritten": true,
+            "execution_id": "exec_0f18e2f8f9474f03b49a97c36185ca9d"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "tool",
+            "content": "{\"status\": \"succeeded\", \"path\": \"config.json\", \"bytes_written\": 31, \"overwritten\": true, \"execution_id\": \"exec_0f18e2f8f9474f03b49a97c36185ca9d\"}",
+            "tool_call_id": "call_f917bb678f954feca7f634f4"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+              {
+                "id": "call_e6fc7c2125074df88d51bde2",
+                "type": "function",
+                "function": {
+                  "name": "read_file",
+                  "arguments": "{\"path\": \"config.json\"}"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "tool",
+            "content": "{\"status\": \"rejected\", \"reason\": \"tool_budget_exhausted\"}",
+            "tool_call_id": "call_e6fc7c2125074df88d51bde2"
+          }
+        }
+      ]
+    },
+    {
+      "case": "after_fix_full_run",
+      "real_model_requests": 3,
+      "report": {
+        "phase": "completed",
+        "mode": "live",
+        "model": "mimo-v2.5",
+        "provider_host": "opencode.ai",
+        "sdk_max_retries": 0,
+        "request_timeout": "30.0",
+        "attempt": 1,
+        "max_attempts": 1,
+        "model_budget": 4,
+        "remaining_calls": 1,
+        "attempts": [
+          {
+            "attempt": 1,
+            "agent_run": "completed",
+            "answer": "已完成。已将 config.json 中的 theme 从 \"light\" 改为 \"dark\"，port 配置保持不变。",
+            "error_type": null,
+            "grade": {
+              "status": "passed",
+              "reason": "主题正确，其他配置保持不变"
+            },
+            "artifact": "attempt_01_config.json",
+            "duration_ms": 12490,
+            "remaining_calls": 1,
+            "remaining_tool_calls": 0
+          }
+        ],
+        "tool_budget": 2,
+        "remaining_tool_calls": 0,
+        "tool_budget_blocked": false,
+        "reserve_summary": true,
+        "summary_status": "not_requested",
+        "summary": null,
+        "source_sha256": {
+          "practice/lesson-10/workflow_demo.py": "a409f25047c733e15d487f49869b1e0c5493676432df0b5c01bde052489be84c",
+          "practice/workspace-agent/agent.py": "3f43d75beff584937ec28536978fce325844d795a5300c4a192ae05d2b0dde5e",
+          "practice/lesson-09/grader.py": "2d6fd59d183896faf123e2af7bc57bacbc45dbfec9fa45ee5956ae354ebcd79b"
+        },
+        "status_report": "任务完成；任务状态：completed；产物验收：passed；模型请求额度已用：3/4；工具剩余额度：0；工具预算拒绝：False；原 Agent 最终回答已取得：True。"
+      },
+      "config": {
+        "theme": "dark",
+        "port": 3000
+      },
+      "session_entries": [
+        {
+          "type": "message",
+          "message": {
+            "role": "system",
+            "content": "只允许读写 config.json；根据真实工具结果回答。"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "user",
+            "content": "读取 config.json，把 theme 改成 dark，其他配置保持不变。"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+              {
+                "id": "call_7d28474bdf7046b382a0666b",
+                "type": "function",
+                "function": {
+                  "name": "read_file",
+                  "arguments": "{\"path\": \"config.json\"}"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "tool",
+            "content": "{\"path\": \"config.json\", \"content\": \"{\\\"theme\\\": \\\"light\\\", \\\"port\\\": 3000}\\n\", \"truncated\": false, \"next_offset\": null}",
+            "tool_call_id": "call_7d28474bdf7046b382a0666b"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+              {
+                "id": "call_6e76a9857c1b4a289d947f2d",
+                "type": "function",
+                "function": {
+                  "name": "write_file",
+                  "arguments": "{\"path\": \"config.json\", \"content\": \"{\\\"theme\\\": \\\"dark\\\", \\\"port\\\": 3000}\"}"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "tool_execution",
+          "execution_id": "exec_e796eccb25b54ba1b63a0d7e8134426c",
+          "tool_call_id": "call_6e76a9857c1b4a289d947f2d",
+          "status": "approved",
+          "tool_name": "write_file",
+          "idempotency_key": "write_file:call_6e76a9857c1b4a289d947f2d",
+          "arguments_sha256": "93775026cb2a8c0641f805a0d3f8d2ee2a221312d5f7f3f2e45e4329041634e1"
+        },
+        {
+          "type": "tool_execution",
+          "execution_id": "exec_e796eccb25b54ba1b63a0d7e8134426c",
+          "tool_call_id": "call_6e76a9857c1b4a289d947f2d",
+          "status": "running",
+          "tool_name": "write_file",
+          "idempotency_key": "write_file:call_6e76a9857c1b4a289d947f2d",
+          "arguments_sha256": "93775026cb2a8c0641f805a0d3f8d2ee2a221312d5f7f3f2e45e4329041634e1"
+        },
+        {
+          "type": "tool_execution",
+          "execution_id": "exec_e796eccb25b54ba1b63a0d7e8134426c",
+          "tool_call_id": "call_6e76a9857c1b4a289d947f2d",
+          "status": "succeeded",
+          "tool_name": "write_file",
+          "idempotency_key": "write_file:call_6e76a9857c1b4a289d947f2d",
+          "arguments_sha256": "93775026cb2a8c0641f805a0d3f8d2ee2a221312d5f7f3f2e45e4329041634e1",
+          "result": {
+            "status": "succeeded",
+            "path": "config.json",
+            "bytes_written": 31,
+            "overwritten": true,
+            "execution_id": "exec_e796eccb25b54ba1b63a0d7e8134426c"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "tool",
+            "content": "{\"status\": \"succeeded\", \"path\": \"config.json\", \"bytes_written\": 31, \"overwritten\": true, \"execution_id\": \"exec_e796eccb25b54ba1b63a0d7e8134426c\"}",
+            "tool_call_id": "call_6e76a9857c1b4a289d947f2d"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "assistant",
+            "content": "已完成。已将 config.json 中的 theme 从 \"light\" 改为 \"dark\"，port 配置保持不变。"
+          }
+        }
+      ]
+    },
+    {
+      "case": "after_fix_summary_replay",
+      "real_model_requests": 1,
+      "report": {
+        "phase": "model_budget_exhausted",
+        "mode": "recorded-replay-with-live-summary",
+        "model": "mimo-v2.5",
+        "provider_host": "opencode.ai",
+        "sdk_max_retries": 0,
+        "request_timeout": "30.0",
+        "attempt": 1,
+        "max_attempts": 1,
+        "model_budget": 4,
+        "remaining_calls": 0,
+        "attempts": [
+          {
+            "attempt": 1,
+            "agent_run": "model_budget_exhausted",
+            "answer": null,
+            "error_type": null,
+            "grade": {
+              "status": "passed",
+              "reason": "主题正确，其他配置保持不变"
+            },
+            "artifact": "attempt_01_config.json",
+            "duration_ms": 2,
+            "remaining_calls": 1,
+            "remaining_tool_calls": 0
+          }
+        ],
+        "tool_budget": 2,
+        "remaining_tool_calls": 0,
+        "tool_budget_blocked": true,
+        "reserve_summary": true,
+        "summary_status": "completed",
+        "summary": "已成功读取原始配置文件并写入修改后的内容；第三次读取操作因工具预算耗尽被拒绝。原Agent的最终回答未收到，但任务状态显示已通过。",
+        "source_sha256": {
+          "practice/lesson-10/workflow_demo.py": "a409f25047c733e15d487f49869b1e0c5493676432df0b5c01bde052489be84c",
+          "practice/workspace-agent/agent.py": "3f43d75beff584937ec28536978fce325844d795a5300c4a192ae05d2b0dde5e",
+          "practice/lesson-09/grader.py": "2d6fd59d183896faf123e2af7bc57bacbc45dbfec9fa45ee5956ae354ebcd79b"
+        },
+        "summary_evidence": {
+          "task": "读取 config.json，把 theme 改成 dark，其他配置保持不变。",
+          "initial_config": {
+            "theme": "light",
+            "port": 3000
+          },
+          "phase": "model_budget_exhausted",
+          "grade": {
+            "status": "passed",
+            "reason": "主题正确，其他配置保持不变"
+          },
+          "artifact": "attempt_01_config.json",
+          "agent_run": "model_budget_exhausted",
+          "error_type": null,
+          "agent_final_answer_received": false,
+          "model_requests": {
+            "limit": 4,
+            "used_before_summary": 3,
+            "remaining_before_summary": 1,
+            "reserved_for_this_summary": 1,
+            "available_for_execution": 0
+          },
+          "tool_budget": {
+            "limit": 2,
+            "remaining": 0,
+            "blocked": true
+          },
+          "tool_actions": [
+            {
+              "tool_call_id": "call_d5b8e99febb74abebc5948d8",
+              "tool_name": "read_file",
+              "result": {
+                "path": "config.json",
+                "content": "{\"theme\": \"light\", \"port\": 3000}\n",
+                "truncated": false,
+                "next_offset": null
+              }
+            },
+            {
+              "tool_call_id": "call_f917bb678f954feca7f634f4",
+              "tool_name": "write_file",
+              "result": {
+                "status": "succeeded",
+                "path": "config.json",
+                "bytes_written": 31,
+                "overwritten": true,
+                "execution_id": "exec_45d756127d7a4f65a82fb2c475fa6109"
+              }
+            },
+            {
+              "tool_call_id": "call_e6fc7c2125074df88d51bde2",
+              "tool_name": "read_file",
+              "result": {
+                "status": "rejected",
+                "reason": "tool_budget_exhausted"
+              }
+            }
+          ]
+        },
+        "status_report": "任务未完成；任务状态：model_budget_exhausted；产物验收：passed；模型请求额度已用：4/4；工具剩余额度：0；工具预算拒绝：True；原 Agent 最终回答已取得：False。",
+        "replayed_model_responses": 3,
+        "live_model_requests": 1,
+        "replay_harness_sha256": "0776c2de462c887a4d55cc954f15cfd66252d1eb698b323275c2f7ff2d45eebf",
+        "original_session": "/var/folders/x9/86gtz2kn453dyt83pwy45b3h0000gn/T/agent-workflow-60kdkm9a/run/session.jsonl"
+      },
+      "config": {
+        "theme": "dark",
+        "port": 3000
+      },
+      "session_entries": [
+        {
+          "type": "message",
+          "message": {
+            "role": "system",
+            "content": "只允许读写 config.json；根据真实工具结果回答。"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "user",
+            "content": "读取 config.json，把 theme 改成 dark，其他配置保持不变。"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+              {
+                "id": "call_d5b8e99febb74abebc5948d8",
+                "type": "function",
+                "function": {
+                  "name": "read_file",
+                  "arguments": "{\"path\": \"config.json\"}"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "tool",
+            "content": "{\"path\": \"config.json\", \"content\": \"{\\\"theme\\\": \\\"light\\\", \\\"port\\\": 3000}\\n\", \"truncated\": false, \"next_offset\": null}",
+            "tool_call_id": "call_d5b8e99febb74abebc5948d8"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+              {
+                "id": "call_f917bb678f954feca7f634f4",
+                "type": "function",
+                "function": {
+                  "name": "write_file",
+                  "arguments": "{\"path\": \"config.json\", \"content\": \"{\\\"theme\\\": \\\"dark\\\", \\\"port\\\": 3000}\"}"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "tool_execution",
+          "execution_id": "exec_45d756127d7a4f65a82fb2c475fa6109",
+          "tool_call_id": "call_f917bb678f954feca7f634f4",
+          "status": "approved",
+          "tool_name": "write_file",
+          "idempotency_key": "write_file:call_f917bb678f954feca7f634f4",
+          "arguments_sha256": "93775026cb2a8c0641f805a0d3f8d2ee2a221312d5f7f3f2e45e4329041634e1"
+        },
+        {
+          "type": "tool_execution",
+          "execution_id": "exec_45d756127d7a4f65a82fb2c475fa6109",
+          "tool_call_id": "call_f917bb678f954feca7f634f4",
+          "status": "running",
+          "tool_name": "write_file",
+          "idempotency_key": "write_file:call_f917bb678f954feca7f634f4",
+          "arguments_sha256": "93775026cb2a8c0641f805a0d3f8d2ee2a221312d5f7f3f2e45e4329041634e1"
+        },
+        {
+          "type": "tool_execution",
+          "execution_id": "exec_45d756127d7a4f65a82fb2c475fa6109",
+          "tool_call_id": "call_f917bb678f954feca7f634f4",
+          "status": "succeeded",
+          "tool_name": "write_file",
+          "idempotency_key": "write_file:call_f917bb678f954feca7f634f4",
+          "arguments_sha256": "93775026cb2a8c0641f805a0d3f8d2ee2a221312d5f7f3f2e45e4329041634e1",
+          "result": {
+            "status": "succeeded",
+            "path": "config.json",
+            "bytes_written": 31,
+            "overwritten": true,
+            "execution_id": "exec_45d756127d7a4f65a82fb2c475fa6109"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "tool",
+            "content": "{\"status\": \"succeeded\", \"path\": \"config.json\", \"bytes_written\": 31, \"overwritten\": true, \"execution_id\": \"exec_45d756127d7a4f65a82fb2c475fa6109\"}",
+            "tool_call_id": "call_f917bb678f954feca7f634f4"
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+              {
+                "id": "call_e6fc7c2125074df88d51bde2",
+                "type": "function",
+                "function": {
+                  "name": "read_file",
+                  "arguments": "{\"path\": \"config.json\"}"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "message",
+          "message": {
+            "role": "tool",
+            "content": "{\"status\": \"rejected\", \"reason\": \"tool_budget_exhausted\"}",
+            "tool_call_id": "call_e6fc7c2125074df88d51bde2"
+          }
+        }
+      ]
+    }
+  ]
+}

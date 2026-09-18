@@ -170,6 +170,10 @@ _Avoid_: Adding multiple agents by default, comprehensive resource management
 The book's treatment of how the Harness enforces concurrency, rate, attempt and time limits, responds to cancellation, and accounts for resources until work actually ends. These controls apply within both a single Agent loop and an orchestrated workflow.
 _Avoid_: Workflow routing, execution-location selection, permission policy alone
 
+**Computer Use**:
+The book's topic on how an Agent observes and acts through browser or desktop interfaces, including how a user goal maps to a specific interface target. It extends the Agent's observation and action capabilities while reusing the book's existing treatment of tool loops, recovery, permissions, and runtime control.
+_Avoid_: A separate Agent runtime, screenshot-only automation, browser control as permission to operate the whole computer
+
 **MCP**:
 The protocol contract between an Agent application's MCP Client and an MCP Server for exchanging capabilities, invocation requests, and results. It is an optional integration route, not a prerequisite for Agent behavior or a grant of business permission.
 _Avoid_: Agent loop, model Function Calling format, automatic authorization
