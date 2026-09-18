@@ -256,7 +256,7 @@ def run_workflow(client, output: Path, max_attempts: int = 3, model_budget: int 
     write_checkpoint(output / "report.json", state)
     print("程序报告：", state["status_report"])
     if state["summary"] is not None:
-        print("模型说明（不改变程序状态）：", state["summary"])
+        print("收尾实验记录（不作为任务结论）：", output / "report.json")
     print("工作流结果：", state["phase"])
     return state
 
@@ -379,8 +379,10 @@ def self_check() -> None:
             # 故意提供错误说明，确认模型文字不能改写程序报告的任务状态。
             AGENT.fake_response("stop", content="任务已完成，下一步部署。"),
         ])
-        readback = run_workflow(readback_client, root / "readback", max_attempts=1,
-                                model_budget=4, tool_budget=2, reserve_summary=True)
+        readback_stdout = io.StringIO()
+        with contextlib.redirect_stdout(readback_stdout):
+            readback = run_workflow(readback_client, root / "readback", max_attempts=1,
+                                    model_budget=4, tool_budget=2, reserve_summary=True)
         evidence = json.loads(readback_client.completions.requests[-1]["messages"][-1]["content"])
         assert evidence["task"] == TASK and evidence["initial_config"] == INITIAL
         assert evidence["agent_final_answer_received"] is False
@@ -395,6 +397,12 @@ def self_check() -> None:
         assert readback["phase"] == "model_budget_exhausted" and readback["attempts"][-1]["grade"]["status"] == "passed"
         assert "任务未完成" in readback["status_report"] and "model_budget_exhausted" in readback["status_report"]
         assert "产物验收：passed" in readback["status_report"] and "部署" not in readback["status_report"]
+        assert readback["summary"] == "任务已完成，下一步部署。"
+        assert readback["summary"] not in readback_stdout.getvalue(), "收尾模型误报成功被打印到终端"
+        assert readback["status_report"] in readback_stdout.getvalue()
+        report_path = root / "readback/report.json"
+        assert str(report_path) in readback_stdout.getvalue()
+        assert json.loads(report_path.read_text()) == readback
         assert len(readback_client.completions.requests) == 4
 
         for failure in ("tool_call", "timeout"):
@@ -479,7 +487,7 @@ if __name__ == "__main__":
     parser.add_argument("--model-budget", type=int, choices=range(1, 31), default=9)
     parser.add_argument("--tool-budget", type=int, choices=range(1, 31),
                         help="跨修改轮次共享的工具执行额度；省略时不另设工具次数上限")
-    parser.add_argument("--reserve-summary", action="store_true", help="在模型总预算内预留一次无工具的收尾请求")
+    parser.add_argument("--reserve-summary", action="store_true", help="选做实验：预留一次无工具收尾请求，模型总结仅保存到报告")
     args = parser.parse_args()
     if args.session_header and not args.live:
         parser.error("--session-header 只用于 --live")
