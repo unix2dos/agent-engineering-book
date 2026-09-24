@@ -69,7 +69,7 @@ Reopening a Canonical Chapter in response to a specific reader block, failing ex
 _Avoid_: Scheduled rewrite, polish cycle, frozen forever
 
 **Plain-language Entry**:
-The first explanation of a load-bearing term: a visible action or failure comes first, a short everyday explanation gives it meaning, and only then does the technical name enter. It preserves technical precision without making the reader decode unexplained vocabulary.
+The first explanation of a load-bearing term: a visible action or failure comes first, a short everyday explanation gives it meaning, and only then does the technical name enter. An everyday image may open the explanation, but it is immediately mapped to the formal term, which is used from then on. It preserves technical precision without making the reader decode unexplained vocabulary.
 _Avoid_: Glossary dump, analogy-only definition, simplified terminology
 
 **Primary Explanation**:
@@ -171,7 +171,7 @@ The book's treatment of how the Harness enforces concurrency, rate, attempt and 
 _Avoid_: Workflow routing, execution-location selection, permission policy alone
 
 **Computer Use**:
-The book's topic on how an Agent observes and acts through browser or desktop interfaces, including how a user goal maps to a specific interface target. It extends the Agent's observation and action capabilities while reusing the book's existing treatment of tool loops, recovery, permissions, and runtime control.
+The book's topic on how an Agent observes and acts through browser or desktop interfaces, including how a user goal maps to a specific interface target. It extends the Agent's observation and action capabilities through a loop of observing the interface, selecting a target, acting, and checking the new state; a delivered action is not a completed task. Acting requires instructions, an executing program, system permission, and a running target environment together. It reuses the book's existing treatment of tool loops, recovery, permissions, and runtime control.
 _Avoid_: A separate Agent runtime, screenshot-only automation, browser control as permission to operate the whole computer
 
 **MCP**:
