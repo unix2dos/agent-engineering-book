@@ -14,7 +14,7 @@
 * [第 9 课：Agent Evaluation——任务验收与回归门禁](chapters/09-Agent评估.md)
 
 * [第 10 课：Agent Orchestration——Workflow、Routing 与长任务](chapters/10-Agent编排.md)
-* [第 11 课：Agent Runtime——持久状态与云端执行](chapters/11-Agent长期工作环境与云端执行.md)
+* [第 11 课：持久状态与云端执行——关掉网页后，任务还能接上吗](chapters/11-Agent长期工作环境与云端执行.md)
 
 * [第 12 课：RAG 检索增强生成——从资料入库到有据可查的回答](chapters/12-RAG检索增强生成.md)
 * [第 13 课：MCP 与 Skills——工具接入、任务方法与权限边界](chapters/13-MCP与Skills.md)
